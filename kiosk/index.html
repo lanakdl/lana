@@ -499,6 +499,13 @@ body.real, body { background: var(--paper); }
   }
   function find_(who) {
     api('kFind', who).then(function (r) {
+      /* booked for now at this branch: check in straight away, no extra tap */
+      var bk = r.booking, c = r.check;
+      if (r.member && bk && bk.status === 'booked' && c && !c.late && !c.other && !c.early)
+        return api('kCheckin', { id: bk.id }).then(function (x) {
+          if (x.result === 'checkedin') return go('queue', { q: x.q, vkey: x.vkey, label: t('สวัสดีคุณ ', 'Hello ') + r.member.name + ' · ' + nm(prog(bk.people[0].prog)) + (x.late ? ' · ' + t('มาสาย บริการจบตามเวลาเดิม', 'late, ends at the original time') : '') });
+          go('found', { found: r, who: who });
+        });
       if (r.member) return go('found', { found: r, who: who });
       go('walkin', { phoneRaw: who.phone || '', email: who.email || '', intl: who.intl });
     }).catch(function (e) { toast(errT(e)); });
