@@ -199,6 +199,14 @@ LANA.ADDONS = [
   { id: 'EXT30', name_th: 'เพิ่มเวลานวด 30 นาที', name_en: 'Add 30 minutes', price: 290, min: 30, seat: 'first', staffFee: 0, for: 'THAI120,FOOT90,NECK60', rec: 'FALSE',
     desc_th: 'นวดต่อเนื่องไม่ต้องรีบ ได้เวลาเพิ่มในจุดที่คุณบอกหมอนวด', desc_en: 'More time on the spots you ask for, no rush.' }
 ];
+/* member levels by money spent in a calendar year (paid orders). A level reached this year also lasts all of next year.
+   free: add-ons given free on every visit (the member's own seat) */
+LANA.TIERS = [
+  { id: 'BRONZE', name_th: 'บรอนซ์', name_en: 'Bronze', minSpend: 0, free: '', desc_th: 'สมาชิก Lana', desc_en: 'Lana member' },
+  { id: 'SILVER', name_th: 'ซิลเวอร์', name_en: 'Silver', minSpend: 5000, free: 'VIT', desc_th: 'วิตามินบำรุงผมฟรีทุกครั้ง', desc_en: 'Free hair vitamin every visit' },
+  { id: 'GOLD', name_th: 'โกลด์', name_en: 'Gold', minSpend: 12000, free: 'VIT,HERB', desc_th: 'วิตามินบำรุงผม + ลูกประคบฟรีทุกครั้ง', desc_en: 'Free hair vitamin + herbal compress every visit' },
+  { id: 'DIAMOND', name_th: 'ไดมอนด์', name_en: 'Diamond', minSpend: 25000, free: 'VIT,HERB,SCRUB', desc_th: 'วิตามิน ลูกประคบ และสครับหนังศีรษะฟรีทุกครั้ง', desc_en: 'Free vitamin, compress and scalp scrub every visit' }
+];
 /* partner vouchers: rule quiet = Mon–Thu before 16:00 */
 LANA.PARTNERS = [
   { id: 'CLINIC', name_th: 'คลินิกพาร์ทเนอร์', name_en: 'Partner clinic', prog: 'SPA45', days: 60, rule: 'quiet',
@@ -357,14 +365,14 @@ function lnSteps(p) { return String(p.steps || '').split(';').filter(Boolean).ma
 function lnProgAt(p, br) { return !!br && lnTrue(br.active) && lnPairs(p.segs).every(function (s) { return (+br[s.k] || 0) > 0; }); }
 function lnAddonFor(a, progId) { return String(a.for || '').split(',').map(function (x) { return x.trim(); }).indexOf(progId) >= 0; }
 /* what one person pays on top of the ticket: long hair, blow-dry style, add-ons (free ones from vouchers) */
-function lnPersonLines(prog, pe, free) {
+function lnPersonLines(prog, pe, free, tierFree, tierName) {
   var lines = [], hair = lnFind(LANA.HAIR, pe.hair), style = lnFind(LANA.STYLES, pe.style);
   if (lnTrue(prog.hair) && hair && +hair.price) lines.push({ kind: 'hair', th: 'ผมยาว (' + hair.name_th + ')', en: 'Long hair (' + (hair.name_en || hair.name_th) + ')', amount: +hair.price });
   if (lnTrue(prog.hair) && style && +style.price) lines.push({ kind: 'style', th: style.name_th, en: style.name_en || style.name_th, amount: +style.price });
   (pe.addons || []).forEach(function (id) {
     var ad = lnFind(LANA.ADDONS, id); if (!ad) return;
-    var f = (free || []).indexOf(id) >= 0;
-    lines.push({ kind: 'addon', id: id, th: ad.name_th + (f ? ' · ฟรีด้วยวอเชอร์' : ''), en: (ad.name_en || ad.name_th) + (f ? ' · free with voucher' : ''), amount: f ? 0 : +ad.price });
+    var tf = (tierFree || []).indexOf(id) >= 0, f = !tf && (free || []).indexOf(id) >= 0;
+    lines.push({ kind: 'addon', id: id, th: ad.name_th + (tf ? ' · ฟรีสิทธิ์ ' + (tierName || '') : f ? ' · ฟรีด้วยวอเชอร์' : ''), en: (ad.name_en || ad.name_th) + (tf ? ' · free (' + (tierName || '') + ')' : f ? ' · free with voucher' : ''), amount: tf || f ? 0 : +ad.price });
   });
   return lines;
 }
@@ -630,6 +638,7 @@ function custApi(req, store, now) {
   if (a.charAt(0) === 'k' && a.length > 1 && a.charAt(1) === a.charAt(1).toUpperCase()) { cKioskAuth(req, store); return store.lock(function () { return cKiosk(a, req, store, now); }); }
   var uid = store.csession(req.token); if (!uid) throw new Error('LOGIN');
   if (a === 'signup') return store.lock(function () { return cSignup(uid, req, store, now); });
+  if (a === 'link') return store.lock(function () { return cLink(uid, req, store, now); });
   var me = cMemberBy(store, 'lineUserId', uid); if (!me) throw new Error('NOT_MEMBER');
   if (a === 'me') return store.lock(function () { return cMe(me, store, now); });
   return store.lock(function () {
@@ -694,6 +703,45 @@ function cSignup(uid, req, store, now) {
   store.log('', '', 'member_signup', m.id);
   return cMe(m, store, now);
 }
+/* someone who first came through the counter tablet (gave a phone or email) joins LINE: attach that record instead of starting over */
+function cLink(uid, req, store, now) {
+  if (cMemberBy(store, 'lineUserId', uid)) throw new Error('ALREADY_MEMBER');
+  if (!req.privacy) throw new Error('NEED_PRIVACY');
+  var raw = String(req.id || '').trim(), m = raw.indexOf('@') > 0 ? cMemberBy(store, 'email', raw) : cMemberBy(store, 'phone', lnNormPhone(raw, raw.charAt(0) === '+'));
+  if (!m) {
+    /* visits from the tablet before member records were kept: build one from those bookings */
+    var isMail = raw.indexOf('@') > 0, key = isMail ? raw.toLowerCase() : lnNormPhone(raw, raw.charAt(0) === '+');
+    var old = store.bookings().filter(function (b) { return !b.memberId && b.kiosk && (isMail ? String(b.email || '').toLowerCase() === key : b.phone === key); });
+    if (!old.length) throw new Error('NO_RECORD');
+    m = { id: 'M' + lnId(7), lineUserId: '', name: old[old.length - 1].people[0].name, phone: isMail ? '' : key, email: isMail ? raw : (old[old.length - 1].email || ''), birthMonth: '', consentMarketing: 'FALSE', privacyAt: '', noShows: 0, source: 'kiosk', createdAt: cStamp(now), lastPrefs: '' };
+    old.forEach(function (b) {
+      b.memberId = m.id; store.saveBooking(b);
+      (b.tix || []).forEach(function (id) { var k = lnFind(store.tickets(), id); if (k && !k.memberId) { k.memberId = m.id; store.saveTicket(k); } });
+      if (b.orderId) { var o = lnFind(store.orders(), b.orderId); if (o && !o.memberId) { o.memberId = m.id; store.saveOrder(o); } }
+    });
+  }
+  if (m.lineUserId) throw new Error('PHONE_TAKEN');
+  m.lineUserId = uid; m.privacyAt = cStamp(now); if (req.consent != null) m.consentMarketing = req.consent ? 'TRUE' : 'FALSE';
+  store.saveMember(m);
+  if (!store.vouchers().some(function (v) { return v.memberId === m.id && v.kind === 'welcome'; }))
+    store.saveVoucher({ id: 'V' + lnId(7), memberId: m.id, kind: 'welcome', addon: 'SCRUB', month: '', year: '', status: 'active', bookingId: '', createdAt: cStamp(now) });
+  store.log('', '', 'member_link', m.id);
+  return cMe(m, store, now);
+}
+/* level from what the member paid this year or last year (whichever is higher) */
+function cSpent(store, memberId, year) {
+  return store.orders().reduce(function (s, o) { return s + (o.memberId === memberId && o.status === 'paid' && String(o.paidAt || '').slice(0, 4) === String(year) ? +o.amount || 0 : 0); }, 0);
+}
+function cTier(store, me, now) {
+  var tiers = (LANA.TIERS || []).slice().sort(function (a, b) { return +a.minSpend - +b.minSpend; }), y = +now.date.slice(0, 4);
+  if (!tiers.length || !me) return null;
+  var spent = cSpent(store, me.id, y), last = cSpent(store, me.id, y - 1), basis = Math.max(spent, last), cur = tiers[0];
+  tiers.forEach(function (t) { if (basis >= +t.minSpend) cur = t; });
+  var nextT = tiers.filter(function (t) { return +t.minSpend > spent; })[0];
+  var free = String(cur.free || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+  return { id: cur.id, name_th: cur.name_th, name_en: cur.name_en || cur.name_th, desc_th: cur.desc_th || '', desc_en: cur.desc_en || cur.desc_th || '', free: free, spent: spent, lastYear: last,
+    year: y, next: nextT && nextT.id !== cur.id ? { name_th: nextT.name_th, name_en: nextT.name_en || nextT.name_th, need: +nextT.minSpend - spent, desc_th: nextT.desc_th || '', desc_en: nextT.desc_en || '' } : null };
+}
 function cProfile(me, req, store, now) {
   var name = String(req.name || '').trim(), phone = lnNormPhone(req.phone, req.intl), email = String(req.email || '').trim();
   if (name) me.name = name.slice(0, 60);
@@ -734,7 +782,7 @@ function cMe(me, store, now) {
     return false;
   }).sort(function (x, y) { return (x.date + lnHM(x.people[0].alloc[0].start)) < (y.date + lnHM(y.people[0].alloc[0].start)) ? -1 : 1; });
   return {
-    member: cMemberPub(me), gifts: gifts, now: now,
+    member: cMemberPub(me), gifts: gifts, now: now, tier: cTier(store, me, now),
     tickets: tix.map(function (k) { return { id: k.id, prog: k.prog, src: k.src, rule: k.rule || '', expires: k.expires || '' }; }),
     vouchers: vs.map(function (v) { return { id: v.id, kind: v.kind, addon: v.addon }; }),
     claims: store.claims().filter(function (c) { return c.memberId === me.id; }).map(function (c) { return { id: c.id, partner: c.partner, receipt: c.receipt, status: String(c.status).toLowerCase() }; }),
@@ -842,8 +890,9 @@ function cBook(me, req, store, now) {
   var tix = cPickTickets(store, me.id, prog.id, people.length, req.date, m); if (!tix) throw new Error('NO_TICKET');
   var chains = people.map(function (pe) { return lnChain(prog, pe); }), al = lnAllocate(br, req.date, m, chains, cRows(store, req.date, null));
   if (!al) throw new Error('SLOT_TAKEN');
-  var vf = cVoucherFree(store, me, now, prog, people[0].addons), due = 0;
-  people.forEach(function (pe, i) { pe.chain = chains[i]; pe.alloc = al[i]; due += lnSum(lnPersonLines(prog, pe, i === 0 ? vf.free : [])); });
+  var tier = cTier(store, me, now), tf = tier ? tier.free : [], tn = tier ? tier.name_en : '';
+  var vf = cVoucherFree(store, me, now, prog, people[0].addons.filter(function (id) { return tf.indexOf(id) < 0; })), due = 0;
+  people.forEach(function (pe, i) { pe.chain = chains[i]; pe.alloc = al[i]; due += lnSum(lnPersonLines(prog, pe, i === 0 ? vf.free : [], i === 0 ? tf : [], tn)); });
   var b = { id: lnId(8), code: 'LN' + lnId(5), q: '', branch: br.id, date: req.date, status: due ? 'hold' : 'booked', people: people, ext: 0, due: [], live: [],
     memberId: me.id, tix: tix.map(function (k) { return k.id; }), vouchers: vf.used.map(function (v) { return v.id; }), paid: 0, src: 'line', email: me.email, phone: me.phone };
   tix.forEach(function (k) { k.status = 'booked'; k.bookingId = b.id; store.saveTicket(k); });
@@ -853,7 +902,7 @@ function cBook(me, req, store, now) {
   var out = { bookingId: b.id };
   if (due) {
     b.holdUntil = cStamp({ date: now.date, min: now.min + LN_C.HOLD_MIN });
-    var lines = []; people.forEach(function (pe, i) { lnPersonLines(prog, pe, i === 0 ? vf.free : []).forEach(function (l) { if (l.amount) lines.push(l); }); });
+    var lines = []; people.forEach(function (pe, i) { lnPersonLines(prog, pe, i === 0 ? vf.free : [], i === 0 ? tf : [], tn).forEach(function (l) { if (l.amount) lines.push(l); }); });
     var o = cNewOrder(store, now, { memberId: me.id, kind: 'book', amount: due, bookingId: b.id, items: lines, label: prog.name_en + ' extras' }, req.returnUrl);
     b.orderId = o.id; out.orderId = o.id; out.url = o.beamUrl; out.amount = due;
   }
@@ -1125,7 +1174,7 @@ function cKiosk(a, req, store, now) {
       check = { late: now.min > st + 30, other: today.branch !== br.id, early: now.min < st - 30, opensAt: st - 30,
         canNow: lnProgAt(lnFind(LANA.PROGRAMS, today.people[0].prog), br) && !!lnAllocate(br, now.date, Math.ceil(now.min / 5) * 5, chains, cRows(store, now.date, today.id)) };
     }
-    return { member: { id: m.id, name: m.name }, booking: today ? cView(today, store, now, false) : null, check: check,
+    return { member: { id: m.id, name: m.name, tier: cTier(store, m, now) }, booking: today ? cView(today, store, now, false) : null, check: check,
       tickets: tix.map(function (k) { return { id: k.id, prog: k.prog }; }) };
   }
   if (a === 'kCheckin') {
@@ -1162,9 +1211,15 @@ function cKioskStart(req, store, now, br) {
   if (email && !cEmailOK(email)) throw new Error('BAD_EMAIL');
   if (req.useTicket) { tix = cPickTickets(store, member.id, prog.id, 1, now.date, start); if (!tix) throw new Error('NO_TICKET'); }
   pe.name = name; pe.chain = chain; pe.alloc = al[0];
-  var extras = lnPersonLines(prog, pe, []), total = lnSum(extras) + (tix ? 0 : +prog.price);
+  if (!member && !req.memberChoice && (phone || email)) {
+    /* first visit with a phone or email: keep a member record so it can be linked to LINE later and spending counts toward a level */
+    member = { id: 'M' + lnId(7), lineUserId: '', name: name, phone: phone, email: email, birthMonth: '', consentMarketing: req.consent ? 'TRUE' : 'FALSE', privacyAt: '', noShows: 0, source: 'kiosk', createdAt: cStamp(now), lastPrefs: '' };
+    store.saveMember(member);
+  }
+  var kTier = member ? cTier(store, member, now) : null;
+  var extras = lnPersonLines(prog, pe, [], kTier ? kTier.free : [], kTier ? kTier.name_en : ''), total = lnSum(extras) + (tix ? 0 : +prog.price);
   var b = { id: lnId(8), code: 'LN' + lnId(5), q: '', branch: br.id, date: now.date, status: 'hold', people: [pe], ext: 0, due: [], live: [], kiosk: true, src: 'kiosk',
-    memberId: member ? member.id : '', guest: !member, tix: [], paid: 0, email: email || (member && member.email) || '', phone: phone || (member && member.phone) || '',
+    memberId: member ? member.id : '', guest: !member || member.source === 'kiosk' && !member.lineUserId, tix: [], paid: 0, email: email || (member && member.email) || '', phone: phone || (member && member.phone) || '',
     consent: !!req.consent, vkey: lnId(12), verifiedBy: req.useTicket ? (req.phone ? 'phone' : 'email') : '' };
   var kt = null;
   if (tix) { tix.forEach(function (k) { k.status = 'booked'; k.bookingId = b.id; store.saveTicket(k); }); b.tix = tix.map(function (k) { return k.id; }); }

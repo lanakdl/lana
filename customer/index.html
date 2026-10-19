@@ -348,7 +348,8 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     NEED_STARS: ['ให้ดาวก่อน', 'Please rate first'], CLAIMED: ['ใบเสร็จนี้เคลมไปแล้ว', 'This receipt was already claimed'], BAD_RECEIPT: ['ใส่เลขใบเสร็จ', 'Enter the receipt number'],
     BAD_PHONE: ['เบอร์โทรไม่ถูกต้อง', 'Phone number looks wrong'], BAD_EMAIL: ['อีเมลไม่ถูกต้อง', 'Email looks wrong'], PAY_SETUP: ['ระบบจ่ายเงินยังไม่ได้ตั้งค่า', 'Payments are not set up yet'],
     PAY_FAILED: ['เปิดหน้าจ่ายเงินไม่ได้ ลองใหม่', 'Could not open the payment page, try again'], NOT_FOUND: ['ไม่พบรายการนี้', 'Not found'], NOT_NOW: ['ทำรายการนี้ตอนนี้ไม่ได้', 'Not possible right now'],
-    CANT_MOVE: ['นัดนี้เลื่อนไม่ได้แล้ว', 'This visit can no longer be moved'], BAD_BRANCH: ['QR นี้ไม่ใช่ของสาขาที่เปิดอยู่', 'This QR is not for an open branch'], BAD_ID_TOKEN: ['ยืนยันตัวตน LINE ไม่ได้ ลองเปิดใหม่', 'LINE sign-in failed, please reopen']
+    CANT_MOVE: ['นัดนี้เลื่อนไม่ได้แล้ว', 'This visit can no longer be moved'], BAD_BRANCH: ['QR นี้ไม่ใช่ของสาขาที่เปิดอยู่', 'This QR is not for an open branch'], BAD_ID_TOKEN: ['ยืนยันตัวตน LINE ไม่ได้ ลองเปิดใหม่', 'LINE sign-in failed, please reopen'],
+    NO_RECORD: ['ไม่พบเบอร์หรืออีเมลนี้ ลองอีกแบบ หรือสมัครใหม่ได้เลย', 'We could not find that phone or email. Try the other one, or sign up.'], ALREADY_MEMBER: ['บัญชี LINE นี้เป็นสมาชิกแล้ว', 'This LINE account is already a member']
   };
   function errT(e) { var k = String(e && e.message || e), x = ERR[k]; return x ? t(x[0], x[1]) : k; }
 
@@ -378,11 +379,13 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
   function toast(m) { $('toast').textContent = m; $('toast').hidden = false; clearTimeout(toast._t); toast._t = setTimeout(function () { $('toast').hidden = true; }, 3400); }
   function totalMin(p) { return p.steps.length ? p.steps.reduce(function (s, x) { return s + x[2]; }, 0) : p.segs.reduce(function (s, x) { return s + x.min; }, 0); }
   function freeAddons() { return (S.d ? S.d.vouchers : []).map(function (v) { return v.addon; }); }
+  function tierFree() { return S.d && S.d.tier ? S.d.tier.free : []; }
+  function tierName() { return S.d && S.d.tier ? nm(S.d.tier) : ''; }
   function personLines(p, pe, free) {
     var out = [], h = hairT(pe.hair), st = styleT(pe.style);
     if (p.hair && h && h.price) out.push({ label: t('ผมยาว', 'Long hair') + ' (' + nm(h) + ')', amount: h.price });
     if (p.hair && st.price) out.push({ label: nm(st), amount: st.price });
-    (pe.addons || []).forEach(function (id) { var a = addon(id), f = free && free.indexOf(id) >= 0; if (!a) return; out.push({ label: nm(a) + (f ? ' · ' + t('ฟรีด้วยวอเชอร์', 'free with voucher') : ''), amount: f ? 0 : a.price }); });
+    (pe.addons || []).forEach(function (id) { var a = addon(id), tf = free && tierFree().indexOf(id) >= 0, f = !tf && free && free.indexOf(id) >= 0; if (!a) return; out.push({ label: nm(a) + (tf ? ' · ' + t('ฟรีสิทธิ์ ', 'free · ') + tierName() : f ? ' · ' + t('ฟรีด้วยวอเชอร์', 'free with voucher') : ''), amount: tf || f ? 0 : a.price }); });
     return out;
   }
   function kv(k, v, cls) { return '<div class="kv' + (cls ? ' ' + cls : '') + '"><span>' + esc(k) + '</span><span>' + esc(v) + '</span></div>'; }
@@ -416,7 +419,7 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     document.querySelectorAll('[data-lang]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.lang === S.lang); });
     $('lback').style.visibility = S.stack.length ? 'visible' : 'hidden';
     if (!S.cfg || S.busy) { $('lbody').innerHTML = '<div class="loading"><div class="spin"></div><span>' + esc(S.busyText || t('กำลังโหลด…', 'Loading…')) + '</span></div>'; $('lfoot').hidden = true; return; }
-    var f = { home: scrHome, menu: scrMenu, buy: scrBuy, signup: scrSignup, bought: scrBought, book: scrBook, booked: scrBooked, loc: scrLoc, my: scrMy, checkin: scrCheckin, claim: scrClaim, profile: scrProfile, guest: scrGuest, privacy: scrPrivacy }[S.screen] || scrHome;
+    var f = { home: scrHome, menu: scrMenu, buy: scrBuy, signup: scrSignup, bought: scrBought, book: scrBook, booked: scrBooked, loc: scrLoc, my: scrMy, checkin: scrCheckin, claim: scrClaim, profile: scrProfile, guest: scrGuest, privacy: scrPrivacy, link: scrLink }[S.screen] || scrHome;
     var r = f();
     $('ltitle').textContent = r.title;
     $('lbody').innerHTML = r.body;
@@ -527,7 +530,8 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
   }
   function scrSignup() {
     var u = S.ui;
-    var h = '<div class="sec"><p class="hint">' + t('สมัครครั้งเดียว ใช้เก็บตั๋ว จองเวลา และรับใบเสร็จทางอีเมล', 'Sign up once to keep your tickets, book times and get receipts by email.') + '</p>' +
+    var h = '<div class="sec"><div class="wrow"><div><div class="t">' + t('เคยใช้บริการที่ร้านแล้ว?', 'Been to Lana before?') + '</div><div class="s">' + t('ใส่เบอร์หรืออีเมลที่ให้ไว้ที่หน้าร้าน ดึงตั๋วและประวัติเดิมมาได้เลย', 'Use the phone or email you gave at the counter to bring your tickets and history over.') + '</div></div><button class="btn small" data-go="link">' + t('เชื่อมบัญชีเดิม', 'Link my account') + '</button></div></div>' +
+      '<div class="sec"><p class="hint">' + t('สมัครครั้งเดียว ใช้เก็บตั๋ว จองเวลา และรับใบเสร็จทางอีเมล', 'Sign up once to keep your tickets, book times and get receipts by email.') + '</p>' +
       '<div class="ticket" style="background:var(--sand);border-color:var(--sand)"><b>' + t('ของขวัญสมาชิกใหม่', 'New member gift') + '</b><span style="font-size:13px">' + t('สครับหนังศีรษะฟรี 1 ครั้ง เข้ากระเป๋าทันทีที่สมัคร', 'A free scalp scrub, added to your wallet right away') + '</span></div>' +
       '<label class="f" for="su-name">' + t('ชื่อ', 'Name') + '<input id="su-name" autocomplete="name" value="' + esc(u.name != null ? u.name : S.lineName) + '"></label>' +
       '<label class="f" for="su-phone">' + t('เบอร์โทร', 'Phone') + '<input id="su-phone" type="tel" inputmode="tel" autocomplete="tel" value="' + esc(u.phone || '') + '" placeholder="08x xxx xxxx"></label><span class="hint" style="margin-top:-6px">' + t('เบอร์ไทยใส่ 08x หรือ +66 ก็ได้ เบอร์ต่างประเทศใส่ + และรหัสประเทศ', 'Thai: 08x or +66. Other countries: + and country code') + '</span>' +
@@ -539,6 +543,26 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     return { title: t('สมัครสมาชิก', 'Sign up'), body: h, foot: '<div class="sum">' + t('ขั้นตอนเดียว', 'One step') + '</div><button class="btn" id="sugo">' + t('สมัครและไปต่อ', 'Sign up & continue') + '</button>' };
   }
   function months(sel) { return Array.from({ length: 12 }, function (_, i) { return '<option value="' + (i + 1) + '"' + (+sel === i + 1 ? ' selected' : '') + '>' + fmtD('2026-' + (i < 9 ? '0' : '') + (i + 1) + '-15', { month: 'long' }) + '</option>'; }).join(''); }
+  function scrLink() {
+    var u = S.ui;
+    var h = '<div class="sec"><p class="hint">' + t('ใส่เบอร์โทรหรืออีเมลที่เคยให้ไว้ตอนใช้บริการที่หน้าร้าน', 'Enter the phone number or email you gave at the counter') + '</p>' +
+      '<label class="f" for="ln-id">' + t('เบอร์โทร หรือ อีเมล', 'Phone or email') + '<input id="ln-id" value="' + esc(u.id || '') + '" placeholder="08x xxx xxxx / you@example.com" autocomplete="tel"></label>' +
+      '<label class="check"><input type="checkbox" id="ln-privacy"' + (u.privacy ? ' checked' : '') + '><span>' + t('ยอมรับ', 'I accept the ') + '<button class="linkbtn" data-go="privacy" style="font-size:13px">' + t('นโยบายความเป็นส่วนตัว', 'privacy policy') + '</button>' + t(' ของ Lana (จำเป็น)', ' (required)') + '</span></label>' +
+      '<label class="check"><input type="checkbox" id="ln-consent"' + (u.consent ? ' checked' : '') + '><span>' + t('ยินดีรับโปรโมชันและข่าวสารจาก Lana (ไม่บังคับ)', 'Send me offers and news from Lana (optional)') + '</span></label>' +
+      (u.err ? '<p class="err">' + esc(u.err) + '</p>' : '') + '</div>';
+    return { title: t('เชื่อมบัญชีเดิม', 'Link my account'), body: h, foot: '<button class="btn block" id="lngo">' + t('เชื่อมบัญชี', 'Link account') + '</button>' };
+  }
+  function tierCard() {
+    var tr = S.d && S.d.tier; if (!tr) return '';
+    var h = '<div class="ticket" style="background:var(--sand);border-color:var(--sand)"><div class="kv"><span>' + t('ระดับสมาชิก', 'Member level') + '</span><span><b>' + esc(nm(tr)) + '</b></span></div>' +
+      (tr.desc_th ? '<span style="font-size:13px">' + esc(S.lang === 'en' ? tr.desc_en : tr.desc_th) + '</span>' : '') +
+      '<span class="hint">' + t('ยอดใช้จ่ายปี ', 'Spent in ') + tr.year + ': ' + baht(tr.spent) + (tr.lastYear ? ' · ' + t('ปีที่แล้ว ', 'last year ') + baht(tr.lastYear) : '') + '</span>';
+    if (tr.next) {
+      var pct = Math.min(100, Math.round(tr.spent / (tr.spent + tr.next.need) * 100));
+      h += '<div class="bar" style="background:var(--card)"><i style="width:' + pct + '%;background:var(--olive)"></i></div><span class="hint">' + t('อีก ', 'Spend ') + baht(tr.next.need) + t(' ได้ระดับ ', ' more for ') + esc(nm(tr.next)) + ' · ' + esc(S.lang === 'en' ? tr.next.desc_en : tr.next.desc_th) + '</span>';
+    }
+    return h + '<span class="hint">' + t('ระดับที่ได้ใช้ได้ทั้งปีนี้และปีหน้า', 'Your level lasts this year and all of next year') + '</span></div>';
+  }
   function scrPrivacy() {
     var h = '<div class="sec"><p>' + t('Lana เก็บชื่อ เบอร์โทร อีเมล เดือนเกิด และประวัติการใช้บริการ เพื่อจองคิว ออกใบเสร็จ และแจ้งเตือนนัด ข้อมูลสุขภาพ (เช่น แพ้น้ำมัน) เก็บเฉพาะเมื่อคุณกรอกและติ๊กยินยอม และให้หมอนวดที่ดูแลคุณเห็นเท่านั้น ข่าวสารโปรโมชันส่งเฉพาะเมื่อคุณยินยอม ขอดู แก้ไข หรือลบข้อมูลได้ทุกเมื่อที่เคาน์เตอร์หรือทาง LINE',
       'Lana keeps your name, phone, email, birth month and visit history to book visits, send receipts and reminders. Health notes (e.g. oil allergies) are kept only if you enter them and tick consent, and only your therapist sees them. Offers are sent only with your consent. You can see, change or delete your data any time at the counter or via LINE.') + '</p></div>';
@@ -579,9 +603,9 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
         if (p.hair) h += '<span class="hint">' + t('ผมยาวแค่ไหน', 'How long is the hair?') + '</span><div class="hair">' + S.cfg.hair.map(function (x) {
           return '<button class="opt" data-hair="' + i + ':' + x.id + '" aria-pressed="' + (pe.hair === x.id) + '">' + hairSvg(x.id) + '<span class="t" style="font-size:13px">' + esc(nm(x)) + '</span><span class="s">' + (x.price ? '+' + baht(x.price) : t('ไม่เพิ่ม', 'no extra')) + '</span></button>'; }).join('') + '</div>';
         h += opts.map(function (a) {
-          var v = i === 0 && free.indexOf(a.id) >= 0, on = pe.addons.indexOf(a.id) >= 0;
+          var tf = i === 0 && tierFree().indexOf(a.id) >= 0, v = tf || (i === 0 && free.indexOf(a.id) >= 0), on = pe.addons.indexOf(a.id) >= 0;
           return '<label class="addon"><input type="checkbox" data-addon="' + i + ':' + a.id + '"' + (on ? ' checked' : '') + '><span><span class="t">' + esc(nm(a)) + '</span>' + (a.rec ? ' <span class="badge">' + t('ลูกค้าส่วนใหญ่เลือก', 'Most popular') + '</span>' : '') +
-            '<br><span class="s">' + esc(S.lang === 'en' ? a.desc_en : a.desc_th) + (a.min ? ' · +' + a.min + ' ' + t('นาที', 'min') : '') + '</span></span><span class="p">' + (v ? '<span class="strike">' + baht(a.price) + '</span><br>' + t('ฟรี', 'Free') : '+' + baht(a.price)) + '</span></label>';
+            '<br><span class="s">' + esc(S.lang === 'en' ? a.desc_en : a.desc_th) + (a.min ? ' · +' + a.min + ' ' + t('นาที', 'min') : '') + '</span></span><span class="p">' + (v ? '<span class="strike">' + baht(a.price) + '</span><br>' + (tf ? esc(tierName()) : t('ฟรี', 'Free')) : '+' + baht(a.price)) + '</span></label>';
         }).join('');
         h += prefsHtml(p, pe, String(i));
         h += '</div>';
@@ -707,7 +731,7 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
   /* ----- MY LANA ----- */
   function scrMy() {
     if (!S.d || !S.d.member) return { title: 'MY LANA', body: '<div class="sec" style="text-align:center;justify-items:center"><h3>' + t('สมัครสมาชิก รับสครับหนังศีรษะฟรี', 'Join and get a free scalp scrub') + '</h3><p class="hint">' + t('เก็บตั๋ว ดูสถานะ รับวอเชอร์วันเกิด', 'Keep tickets, see your status, get a birthday gift') + '</p><button class="btn" data-go="signup">' + t('สมัครสมาชิก', 'Sign up') + '</button></div>' };
-    var h = '<div class="sec">' + statusCard() + '</div>';
+    var h = '<div class="sec">' + statusCard() + '</div><div class="sec">' + tierCard() + '</div>';
     var cur = currentBooking(), up = S.d.bookings.filter(function (b) { return (b.status === 'booked' || b.status === 'hold') && b !== cur; });
     if (up.length) h += '<div class="sec"><h3>' + t('นัดที่จะถึง', 'Upcoming') + '</h3>' + up.map(upRow).join('') + '</div>';
     var groups = {}; tickets().forEach(function (k) { (groups[k.prog] = groups[k.prog] || []).push(k); });
@@ -895,6 +919,12 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     if (d.upcourse) return visitAct('upcourse', { id: d.upcourse });
     if (el.id === 'buygo') return buyGo();
     if (el.id === 'sugo') return signupGo();
+    if (el.id === 'lngo') {
+      u.id = $('ln-id').value.trim(); u.privacy = $('ln-privacy').checked; u.consent = $('ln-consent').checked;
+      if (!u.id) { u.err = t('ใส่เบอร์หรืออีเมล', 'Enter a phone or email'); return render(); }
+      if (!u.privacy) { u.err = errT('NEED_PRIVACY'); return render(); }
+      return run(api('link', { id: u.id, privacy: true, consent: u.consent })).then(function (d) { setD(d); toast(t('เชื่อมบัญชีแล้ว ยินดีต้อนรับกลับมา', 'Linked. Welcome back!')); home('my'); }).catch(function (x) { u.err = errT(x); render(); });
+    }
     if (el.id === 'bkgo') return bookGo();
     if (el.id === 'clgo') { u.r = $('cl-r').value.trim(); return run(api('claim', { partner: $('cl-p').value, receipt: u.r }), t('ส่งคำขอแล้ว รอพาร์ทเนอร์อนุมัติ', 'Sent. Waiting for approval.')).then(function (dd) { setD(dd); back(); }).catch(function (x) { u.err = errT(x); render(); }); }
     if (el.id === 'pfgo') return run(api('profile', { name: $('pf-name').value, phone: $('pf-phone').value, email: $('pf-email').value, birthMonth: +$('pf-bm').value || 0, consent: $('pf-consent').checked }), t('บันทึกแล้ว', 'Saved')).then(function (dd) { setD(dd); back(); }).catch(function () {});
@@ -915,7 +945,7 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
   function route() {
     var p = Q.get('p') || 'home', br = (Q.get('b') || '').toUpperCase();
     if (p === 'checkin') return home('checkin', { branch: br });
-    if (['menu', 'buy', 'loc', 'my', 'book'].indexOf(p) >= 0) return home(p === 'book' && !(S.d && S.d.member) ? 'my' : p);
+    if (['menu', 'buy', 'loc', 'my', 'book', 'privacy'].indexOf(p) >= 0) return home(p === 'book' && !(S.d && S.d.member) ? 'my' : p);
     home('home');
   }
   function start() {

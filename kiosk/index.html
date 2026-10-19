@@ -339,12 +339,12 @@ body.real, body { background: var(--paper); }
   var PRESSURE = [['light', 'เบา', 'Light'], ['medium', 'กลาง', 'Medium'], ['firm', 'หนัก', 'Firm']];
   function bodyWork(p) { return p.segs.some(function (s) { return s.res === 'thai' || s.res === 'chair'; }); }
   function newPerson() { return { hair: null, addons: [], style: 'normal', pressure: 'medium', elbow: 'ok', focus: [], quiet: false }; }
-  function lines(p, pe, useT) {
+  function lines(p, pe, useT, tf, tn) {
     var out = [], h = hairT(pe.hair), st = styleT(pe.style);
     if (!useT) out.push({ label: nm(p), amount: p.price });
     if (p.hair && h && h.price) out.push({ label: t('ผมยาว', 'Long hair') + ' (' + nm(h) + ')', amount: h.price });
     if (p.hair && st.price) out.push({ label: nm(st), amount: st.price });
-    pe.addons.forEach(function (id) { var a = find(S.cfg.addons, id); if (a) out.push({ label: nm(a), amount: a.price }); });
+    pe.addons.forEach(function (id) { var a = find(S.cfg.addons, id), f = (tf || []).indexOf(id) >= 0; if (a) out.push({ label: nm(a) + (f ? ' · ' + t('ฟรีสิทธิ์ ', 'free · ') + tn : ''), amount: f ? 0 : a.price }); });
     return out;
   }
   function go(screen, extra) { S.k = Object.assign({ screen: screen }, extra || {}); $('beam').hidden = true; render(); $('tbody').scrollTop = 0; }
@@ -373,7 +373,7 @@ body.real, body { background: var(--paper); }
     if (k.screen === 'phone' && k.mode === 'email') return '<div class="kcol"><h2>' + t('อีเมลที่ใช้จองหรือสมัคร', 'Your email') + '</h2>' + idTabs() + '<input id="k-em" type="email" inputmode="email" placeholder="you@example.com" value="' + esc(k.email || '') + '" style="font-size:20px;padding:14px">' + (k.err ? '<p class="err">' + esc(k.err) + '</p>' : '') + '<button class="btn block kb" data-kemail>' + t('ถัดไป', 'Next') + '</button><p class="hint">' + t('นักท่องเที่ยวที่ไม่รู้เบอร์ซิม ใช้อีเมลได้เลย', 'Not sure of your SIM number? Use your email.') + '</p></div>';
     if (k.screen === 'phone') return '<div class="kcol"><h2>' + t('เบอร์โทรที่ใช้จองหรือสมัคร', 'Your phone number') + '</h2>' + idTabs() + keypad(k.val || '', k.intl ? t('รหัสประเทศ + เบอร์ เช่น 4479…', 'Country code + number, e.g. 4479…') : '08x-xxx-xxxx', true) + (k.err ? '<p class="err">' + esc(k.err) + '</p>' : '') + '</div>';
     if (k.screen === 'found') {
-      var f = k.found, h = '<div class="kcol"><h2>' + t('สวัสดีคุณ ', 'Hello ') + esc(f.member.name) + '</h2>', bk = f.booking, c = f.check;
+      var f = k.found, h = '<div class="kcol"><h2>' + t('สวัสดีคุณ ', 'Hello ') + esc(f.member.name) + '</h2>' + (f.member.tier ? '<span class="badge olive">' + esc(nm(f.member.tier)) + '</span>' : ''), bk = f.booking, c = f.check;
       if (bk && bk.status === 'booked') {
         h += '<div class="ticket">' + kv(t('นัดวันนี้', 'Today'), hm(bk.start) + ' · ' + nm(prog(bk.people[0].prog)) + ' × ' + bk.people.length) + kv(t('สาขา', 'Branch'), nm(branch(bk.branch))) + '</div>';
         if (c.late) h += '<p class="err">' + t('เลยเวลานัดเกิน 30 นาที ตั๋วกลับเข้ากระเป๋าแล้ว', 'More than 30 min late; your ticket is back in your wallet') + '</p><button class="btn block kb" data-kci="' + bk.id + '">' + t('ตกลง', 'OK') + '</button>';
@@ -430,7 +430,7 @@ body.real, body { background: var(--paper); }
     h += '<div class="prefs"><div class="prow"><span>' + t('น้ำหนักมือ', 'Pressure') + '</span><div class="chips">' + PRESSURE.map(function (x) { return chip('data-kpref="pressure|' + x[0] + '"', pe.pressure === x[0], S.lang === 'en' ? x[2] : x[1]); }).join('') + '</div></div>' +
       (bodyWork(p) ? '<div class="prow"><span>' + t('ใช้ศอกรีด', 'Elbows') + '</span><div class="chips">' + chip('data-kpref="elbow|ok"', pe.elbow === 'ok', t('ใช้ได้', 'OK')) + chip('data-kpref="elbow|no"', pe.elbow === 'no', t('ไม่ใช้ศอก', 'No elbows')) + '</div></div>' : '') +
       '<div class="prow"><span>' + t('ระหว่างนวด', 'During') + '</span><div class="chips">' + chip('data-kpref="quiet|0"', !pe.quiet, t('คุยได้', 'Happy to chat')) + chip('data-kpref="quiet|1"', !!pe.quiet, t('ขอพักเงียบๆ', 'Quiet, please')) + '</div></div></div>';
-    var ls = lines(p, pe, useT), total = ls.reduce(function (s, l) { return s + l.amount; }, 0);
+    var tier = k.tier || null, ls = lines(p, pe, useT, tier ? tier.free : [], tier ? nm(tier) : ''), total = ls.reduce(function (s, l) { return s + l.amount; }, 0);
     h += '<div class="ticket">' + ls.map(function (l) { return kv(l.label, baht(l.amount)); }).join('') + (useT ? kv(t('ใช้ตั๋ว', 'Ticket'), '1') : '') + kv(t('รวม', 'Total'), baht(total), 'total') + '</div>';
     if (!useT && !k.memberChoice) h += '<label class="f">' + t('ชื่อ', 'Name') + '<input id="k-name" value="' + esc(k.name || '') + '"></label><span class="hint">' + t('เบอร์หรืออีเมลไม่บังคับ ไม่ใส่ก็ได้ รับ QR ไปเก็บในมือถือแทน', 'Phone and email are optional. Skip them and scan a QR to keep your visit on your phone.') + '</span>' +
       '<label class="f">' + t('เบอร์โทร (ไม่บังคับ)', 'Phone (optional)') + '<input id="k-phone" type="tel" inputmode="tel" placeholder="08x xxx xxxx / +44…" value="' + esc(k.phoneRaw || '') + '"></label>' +
@@ -533,8 +533,8 @@ body.real, body { background: var(--paper); }
         toast(r.result === 'nofree' ? t('ตอนนี้ไม่มีที่ว่าง', 'No free seat right now') : r.result); return find_(k.who);
       }).catch(function (x) { toast(errT(x)); });
     }
-    if (d.kuse !== undefined) return go('walkin', { useT: true, tickets: k.found.tickets, who: k.who });
-    if (d.kbuy !== undefined) return go('walkin', k.who && k.found ? { memberChoice: 'buy', who: k.who } : {});
+    if (d.kuse !== undefined) return go('walkin', { useT: true, tickets: k.found.tickets, who: k.who, tier: k.found.member.tier });
+    if (d.kbuy !== undefined) return go('walkin', k.who && k.found ? { memberChoice: 'buy', who: k.who, tier: k.found.member.tier } : {});
     if (d.kprog) { k.prog = d.kprog; k.person = newPerson(); return render(); }
     if (d.khair) { k.person.hair = d.khair; return render(); }
     if (d.kstyle) { k.person.style = d.kstyle; return render(); }
