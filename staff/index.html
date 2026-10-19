@@ -117,6 +117,7 @@ video { width: 100%; border-radius: 14px; background: #000; max-height: 50vh; }
 .alert { position: fixed; left: 12px; right: 12px; top: calc(12px + env(safe-area-inset-top, 0px)); background: var(--warn); color: #fff; border-radius: 16px; padding: 14px 16px; font-weight: 700; z-index: 30; box-shadow: 0 10px 30px rgb(0 0 0 / .25); max-width: 456px; margin: 0 auto; }
 .toast { position: fixed; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--paper); border-radius: 14px; padding: 11px 14px; font-size: 14px; z-index: 30; max-width: 456px; margin: 0 auto; }
 @media (prefers-reduced-motion: no-preference) { .alert { animation: pop .25s ease-out; } @keyframes pop { from { transform: translateY(-12px); opacity: 0; } } }
+  .linkbtn { display: block; margin: 10px auto 0; background: none; border: 0; color: inherit; opacity: .75; text-decoration: underline; font: inherit; font-size: 13px; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -565,16 +566,22 @@ function apiMove(me, req, store, now) {
   var code = String(req.bed || '').trim().toUpperCase(), m = /^([A-Z]+)-([WDTC])(\d+)$/.exec(code);
   if (!m || m[1] !== b.branch) throw new Error('BAD_BED');
   var res = { W: 'wash', D: 'dry', T: 'thai', C: 'chair' }[m[2]], unit = +m[3];
-  var next = b.live.filter(function (r) { return !r.scanned && r.i > 0 && r.start <= now.min + 5; }).sort(function (x, y) { return x.start - y.start; });
+  /* the therapist can move as soon as the current step is done, even before the planned time */
+  var next = b.live.filter(function (r) { return !r.scanned && r.i > 0; }).sort(function (x, y) { return x.start - y.start; });
   if (!next.length) throw new Error('NOT_YET');
-  var r = next.filter(function (x) { return x.res === res; })[0];
+  var seen = {}, firsts = next.filter(function (x) { if (seen[x.pi]) return false; seen[x.pi] = 1; return true; });
+  var r = firsts.filter(function (x) { return x.res === res; })[0];
   if (!r) throw new Error('WRONG_BED_TYPE');
-  if (r.unit !== unit) {
+  if (r.unit !== unit || now.min < r.start) {
     var others = lnOccupied(store.bookings(), b.id);
-    if (!lnUnitFree(others, b.branch, b.date, res, unit, Math.max(now.min, r.start), r.end)) throw new Error('BED_BUSY');
+    if (!lnUnitFree(others, b.branch, b.date, res, unit, Math.min(now.min, r.start), r.end)) throw new Error('BED_BUSY');
     r.unit = unit;
   }
   r.scanned = true; r.scannedAt = now.min;
+  if (now.min < r.start) {   /* moved early: free the previous seat now, start this one now */
+    b.live.forEach(function (x) { if (x.pi === r.pi && x.i === r.i - 1 && now.min < x.end) x.end = Math.max(x.start + 1, now.min); });
+    r.start = now.min;
+  }
   store.saveBooking(b); store.log(me.id, b.id, 'move', code);
   return apiFeed(me, store, now);
 }
@@ -582,7 +589,10 @@ function apiFinish(me, req, store, now) {
   var b = apiGet(store, req.id);
   if (b.staffId !== me.id || b.status !== 'inservice') throw new Error('NOT_YOURS');
   var end = lnEnd(b);
-  if (now.min < end && !b.earlyReq) throw new Error('TOO_EARLY');
+  var left = (b.live || []).filter(function (r) { return !r.scanned && r.i > 0; });
+  if (left.length && !req.skip) throw new Error('NEXT_STEP');
+  if (now.min < end && !b.earlyReq && !req.skip) throw new Error('TOO_EARLY');
+  if (req.skip) { b.earlyByStaff = true; store.log(me.id, b.id, 'early_by_staff', lnHM(now.min) + ' / end ' + lnHM(end) + (left.length ? ' / skip ' + left.map(function (r) { return r.res + r.unit; }).join(',') : '')); }
   b.status = 'finished'; b.finishedAt = now.min;
   store.saveBooking(b); store.log(me.id, b.id, 'finish', lnHM(now.min) + ' / end ' + lnHM(end));
   return apiFeed(me, store, now);
@@ -1367,8 +1377,8 @@ function makeVisit(store, now, branchId, progId, name, person) {
   function baht(n) { return '฿' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
   var ERR = { BAD_LOGIN: 'เบอร์หรือ PIN ไม่ถูกต้อง', BAD_ID_TOKEN: 'ยืนยันตัวตน LINE ไม่ได้ ลองเปิดใหม่', NOT_LINKED: 'LINE นี้ยังไม่ได้ผูกกับพนักงาน', LOGIN: 'กรุณาเข้าสู่ระบบใหม่', NOT_ON_SHIFT: 'กด "เข้างาน" ก่อนรับงาน', HAS_JOB: 'ทำงานที่รับไว้ให้จบก่อน',
     TAKEN: 'มีคนรับงานนี้ไปแล้ว', NOT_SKILLED: 'งานนี้ไม่อยู่ในโปรแกรมที่คุณทำได้', BAD_BED: 'QR นี้ไม่ใช่ของสาขานี้', WRONG_BED_TYPE: 'เตียงไม่ตรงกับงาน ดูประเภทเตียงอีกครั้ง',
-    BED_BUSY: 'เตียงนี้ยังไม่ว่าง ลองเตียงที่ระบบจองไว้', CLOSING: 'เกินเวลาปิดร้าน 21:00', NO_ROOM: 'ต่อเวลาไม่ได้ ที่นั่งมีคิวต่อ', TOO_EARLY: 'ยังไม่ครบเวลา กดจบไม่ได้',
-    NOT_YOURS: 'งานนี้ไม่ใช่ของคุณแล้ว', OTHER_BRANCH: 'รับงานได้เฉพาะสาขาของคุณ', SCAN_DESK: 'สแกน QR ที่เคาน์เตอร์สาขาของคุณเพื่อเข้างาน', NEED_GPS: 'เปิดตำแหน่ง (GPS) ให้แอปก่อน ถึงจะเข้างานได้', NOT_FOUND: 'ไม่พบงานนี้', NOT_YET: 'ยังไม่ถึงเวลาย้าย', NET: 'เชื่อมต่อไม่ได้ ลองใหม่' };
+    BED_BUSY: 'ที่นี่ยังมีลูกค้าอยู่ ลองสแกนตัวอื่นที่ว่าง', CLOSING: 'เกินเวลาปิดร้าน 21:00', NO_ROOM: 'ต่อเวลาไม่ได้ ที่นั่งมีคิวต่อ', TOO_EARLY: 'ยังไม่ครบเวลา กดจบไม่ได้',
+    NOT_YOURS: 'งานนี้ไม่ใช่ของคุณแล้ว', OTHER_BRANCH: 'รับงานได้เฉพาะสาขาของคุณ', SCAN_DESK: 'สแกน QR ที่เคาน์เตอร์สาขาของคุณเพื่อเข้างาน', NEED_GPS: 'เปิดตำแหน่ง (GPS) ให้แอปก่อน ถึงจะเข้างานได้', NOT_FOUND: 'ไม่พบงานนี้', NOT_YET: 'ไม่มีขั้นต่อไปแล้ว', NEXT_STEP: 'ยังมีขั้นต่อไป · กด "เสร็จขั้นนี้" แล้วสแกน QR ที่ต่อไปก่อน', NET: 'เชื่อมต่อไม่ได้ ลองใหม่' };
   function errText(e) { var k = String(e && e.message || e); if (k.indexOf('TOO_FAR:') === 0) { var m = +k.split(':')[1]; return 'คุณอยู่ห่างร้าน ' + (m >= 1000 ? (m / 1000).toFixed(1) + ' กม.' : m + ' ม.') + ' ต้องอยู่ในระยะ 1 กม. ถึงจะเข้างานได้'; } return ERR[k] || k; }
   try { S.token = localStorage.getItem('lana-staff-token') || ''; } catch (e) {}
 
@@ -1516,7 +1526,7 @@ function makeVisit(store, now, branchId, progId, name, person) {
         (left <= 10 && left > 0 ? '<p class="hint" style="opacity:1;font-weight:700">อีก ' + left + ' นาทีครบเวลา ถามลูกค้าว่าอยากต่อไหม</p>' : '') +
         '<button class="btn block olive" id="ext"' + (j.canExtend ? '' : ' disabled') + '>' + (j.canExtend ? 'ลูกค้าตกลงต่อ 30 นาที (+' + baht(LANA.EXT_PRICE) + ' จ่ายตอนจบ)' : 'ต่อเวลาไม่ได้: ' + esc(j.extBlock)) + '</button>' +
         (j.extMoves ? '<p class="hint">ถ้าต่อ ระบบจะย้ายคิว ' + esc(j.extMoves) + ' ไปที่นั่งอื่นให้เอง</p>' : '') +
-        '<button class="btn block" id="finish"' + (left > 0 && !j.earlyReq ? ' disabled' : '') + '>' + (left > 0 && !j.earlyReq ? 'จบงานได้เมื่อครบเวลา ' + lnHM(j.end) : j.earlyReq && left > 0 ? 'ลูกค้าขอจบก่อน · จบงาน' : 'จบงาน') + '</button></div>';
+        (pendingSteps(j).length ? '<button class="linkbtn" id="finish">ลูกค้าไม่ทำขั้นที่เหลือ · จบงานเลย</button>' : '<button class="btn block" id="finish">' + (left > 0 ? 'จบงาน (เหลือ ' + left + ' นาที)' : 'จบงาน') + '</button>') + '</div>';
     } else if (!f.onShift) {
       h += '<div class="card"><h2>ยังไม่ได้เข้างาน</h2><p class="hint">กด "เข้างาน" แล้วงานที่ลูกค้าเช็กอินจะส่งเป็นข้อความ LINE ถึงคุณ (สั่นตามที่ตั้งไว้ในมือถือ)</p><button class="btn block olive" id="shift2">เข้างาน</button>' +
         (f.waitingCount ? '<p class="hint">ตอนนี้มีลูกค้ารอ ' + f.waitingCount + ' คน</p>' : '') + '</div>';
@@ -1532,16 +1542,20 @@ function makeVisit(store, now, branchId, progId, name, person) {
     $('view').innerHTML = h;
   }
   /* wash bed -> dryer: when it is time, ask the therapist to move the guest and scan the chair */
+  function pendingSteps(j) { return (j.seats || []).filter(function (s) { return !s.scanned && s.i > 0; }).sort(function (a, b) { return a.start - b.start; }); }
   function moveBox(j, now) {
-    var pend = j.seats.filter(function (s) { return !s.scanned && s.i > 0; }).sort(function (a, b) { return a.start - b.start; }), nx = pend[0];
+    var nx = pendingSteps(j)[0];
     if (!nx) return '';
-    if (nx.start - now > 5) return '<p class="hint">ต่อไป: ' + esc(nx.label) + (j.people.length > 1 ? ' (' + esc(nx.who) + ')' : '') + ' เวลา ' + lnHM(nx.start) + '</p>';
-    S.warned = S.warned || {};
-    var key = j.id + ':mv:' + nx.pi + ':' + nx.i;
-    if (!S.warned[key]) { S.warned[key] = 1; setTimeout(function () { alertNew('ถึงเวลาย้าย ' + j.q + ' ไป' + nx.label + ' · สแกน QR ที่' + LANA.RES[nx.res][0], true); }, 0); }
-    return '<div class="card" style="background:var(--olive);color:var(--olive-ink);border-color:var(--olive)"><b>ถึงเวลาย้ายไป ' + esc(nx.label) + (j.people.length > 1 ? ' · ' + esc(nx.who) : '') + '</b>' +
-      '<span class="hint" style="color:inherit">พาลูกค้าไปที่' + esc(LANA.RES[nx.res][0]) + ' แล้วสแกน QR ที่' + esc(LANA.RES[nx.res][0]) + ' (ระบบจองตัวที่ ' + nx.unit + ' ไว้)</span>' +
-      '<button class="btn block" id="movescan" style="background:var(--olive-ink);color:var(--olive)">สแกน QR ' + esc(LANA.RES[nx.res][0]) + '</button></div>';
+    var due = nx.start - now <= 5, idx = j.seats.filter(function (s) { return s.scanned; }).length, who = j.people.length > 1 ? ' · ' + esc(nx.who) : '';
+    if (due) {
+      S.warned = S.warned || {};
+      var key = j.id + ':mv:' + nx.pi + ':' + nx.i;
+      if (!S.warned[key]) { S.warned[key] = 1; setTimeout(function () { alertNew('ถึงเวลาย้าย ' + j.q + ' ไป' + nx.label + ' · สแกน QR ที่' + LANA.RES[nx.res][0], true); }, 0); }
+    }
+    return '<div class="card" style="' + (due ? 'background:var(--olive);color:var(--olive-ink);border-color:var(--olive)' : 'background:rgba(255,255,255,.08);color:inherit;border-color:rgba(255,255,255,.2)') + '"><span class="eyebrow" style="color:inherit">ขั้นที่ ' + idx + ' จาก ' + j.seats.length + '</span>' +
+      '<b>' + (due ? 'ถึงเวลาย้ายไป ' : 'ขั้นต่อไป: ') + esc(nx.label) + who + (due ? '' : ' · ' + lnHM(nx.start)) + '</b>' +
+      '<span class="hint" style="color:inherit">ทำขั้นนี้เสร็จแล้ว พาลูกค้าไปที่' + esc(LANA.RES[nx.res][0]) + ' แล้วสแกน QR (ระบบจองตัวที่ ' + nx.unit + ' ไว้) · ยังจบงานไม่ได้จนกว่าจะถึงขั้นสุดท้าย</span>' +
+      '<button class="btn block" id="movescan"' + (due ? ' style="background:var(--olive-ink);color:var(--olive)"' : '') + '>เสร็จขั้นนี้ → ไป' + esc(LANA.RES[nx.res][0]) + ' · สแกน QR</button></div>';
   }
   function renderBoard() {
     var now = nowMin(), h = '<h2 style="font-size:16px">สถานะเตียง · ' + esc(lnFind(LANA.BRANCHES, S.feed.me.branch).name_th) + ' · ' + lnHM(now) + '</h2><div class="board">';
@@ -1659,12 +1673,27 @@ function makeVisit(store, now, branchId, progId, name, person) {
     if (d.spot) { closeSheet(); var sp = { shop: [0, 0], near: [0.004, 0.003], far: [0.03, 0.02] }[d.spot], bb = lnFind(LANA.BRANCHES, S.feed.me.branch); S.pos = { lat: bb.lat + sp[0], lng: bb.lng + sp[1], acc: 25 }; return openScan('desk'); }
     if (d.accept) return act({ action: 'accept', id: d.accept }, 'รับงานแล้ว');
     if (b.id === 'scan') return openScan();
-    if (b.id === 'movescan') return openScan('move');
-    if (d.movebed) { closeSheet(); return act({ action: 'move', id: S.feed.mine.id, bed: d.movebed }, 'ย้ายแล้ว เริ่มขั้นต่อไป'); }
+    if (b.id === 'movescan') {
+      var mj = S.feed.mine, mx = pendingSteps(mj)[0], cur = mj.seats.filter(function (s) { return s.scanned; }).pop(), early = mx.start - nowMin();
+      if (early > 0 && !confirm(cur.label + ' ยังเหลือเวลาอีก ' + early + ' นาที (ถึง ' + lnHM(mx.start) + ')\nทำขั้นนี้เสร็จแล้ว ย้ายไป' + mx.label + ' เลยใช่ไหม?')) return;
+      return openScan('move');
+    }
+        if (d.movebed) { closeSheet(); return act({ action: 'move', id: S.feed.mine.id, bed: d.movebed }, 'ย้ายแล้ว เริ่มขั้นต่อไป'); }
     if (d.bed) { closeSheet(); return afterBed(d.bed); }
     if (d.hair) return act({ action: 'start', id: S.feed.mine.id, bed: d.code, hair: d.hair }, d.hair === 'ok' ? 'เริ่มจับเวลาแล้ว' : 'เริ่มแล้ว · ส่งลิงก์อัปเกรดผมให้ลูกค้า');
-    if (b.id === 'ext') return act({ action: 'extend', id: S.feed.mine.id }, 'ต่อเวลาแล้ว 30 นาที');
-    if (b.id === 'finish') return act({ action: 'finish', id: S.feed.mine.id }, 'จบงานแล้ว ลูกค้าจ่ายและให้ดาวในมือถือหรือที่เคาน์เตอร์');
+    if (b.id === 'ext') {
+      var ej = S.feed.mine;
+      if (!confirm('ลูกค้ายินยอมต่อเวลา 30 นาที ใช่ไหม?\nค่าบริการเพิ่ม ' + baht(LANA.EXT_PRICE) + ' (จ่ายตอนจบ)\nเวลาจบใหม่ ' + lnHM(ej.end + 30) + '\n\nกดตกลงเมื่อลูกค้าตกลงแล้วเท่านั้น')) return;
+      return act({ action: 'extend', id: ej.id }, 'ต่อเวลาแล้ว · จบใหม่ ' + lnHM(ej.end + 30));
+    }
+    if (b.id === 'finish') {
+      var fj = S.feed.mine, fps = pendingSteps(fj), fleft = fj.end - nowMin(), msg;
+      if (fps.length) msg = 'ยังเหลืออีก ' + fps.length + ' ขั้น: ' + fps.map(function (s) { return s.label; }).join(', ') + (fleft > 0 ? '\nเหลือเวลาอีก ' + fleft + ' นาที' : '') + '\nลูกค้าไม่ทำต่อ จบงานเลยใช่ไหม?';
+      else if (fleft > 0) msg = 'ยังเหลือเวลาอีก ' + fleft + ' นาที (ถึง ' + lnHM(fj.end) + ')\nลูกค้าขอจบก่อน จบงานเลยใช่ไหม?';
+      else msg = 'จบงาน ' + fj.q + ' ใช่ไหม?';
+      if (!confirm(msg)) return;
+      return act({ action: 'finish', id: fj.id, skip: fps.length > 0 || fleft > 0 }, 'จบงานแล้ว ลูกค้าจ่ายและให้ดาวในมือถือหรือที่เคาน์เตอร์');
+    }
     if (b.id === 'cancel') return closeSheet();
     if (b.id === 'logout') return logout();
     if (d.open) { S.tab = 'work'; window.scrollTo(0, 0); return render(); }

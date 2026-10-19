@@ -804,10 +804,7 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
         h += '<div class="upcard"><b>' + t('หมอนวดแจ้งว่าผมยาวระดับ "', 'Your therapist noted hair length "') + esc(nm(hu)) + '"</b><span style="font-size:13px">' + t('อัปเกรด ', 'Upgrade ') + baht(hu.price - hf.price) + t(' ได้เวลาเป่าเพิ่ม ', ' for ') + (hu.min - hf.min) + t(' นาที เวลานวดไม่ถูกตัด (จ่ายตอนจบ)', ' more blow-dry minutes, massage untouched (pay at the end)') + '</span>' +
           '<div class="row2"><button class="btn small" data-up="yes">' + t('อัปเกรด', 'Upgrade') + '</button><button class="btn small ghost" data-up="no">' + t('ไม่อัปเกรด ใช้เวลานวด', 'No, use massage time') + '</button></div></div>';
       }
-      var block = bk.extBlock === 'close' ? t('ร้านปิด ', 'We close at ') + hm(S.cfg.close) : t('มีคิวต่อ', 'Booked next') + (bk.extNext ? ' ' + hm(bk.extNext) : '');
-      h += '<div class="row2">' + (bk.canExtend ? '<button class="btn" data-ext="' + bk.id + '">' + t('ต่อ 30 นาที +', 'Add 30 min +') + baht(S.cfg.extPrice) + '</button>' : '<button class="btn" disabled>' + t('ต่อเวลาไม่ได้ · ', 'Cannot extend · ') + esc(block) + '</button>') + (bk.earlyReq ? '' : '<button class="btn ghost" data-early>' + t('ขอจบก่อนเวลา', 'End early') + '</button>') + '</div>';
-      if (bk.earlyReq) h += '<p>' + t('แจ้งหมอนวดแล้วว่าขอจบก่อนเวลา', 'Your therapist knows you want to finish early') + '</p>';
-      if (S.ui.askEarly) h += '<div class="upcard"><b>' + t('ยืนยันขอจบก่อนเวลา?', 'End your session early?') + '</b><span style="font-size:13px">' + t('หมอนวดจบก่อนเวลาเองไม่ได้ ต้องให้คุณยืนยัน', 'Your therapist cannot end early without you.') + '</span><div class="row2"><button class="btn small" data-early-yes="' + bk.id + '">' + t('จบเลย', 'End now') + '</button><button class="btn small ghost" data-early-no>' + t('นวดต่อ', 'Keep going') + '</button></div></div>';
+      h += '<p style="font-size:13px">' + (bk.canExtend ? t('อยากต่อเวลา 30 นาที (+', 'Want 30 more minutes (+') + baht(S.cfg.extPrice) + t(') บอกหมอนวดได้เลย', ')? Just tell your therapist.') : t('รอบนี้ต่อเวลาไม่ได้ ', 'Extending is not available this time') + (bk.extBlock === 'close' ? t('(ร้านใกล้ปิด)', ' (we close soon)') : t('(มีคิวต่อ)', ' (next guest booked)'))) + '</p>';
     }
     return '<div class="status">' + h + '</div>';
   }
