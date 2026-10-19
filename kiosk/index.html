@@ -314,7 +314,7 @@ body.real, body { background: var(--paper); }
     return fetch(APP.API_URL, { method: 'POST', body: JSON.stringify(req) }).then(function (r) { return r.json(); }, function () { throw new Error('NET'); })
       .then(function (j) { if (!j.ok) throw new Error(j.error); return j.data; });
   }
-  var ERR = { NET: ['เชื่อมต่อไม่ได้ ลองใหม่', 'Connection problem, try again'], KIOSK_KEY: ['รหัสแท็บเล็ตไม่ถูกต้อง', 'Wrong tablet password'], FULL: ['วันนี้เต็มแล้ว', 'Fully booked today'],
+  var ERR = { NET: ['เชื่อมต่อไม่ได้ ลองใหม่', 'Connection problem, try again'], KIOSK_KEY: ['รหัสแท็บเล็ตไม่ถูกต้อง', 'Wrong tablet password'], FULL: ['วันนี้เต็มแล้ว', 'Fully booked today'], TOO_LATE: ['โปรแกรมนี้ไม่ทันก่อนร้านปิด เลือกโปรแกรมที่สั้นกว่า', 'Not enough time before we close. Try a shorter treatment.'],
     CLOSED: ['ร้านปิดแล้ว เปิด 10:00–21:00', 'We are closed. Open 10:00–21:00'], NEED_NAME: ['ใส่ชื่อ', 'Enter your name'], BAD_PHONE: ['เบอร์ไม่ครบ หรือเว้นว่างไว้ก็ได้', 'Phone looks incomplete; you can leave it empty'],
     BAD_EMAIL: ['อีเมลไม่ถูกต้อง หรือเว้นว่างไว้ก็ได้', 'Email looks wrong; you can leave it empty'], NEED_HAIR: ['เลือกความยาวผมก่อน', 'Choose hair length first'], NO_TICKET: ['ตั๋วใช้เวลานี้ไม่ได้', 'No ticket usable now'],
     NOT_HERE: ['สาขานี้ไม่มีโปรแกรมนี้', 'Not available here'], NEED_STARS: ['ให้ดาวก่อน', 'Please rate first'], PAY_SETUP: ['ระบบจ่ายเงินยังไม่ได้ตั้งค่า', 'Payments are not set up yet'], PAY_FAILED: ['เปิดหน้าจ่ายเงินไม่ได้ ลองใหม่', 'Could not open payment, try again'], NOT_FOUND: ['ไม่พบรายการ', 'Not found'], NEED_CONTACT: ['ซื้อคอร์สต้องใส่เบอร์หรืออีเมล', 'Courses need a phone or email'], BAD_BRANCH: ['สาขานี้ยังไม่เปิด', 'This branch is not open'] };
