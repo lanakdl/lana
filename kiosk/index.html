@@ -213,7 +213,7 @@ label.f { display: grid; gap: 4px; font-size: 12.5px; color: var(--ink-2); }
 .khome { display: grid; gap: 16px; justify-items: center; text-align: center; max-width: 620px; margin: 0 auto; padding-top: 10px; }
 .khome h1 { font-family: var(--f-display); font-size: 40px; }
 :lang(th) .khome h1 { font-family: var(--f-thai); font-weight: 600; font-size: 32px; }
-.khome .eyebrow, .kcol .eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+.khome .eyebrow, .kcol .eyebrow, .kleft .eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
 .kbtns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; width: 100%; }
 .kbig { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 26px 18px; display: grid; gap: 6px; text-align: center; width: 100%; }
 .kbig b { font-size: 19px; }
@@ -278,6 +278,42 @@ body.real, body { background: var(--paper); }
 .kapp .tbar { padding-top: max(12px, env(safe-area-inset-top)); }
 .qr svg { width: 100%; height: 100%; }
 .qrbox .qr { background: #fff; padding: 6px; border-radius: 10px; }
+.kmenu { display: grid; gap: 26px; max-width: 1100px; margin: 0 auto; }
+.mtitle { display: grid; gap: 4px; }
+.mtitle h2 { font-family: var(--f-display); font-size: 34px; }
+:lang(th) .mtitle h2 { font-family: var(--f-thai); font-weight: 600; font-size: 28px; }
+.mgroup { display: grid; gap: 12px; }
+.mglabel { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.mglabel b { font-family: var(--f-thai); font-size: 19px; }
+.mglabel span { color: var(--ink-2); font-size: 13.5px; }
+.mgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 14px; }
+.mcard { display: grid; gap: 10px; align-content: start; text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px 18px 16px; min-width: 0; overflow: hidden; }
+.mpic { display: block; margin: -18px -18px 4px; aspect-ratio: 16 / 9; max-width: none; background: var(--sand); overflow: hidden; }
+.mpic img { width: 100%; height: 100%; object-fit: cover; display: block; max-width: none; }
+.mpic.demo { cursor: pointer; display: grid; place-items: end start; padding: 12px 16px; color: var(--ink-2); font-size: 12px; letter-spacing: .04em;
+  background: radial-gradient(120% 90% at 20% 10%, color-mix(in srgb, var(--card) 70%, transparent), transparent 60%), linear-gradient(135deg, var(--sand), color-mix(in srgb, var(--olive) 35%, var(--sand))); }
+.mpic.demo.m { background: radial-gradient(120% 90% at 80% 15%, color-mix(in srgb, var(--card) 70%, transparent), transparent 60%), linear-gradient(135deg, color-mix(in srgb, var(--ink) 25%, var(--sand)), var(--sand)); }
+button.mcard { transition: transform .15s ease, border-color .15s ease; }
+button.mcard:hover, button.mcard:focus-visible { border-color: var(--ink-2); transform: translateY(-2px); }
+button.mcard:active { transform: scale(.99); }
+.mcard.sel { margin: 8px 0 12px; }
+.mhead { display: grid; gap: 1px; }
+.mname { font-family: var(--f-thai); font-weight: 600; font-size: 21px; line-height: 1.3; }
+.men { font-family: var(--f-display); color: var(--ink-2); font-size: 15px; }
+.mdesc { color: var(--ink); font-size: 14.5px; line-height: 1.55; }
+.mbar { display: flex; gap: 2px; height: 6px; border-radius: 99px; overflow: hidden; }
+.mbar i, .msteps i { display: block; }
+.b0 { background: var(--ink); } .b1 { background: var(--olive); } .b2 { background: var(--sand); } .b3 { background: var(--ink-2); }
+.msteps { display: grid; gap: 3px; font-size: 13px; color: var(--ink-2); }
+.msteps span { display: flex; align-items: center; gap: 8px; }
+.msteps i { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+.msteps small { color: var(--mute); }
+.mfoot { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 2px; }
+.mmin { font-size: 13px; color: var(--ink-2); }
+.mprice { font-family: var(--f-display); font-size: 26px; font-variant-numeric: tabular-nums; }
+.mpack { font-size: 12.5px; color: var(--ink-2); margin-top: -6px; }
+.mgo { justify-self: end; font-weight: 600; color: var(--olive); font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { button.mcard { transition: none; } button.mcard:hover { transform: none; } }
 @media (max-width: 760px) { .ksplit, .kbtns { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -413,16 +449,39 @@ body.real, body { background: var(--paper); }
     if (k.screen === 'wait') return '<div class="khome"><div class="spin"></div><p class="hint">' + t('กำลังยืนยันการชำระเงินกับ Beam…', 'Confirming your payment with Beam…') + '</p></div>';
     return '';
   }
+  /* the treatment menu shown to walk-in guests: what each one is, how long, what happens, and the price */
+  function stepsOf(p) { return (p.steps || []).map(function (s) { return { name: S.lang === 'en' ? s[1] : s[0], min: +s[2] || 0 }; }).filter(function (s) { return s.min; }); }
+  function progCard(x, useT, owned, asButton) {
+    var st = stepsOf(x), tot = st.reduce(function (s, a) { return s + a.min; }, 0) || totalMin(x);
+    var src = x.img || (demo ? '' : '../img/' + x.id + '.jpg');
+    var pic = src ? '<span class="mpic"><img src="' + esc(src) + '" alt="" loading="lazy" onerror="this.parentNode.remove()"></span>'
+      : demo ? '<span class="mpic demo ' + (x.hair ? 'h' : 'm') + '" data-kpic="' + x.id + '"><span>' + t('แตะตรงนี้เพื่อลองใส่รูปจากเครื่อง', 'Tap to try a photo from this device') + '</span></span>' : '';
+    var inner = pic + '<span class="mhead"><span class="mname">' + esc(nm(x)) + '</span>' + (S.lang === 'th' && x.name_en ? '<span class="men">' + esc(x.name_en) + '</span>' : '') + '</span>' +
+      '<span class="mdesc">' + esc(S.lang === 'en' ? x.desc_en : x.desc_th) + '</span>' +
+      (st.length ? '<span class="mbar" aria-hidden="true">' + st.map(function (s, i) { return '<i style="flex:' + s.min + '" class="b' + (i % 4) + '"></i>'; }).join('') + '</span>' +
+        '<span class="msteps">' + st.map(function (s, i) { return '<span><i class="b' + (i % 4) + '"></i>' + esc(s.name) + ' <small>' + s.min + ' ' + t('นาที', 'min') + '</small></span>'; }).join('') + '</span>' : '') +
+      '<span class="mfoot"><span class="mmin">' + totalMin(x) + ' ' + t('นาที', 'min') + '</span>' + (useT ? '<span class="mprice">' + t('มีตั๋ว ', 'You have ') + owned[x.id] + t(' ใบ', ' left') + '</span>' : '<span class="mprice">' + baht(x.price) + '</span>') + '</span>' +
+      (useT ? '' : '<span class="mpack">' + t('คอร์ส 5 ครั้ง ', '5 sessions ') + baht(x.pack5) + ' · ' + t('10 แถม 1 ', '10 + 1 free ') + baht(x.pack11) + '</span>');
+    return asButton ? '<button class="mcard" data-kprog="' + x.id + '">' + inner + '<span class="mgo">' + t('เลือก', 'Choose') + ' ›</span></button>' : '<div class="mcard sel">' + inner + '</div>';
+  }
+  function menu(list, useT, owned) {
+    var groups = [[t('แฮร์สปา', 'Hair spa'), t('นวดศีรษะ สระ และเป่าผม จบในที่เดียว', 'Head massage, wash and blow-dry'), list.filter(function (p) { return p.hair; })],
+      [t('นวด', 'Massage'), t('ผ่อนคลายร่างกาย ไม่ต้องสระผม', 'For the body, no hair wash'), list.filter(function (p) { return !p.hair; })]].filter(function (g) { return g[2].length; });
+    return '<div class="kmenu"><div class="mtitle"><h2>' + (useT ? t('เลือกโปรแกรมที่จะใช้ตั๋ว', 'Choose a treatment for your ticket') : t('เมนูวันนี้', 'Today\'s menu')) + '</h2><span class="hint">' + t('แตะโปรแกรมที่สนใจ แล้วเลือกรายละเอียดต่อได้', 'Tap a treatment to choose the details') + '</span></div>' +
+      groups.map(function (g) { return '<section class="mgroup"><div class="mglabel"><b>' + g[0] + '</b><span>' + g[1] + '</span></div><div class="mgrid">' + g[2].map(function (x) { return progCard(x, useT, owned, true); }).join('') + '</div></section>'; }).join('') + '</div>';
+  }
   function walkin() {
     var k = S.k, br = branch(S.branch), useT = !!k.useT, owned = {};
     (k.tickets || []).forEach(function (x) { owned[x.prog] = (owned[x.prog] || 0) + 1; });
     var list = S.cfg.programs.filter(function (p) { return p.at.indexOf(br.id) >= 0 && (!useT || owned[p.id]); });
     if (!list.length) return '<div class="khome"><h2>' + t('ตั๋วของคุณใช้ที่สาขานี้ไม่ได้', 'Your tickets cannot be used at this branch') + '</h2><div class="row2"><button class="btn kb" data-kbuy>' + t('ซื้อโปรแกรมที่มีที่นี่', 'Buy a treatment here') + '</button><button class="btn ghost kb" data-k="home">' + t('กลับหน้าแรก', 'Home') + '</button></div></div>';
-    if (!k.prog || !list.some(function (p) { return p.id === k.prog; })) k.prog = list[0].id;
+    if (k.prog && !list.some(function (p) { return p.id === k.prog; })) k.prog = '';
+    if (!k.prog && list.length === 1) k.prog = list[0].id;
+    if (!k.prog) return menu(list, useT, owned);
     if (!k.person) k.person = newPerson();
     var p = prog(k.prog), pe = k.person;
-    var h = '<div class="ksplit"><div class="kleft"><h2>' + (useT ? t('ใช้ตั๋ว', 'Use a ticket') : t('เลือกโปรแกรม', 'Choose a treatment')) + '</h2><div class="opts">' + list.map(function (x) {
-      return '<button class="opt" data-kprog="' + x.id + '" aria-pressed="' + (x.id === k.prog) + '"><span class="t">' + esc(nm(x)) + '</span><span class="s">' + totalMin(x) + ' ' + t('นาที', 'min') + (useT ? ' · ' + t('เหลือ ', '') + owned[x.id] + t(' ใบ', ' left') : ' · ' + baht(x.price)) + '</span></button>'; }).join('') + '</div></div><div class="kright">';
+    var h = '<div class="ksplit"><div class="kleft"><span class="eyebrow">' + (useT ? t('ใช้ตั๋ว', 'Using a ticket') : t('โปรแกรมที่เลือก', 'Your treatment')) + '</span>' + progCard(p, useT, owned, false) +
+      (list.length > 1 ? '<button class="btn ghost kb" data-kmenu>‹ ' + t('ดูเมนูทั้งหมด / เปลี่ยนโปรแกรม', 'Back to the menu') + '</button>' : '') + '</div><div class="kright">';
     if (p.hair) h += '<span class="hint">' + t('ผมยาวแค่ไหน', 'Hair length') + '</span><div class="hair">' + S.cfg.hair.map(function (x) { return '<button class="opt" data-khair="' + x.id + '" aria-pressed="' + (pe.hair === x.id) + '">' + hairSvg(x.id) + '<span class="t" style="font-size:13px">' + esc(nm(x)) + '</span><span class="s">' + (x.price ? '+' + baht(x.price) : t('ไม่เพิ่ม', 'no extra')) + '</span></button>'; }).join('') + '</div>';
     h += S.cfg.addons.filter(function (a) { return a.for.indexOf(p.id) >= 0; }).map(function (a) {
       return '<label class="addon"><input type="checkbox" data-kaddon="' + a.id + '"' + (pe.addons.indexOf(a.id) >= 0 ? ' checked' : '') + '><span><span class="t">' + esc(nm(a)) + '</span>' + (a.rec ? ' <span class="badge">' + t('ลูกค้าส่วนใหญ่เลือก', 'Most popular') + '</span>' : '') + '<br><span class="s">' + esc(S.lang === 'en' ? a.desc_en : a.desc_th) + '</span></span><span class="p">+' + baht(a.price) + '</span></label>'; }).join('');
@@ -526,7 +585,12 @@ body.real, body { background: var(--paper); }
       go('queue', { q: r.q, vkey: r.vkey, label: nm(p) + ' · ' + t('เริ่ม ', 'starts ') + hm(r.start) });
     }).catch(function (e) { k.err = errT(e); render(); });
   }
+  /* demo only: try a photo from this device on a menu card (stays in this page, nothing is uploaded) */
+  var picIn = document.createElement('input'); picIn.type = 'file'; picIn.accept = 'image/*'; picIn.hidden = true; document.body.appendChild(picIn);
+  picIn.onchange = function () { var f = picIn.files && picIn.files[0], id = picIn.dataset.id; if (!f) return; var r = new FileReader();
+    r.onload = function () { S.cfg.programs.forEach(function (p) { if (p.id === id) p.img = r.result; }); picIn.value = ''; render(); }; r.readAsDataURL(f); };
   document.addEventListener('click', function (e) {
+    var pc = e.target.closest('[data-kpic]'); if (pc && demo) { e.preventDefault(); e.stopPropagation(); picIn.dataset.id = pc.dataset.kpic; picIn.click(); return; }
     var el = e.target.closest('button'); if (!el) return;
     var d = el.dataset, k = S.k; idle();
     if (d.lang) { S.lang = d.lang; return render(); }
@@ -548,7 +612,8 @@ body.real, body { background: var(--paper); }
     }
     if (d.kuse !== undefined) return go('walkin', { useT: true, tickets: k.found.tickets, who: k.who, tier: k.found.member.tier });
     if (d.kbuy !== undefined) return go('walkin', k.who && k.found ? { memberChoice: 'buy', who: k.who, tier: k.found.member.tier } : {});
-    if (d.kprog) { k.prog = d.kprog; k.person = newPerson(); return render(); }
+    if (d.kprog) { k.prog = d.kprog; k.person = newPerson(); render(); var tb = $('tbody'); if (tb) tb.scrollTop = 0; return; }
+    if (d.kmenu !== undefined) { k.prog = ''; k.person = null; render(); var tb2 = $('tbody'); if (tb2) tb2.scrollTop = 0; return; }
     if (d.kpack) { saveForm(); k.pack = d.kpack; return render(); }
     if (d.khair) { saveForm(); k.person.hair = d.khair; return render(); }
     if (d.kstyle) { saveForm(); k.person.style = d.kstyle; return render(); }

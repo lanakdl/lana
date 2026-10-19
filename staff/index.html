@@ -965,6 +965,14 @@ function custApi(req, store, now) {
 }
 
 /* ---------- catalogue for the apps ---------- */
+/* a photo for the menu: any https image link, or a Google Drive share link (file shared as "anyone with the link") */
+function cImgUrl(v, store) {
+  v = String(v || '').trim(); if (!v) return '';
+  if (!/^https?:\/\//i.test(v)) return store && store.photoUrl ? store.photoUrl(v) : '';   /* a file name: look it up in the "Lana Photos" Drive folder */
+  var m = /drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=view&)?id=)([\w-]{20,})/.exec(v);
+  if (m) return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w1200';
+  return /^https:\/\//.test(v) ? v : '';
+}
 function cConfig(store) {
   var brs = store.branches();
   return {
@@ -972,7 +980,7 @@ function cConfig(store) {
     branches: brs.map(function (b) { return { id: b.id, name_th: b.name_th, name_en: b.name_en, active: lnTrue(b.active), soon: String(b.active).toUpperCase() === 'SOON', addr: b.addr || '', map: b.map || '', res: { wash: +b.wash || 0, dry: +b.dry || 0, thai: +b.thai || 0, chair: +b.chair || 0 } }; }).filter(function (b) { return b.active || b.soon; }),
     programs: LANA.PROGRAMS.filter(function (p) { return p.active === undefined || p.active === '' || lnTrue(p.active); }).map(function (p) {
       return { id: p.id, name_th: p.name_th, name_en: p.name_en || p.name_th, price: +p.price, pack5: lnPack(p, 5), pack11: lnPack(p, 11), hair: lnTrue(p.hair),
-        segs: lnPairs(p.segs).map(function (s) { return { res: s.k, min: s.v }; }), steps: lnSteps(p), desc_th: p.desc_th || '', desc_en: p.desc_en || p.desc_th || '',
+        segs: lnPairs(p.segs).map(function (s) { return { res: s.k, min: s.v }; }), steps: lnSteps(p), desc_th: p.desc_th || '', desc_en: p.desc_en || p.desc_th || '', img: cImgUrl(p.img, store),
         at: brs.filter(function (b) { return lnProgAt(p, b); }).map(function (b) { return b.id; }) };
     }),
     hair: LANA.HAIR.map(function (h) { return { id: h.id, name_th: h.name_th, name_en: h.name_en || h.name_th, price: +h.price, min: +h.min }; }),
@@ -1676,6 +1684,7 @@ function memStore() {
     newCsession: function (uid) { var t = 'c' + Math.random().toString(36).slice(2) + Date.now().toString(36); db.csessions[t] = uid; return t; },
     kioskKey: function () { return 'demo-kiosk'; },
     ownerKey: function () { return 'demo-owner'; },
+    photoUrl: function () { return ''; },
     /* demo Beam: the page shows a pretend checkout and marks the link PAID */
     beamCreate: function (o) { var id = 'B' + o.id; db.beam[id] = 'ACTIVE'; return { id: id, url: 'demo-beam:' + o.id }; },
     beamStatus: function (id) { return db.beam[id] || 'ACTIVE'; },
