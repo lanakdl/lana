@@ -208,9 +208,12 @@ LANA.TIERS = [
   { id: 'DIAMOND', name_th: 'ไดมอนด์', name_en: 'Diamond', minSpend: 25000, free: 'VIT,HERB,SCRUB', desc_th: 'วิตามิน ลูกประคบ และสครับหนังศีรษะฟรีทุกครั้ง', desc_en: 'Free vitamin, compress and scalp scrub every visit' }
 ];
 /* partner vouchers: rule quiet = Mon–Thu before 16:00 */
+/* code: what the clinic types into the customer's LINE app. One use per member per code. Blank rule = any day and time */
 LANA.PARTNERS = [
-  { id: 'CLINIC', name_th: 'คลินิกพาร์ทเนอร์', name_en: 'Partner clinic', prog: 'SPA45', days: 60, rule: 'quiet',
-    desc_th: 'ลูกค้าคลินิกที่ใช้จ่ายครบ ฿5,000 รับแฮร์สปา ซิกเนเจอร์ ฟรี 1 ครั้ง', desc_en: 'Clinic guests who spent ฿5,000 get one free Signature Hair Spa.' }
+  { id: 'DRTAN', name_th: 'Dr.Tan Clinic', name_en: 'Dr.Tan Clinic', code: 'drtanclinic2026', prog: 'SPA45', days: 60, rule: 'quiet',
+    desc_th: 'ลูกค้าคลินิก รับแฮร์สปา ซิกเนเจอร์ 45 นาที ฟรี 1 ครั้ง', desc_en: 'Clinic guests get one free 45-min Signature Hair Spa.' },
+  { id: 'JB', name_th: 'JB Clinic', name_en: 'JB Clinic', code: 'jbclinic2026', prog: 'SPA45', days: 60, rule: 'quiet',
+    desc_th: 'ลูกค้าคลินิก รับแฮร์สปา ซิกเนเจอร์ 45 นาที ฟรี 1 ครั้ง', desc_en: 'Clinic guests get one free 45-min Signature Hair Spa.' }
 ];
 LANA.STAFF = [
   { id: 'S1', name: 'แอน', phone: '+66811111111', pin: '1111', type: 'PT', branch: 'NIM', skills: 'ALL', active: 'TRUE' },
@@ -300,6 +303,7 @@ function lnBuildLive(bk, branch, others, nowMin) {
       if (!got) return { ok: false, res: seg.res, start: m, end: m + len };
       if (m + len > LANA.CLOSE) return { ok: false, res: 'close', start: m, end: m + len };
       var row = { branch: bk.branch, date: bk.date, res: seg.res, unit: got, start: m, end: m + len, pi: pi, i: i };
+      if (prev && prev.scanned) { row.scanned = true; if (prev.scannedAt != null) row.scannedAt = prev.scannedAt; }
       placed.push(row); rows.push(row); m += len;
     }
   }
@@ -400,6 +404,7 @@ function staffApi(req, store, now) {
   if (a === 'start') return store.lock(function () { return apiStart(me, req, store, now); });
   if (a === 'extend') return store.lock(function () { return apiExtend(me, req, store, now); });
   if (a === 'finish') return store.lock(function () { return apiFinish(me, req, store, now); });
+  if (a === 'move') return store.lock(function () { return apiMove(me, req, store, now); });
   if (a === 'pay') return apiPayReport(me, store, now);
   if (a === 'unlink') return store.lock(function () { me.lineUserId = ''; store.saveStaff(me); store.log(me.id, '', 'line_unlink', ''); return { ok: true }; });
   throw new Error('UNKNOWN');
@@ -467,7 +472,7 @@ function apiJobView(b, store, now, withCheck) {
     ext: b.ext || 0, earlyReq: !!b.earlyReq, upgrade: b.upgrade || null };
   if (b.status === 'inservice') {
     v.svcStart = +b.svcStart; v.end = lnEnd(b);
-    v.seats = b.live.map(function (r) { return { label: LANA.RES[r.res][0] + ' ' + r.unit, start: r.start, end: r.end }; });
+    v.seats = b.live.map(function (r) { return { label: LANA.RES[r.res][0] + ' ' + r.unit, start: r.start, end: r.end, res: r.res, unit: r.unit, i: r.i, pi: r.pi, scanned: !!r.scanned || r.i === 0, code: b.branch + '-' + LANA.RES[r.res][2] + r.unit, who: b.people[r.pi] ? b.people[r.pi].name : '' }; });
     if (withCheck) {
       var copy = JSON.parse(JSON.stringify(b)), all = store.bookings().map(function (x) { return x.id === b.id ? copy : JSON.parse(JSON.stringify(x)); });
       copy.people[0].ext = (copy.people[0].ext || 0) + 1;
@@ -535,6 +540,7 @@ function apiStart(me, req, store, now) {
     if (order.indexOf(req.hair) > order.indexOf(from)) b.upgrade = { from: from, to: req.hair, state: 'pending' };
   }
   b.status = 'inservice';
+  b.live.forEach(function (row) { if (row.i === 0) { row.scanned = true; row.scannedAt = now.min; } });
   store.saveBooking(b); if (r.moved) r.moved.forEach(function (x) { store.saveBooking(x); });
   store.log(me.id, b.id, 'start', code + (b.upgrade ? ' hair:' + b.upgrade.to : ''));
   return apiFeed(me, store, now);
@@ -550,6 +556,26 @@ function apiExtend(me, req, store, now) {
   b.due = b.due || []; b.due.push({ kind: 'ext', th: 'ต่อเวลา 30 นาที', en: 'Extra 30 min', amount: LANA.EXT_PRICE });
   store.saveBooking(b); r.moved.forEach(function (x) { store.saveBooking(x); });
   store.log(me.id, b.id, 'extend', r.moved.length ? 'moved ' + (r.moved[0].q || r.moved[0].code) : '');
+  return apiFeed(me, store, now);
+}
+/* next step of the visit (e.g. wash bed -> dryer): scan the chair's QR when it is time to move */
+function apiMove(me, req, store, now) {
+  var b = apiGet(store, req.id);
+  if (b.staffId !== me.id || b.status !== 'inservice') throw new Error('NOT_YOURS');
+  var code = String(req.bed || '').trim().toUpperCase(), m = /^([A-Z]+)-([WDTC])(\d+)$/.exec(code);
+  if (!m || m[1] !== b.branch) throw new Error('BAD_BED');
+  var res = { W: 'wash', D: 'dry', T: 'thai', C: 'chair' }[m[2]], unit = +m[3];
+  var next = b.live.filter(function (r) { return !r.scanned && r.i > 0 && r.start <= now.min + 5; }).sort(function (x, y) { return x.start - y.start; });
+  if (!next.length) throw new Error('NOT_YET');
+  var r = next.filter(function (x) { return x.res === res; })[0];
+  if (!r) throw new Error('WRONG_BED_TYPE');
+  if (r.unit !== unit) {
+    var others = lnOccupied(store.bookings(), b.id);
+    if (!lnUnitFree(others, b.branch, b.date, res, unit, Math.max(now.min, r.start), r.end)) throw new Error('BED_BUSY');
+    r.unit = unit;
+  }
+  r.scanned = true; r.scannedAt = now.min;
+  store.saveBooking(b); store.log(me.id, b.id, 'move', code);
   return apiFeed(me, store, now);
 }
 function apiFinish(me, req, store, now) {
@@ -577,7 +603,7 @@ function apiPayReport(me, store, now) {
    Saves messages: a new job goes first to the PUSH_FIRST idle therapists with the fewest jobs today,
    after PUSH_WAIT minutes nobody took it -> the rest of the idle ones. One 10-minute warning per job end.
    Returns [{ staffId, to, kind, text, bookingId }] for store.push(). */
-var LN_PUSH = { FIRST: 2, WAIT: 2, WARN: 10, warnOn: true };
+var LN_PUSH = { FIRST: 2, WAIT: 2, WARN: 10, warnOn: true, moveOn: true };
 function staffTick(store, now) {
   var out = [], all = store.bookings().filter(function (b) { return b.date === now.date; }), staff = store.staff();
   var busy = {}, jobs = {};
@@ -603,6 +629,10 @@ function staffTick(store, now) {
       fresh.forEach(function (s) { out.push({ staffId: s.id, to: s.lineUserId, kind: 'job', text: text, bookingId: b.id }); });
       b.notified = sent.concat(fresh.map(function (s) { return s.id; }));
       store.saveBooking(b);
+    } else if (b.status === 'inservice' && LN_PUSH.moveOn && (b.live || []).some(function (r) { return !r.scanned && r.i > 0 && r.start - now.min <= 1 && (b.movePushed || []).indexOf(r.pi + ':' + r.i) < 0; })) {
+      var mv = b.live.filter(function (r) { return !r.scanned && r.i > 0 && r.start - now.min <= 1 && (b.movePushed || []).indexOf(r.pi + ':' + r.i) < 0; })[0], sm = lnFind(staff, b.staffId);
+      b.movePushed = (b.movePushed || []).concat([mv.pi + ':' + mv.i]); store.saveBooking(b);
+      if (sm && sm.lineUserId) out.push({ staffId: sm.id, to: sm.lineUserId, kind: 'move', text: 'ถึงเวลาย้าย ' + (b.q || b.code) + ' ไป' + LANA.RES[mv.res][0] + ' ' + mv.unit + '\nเปิดแอปแล้วสแกน QR ที่' + LANA.RES[mv.res][0], bookingId: b.id });
     } else if (b.status === 'inservice' && LN_PUSH.warnOn) {
       var end = lnEnd(b), left = end - now.min, s = lnFind(staff, b.staffId);
       if (left > LN_PUSH.WARN || left <= 0 || +b.warned === end || !s || !s.lineUserId) return;
@@ -627,7 +657,7 @@ var LN_C = { LEAD: 30, HOLD_MIN: 20, PAY_MIN: 15, MAX_UPCOMING: 2, DAYS: 8, STEP
 function custApi(req, store, now) {
   var a = req.action;
   if (a === 'config') return cConfig(store);
-  if (a === 'hello') return cHello(req, store);
+  if (a === 'hello') return cHello(req, store, now);
   if (a === 'order') return store.lock(function () { return cOrderState(req, store, now); });
   if (a === 'visit') return store.lock(function () { cSweep(store, now); var b = cByVkey(store, req.vkey); return { booking: cView(b, store, now, true) }; });
   if (a === 'slots') return store.lock(function () { return cSlots(req, store, now, req.token ? cMeOrNull(req, store) : null); });
@@ -649,6 +679,7 @@ function custApi(req, store, now) {
     if (a === 'earlier') return cEarlier(me, req, store, now);
     if (a === 'checkin') return cCheckinAt(me, req, store, now);
     if (a === 'claim') return cClaim(me, req, store, now);
+    if (a === 'redeem') return cRedeem(me, req, store, now);
     if (/^(extend|early|upgrade|checkout|thanked|upcourse|seen)$/.test(a)) return cVisitAction(a, req, store, now, me);
     throw new Error('UNKNOWN');
   });
@@ -681,9 +712,10 @@ function cMemberBy(store, key, val) {
 function cMeOrNull(req, store) { var uid = store.csession(req.token); return uid ? cMemberBy(store, 'lineUserId', uid) : null; }
 function cPhoneOK(e) { return /^\+66\d{9}$/.test(e) || (/^\+\d{8,15}$/.test(e) && e.indexOf('+66') !== 0); }
 function cEmailOK(e) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e || ''); }
-function cHello(req, store) {
-  var uid = store.lineUser(req.idToken, 'cust'), m = cMemberBy(store, 'lineUserId', uid);
-  return { token: store.newCsession(uid), member: m ? cMemberPub(m) : null };
+function cHello(req, store, now) {
+  var uid = store.lineUser(req.idToken, 'cust'), m = cMemberBy(store, 'lineUserId', uid), out = { token: store.newCsession(uid), member: m ? cMemberPub(m) : null };
+  if (m && now) out.me = store.lock(function () { return cMe(cMemberBy(store, 'lineUserId', uid), store, now); }); /* saves a second round trip */
+  return out;
 }
 function cMemberPub(m) { return { id: m.id, name: m.name, phone: m.phone, email: m.email, birthMonth: +m.birthMonth || null, consent: lnTrue(m.consentMarketing), noShows: +m.noShows || 0 }; }
 function cSignup(uid, req, store, now) {
@@ -693,6 +725,7 @@ function cSignup(uid, req, store, now) {
   if (!req.privacy) throw new Error('NEED_PRIVACY');
   /* someone who first came through the counter tablet with this phone: link that record to LINE */
   var m = cMemberBy(store, 'phone', phone);
+  if (!m) { var byMail = cMemberBy(store, 'email', email); if (byMail && !byMail.lineUserId) m = byMail; } /* came to the counter with only an email */
   if (m && m.lineUserId) throw new Error('PHONE_TAKEN');
   var isNew = !m;
   if (!m) m = { id: 'M' + lnId(7), createdAt: cStamp(now), noShows: 0, source: 'line' };
@@ -787,8 +820,23 @@ function cMe(me, store, now) {
     vouchers: vs.map(function (v) { return { id: v.id, kind: v.kind, addon: v.addon }; }),
     claims: store.claims().filter(function (c) { return c.memberId === me.id; }).map(function (c) { return { id: c.id, partner: c.partner, receipt: c.receipt, status: String(c.status).toLowerCase() }; }),
     bookings: show.map(function (b) { return cView(b, store, now, true); }),
-    lastPrefs: cJSON(me.lastPrefs, {})
+    lastPrefs: cJSON(me.lastPrefs, {}),
+    history: cHistory(store, me)
   };
+}
+/* recent visits and purchases for MY LANA */
+function cHistory(store, me) {
+  var paidFor = {}, out = [];
+  store.orders().forEach(function (o) { if (o.memberId === me.id && o.status === 'paid') {
+    if (o.bookingId) paidFor[o.bookingId] = (paidFor[o.bookingId] || 0) + (+o.amount || 0);
+    if (o.kind === 'buy' || o.kind === 'upcourse') out.push({ type: 'buy', date: String(o.paidAt || o.createdAt).slice(0, 10), prog: o.prog, count: +o.count || 1, amount: +o.amount || 0 });
+  } });
+  store.bookings().forEach(function (b) {
+    if (b.memberId !== me.id || ['done', 'finished', 'noshow'].indexOf(b.status) < 0) return;
+    out.push({ type: b.status === 'noshow' ? 'noshow' : 'visit', date: b.date, start: b.people[0].alloc[0].start, prog: b.people[0].prog, n: b.people.length, branch: b.branch, amount: paidFor[b.id] || 0, stars: +b.stars || 0, kiosk: !!b.kiosk });
+  });
+  out.sort(function (x, y) { return x.date < y.date ? 1 : x.date > y.date ? -1 : (y.start || 0) - (x.start || 0); });
+  return out.slice(0, 15);
 }
 function cJSON(s, d) { if (s && typeof s === 'object') return s; try { return s ? JSON.parse(s) : d; } catch (e) { return d; } }
 function cStamp(now) { return now.date + ' ' + lnHM(now.min); }
@@ -975,11 +1023,17 @@ function cDoCheckin(store, b, branchId, now, move) {
   store.saveBooking(b); store.log('', b.id, 'checkin', branchId + (move ? ' moved' : ''));
   return { result: 'checkedin', q: b.q, late: b.endCap ? now.min - st : 0 };
 }
+/* the visit that matters right now: one in progress, else the next booked one, else one finished and waiting to pay */
+function cTodayVisit(store, memberId, now) {
+  var mine = store.bookings().filter(function (x) { return x.memberId === memberId && x.date === now.date; })
+    .sort(function (x, y) { return x.people[0].alloc[0].start - y.people[0].alloc[0].start; });
+  var pick = function (sts) { return mine.filter(function (x) { return sts.indexOf(x.status) >= 0; })[0] || null; };
+  return pick(['checkedin', 'accepted', 'inservice']) || pick(['booked']) || pick(['finished']);
+}
 function cCheckinAt(me, req, store, now) {
   cSweep(store, now);
   var br = lnFind(store.branches(), String(req.branch || '').toUpperCase()); if (!br || !lnTrue(br.active)) throw new Error('BAD_BRANCH');
-  var b = req.id ? cOwn(store, me, req.id) : store.bookings().filter(function (x) { return x.memberId === me.id && x.date === now.date && ['booked', 'checkedin', 'accepted', 'inservice', 'finished'].indexOf(x.status) >= 0; })
-    .sort(function (x, y) { return x.people[0].alloc[0].start - y.people[0].alloc[0].start; })[0];
+  var b = req.id ? cOwn(store, me, req.id) : cTodayVisit(store, me.id, now);
   var r = b ? cDoCheckin(store, b, br.id, now, !!req.move) : { result: 'none' };
   var out = cMe(me, store, now); out.checkin = r; out.checkin.bookingId = b ? b.id : ''; return out;
 }
@@ -1048,6 +1102,17 @@ function cBuy(me, req, store, now) {
   var o = cNewOrder(store, now, { memberId: me.id, kind: 'buy', amount: amount, prog: p.id, count: n, items: [{ th: p.name_th + ' × ' + n, en: p.name_en + ' × ' + n, amount: amount }], label: p.name_en + ' × ' + n }, req.returnUrl);
   return { orderId: o.id, url: o.beamUrl, amount: amount };
 }
+/* clinic code typed into the customer's LINE app: one free ticket, once per member per code */
+function cRedeem(me, req, store, now) {
+  var code = String(req.code || '').trim().toLowerCase().replace(/\s+/g, '');
+  var pt = (LANA.PARTNERS || []).filter(function (p) { return p.code && String(p.code).trim().toLowerCase() === code; })[0];
+  if (!code || !pt) throw new Error('BAD_CODE');
+  if (store.claims().some(function (c) { return c.memberId === me.id && c.partner === pt.id; })) throw new Error('CODE_USED');
+  store.saveTicket({ id: 'T' + lnId(8), memberId: me.id, prog: pt.prog, status: 'active', src: 'partner', rule: pt.rule || '', expires: +pt.days ? lnAddDays(now.date, +pt.days) : '', orderId: '', bookingId: '', createdAt: cStamp(now), usedAt: '' });
+  store.saveClaim({ id: 'C' + lnId(7), memberId: me.id, partner: pt.id, receipt: code, status: 'issued', createdAt: cStamp(now), name: me.name, phone: me.phone });
+  store.log('', '', 'partner_code', pt.id + ' ' + me.id);
+  var out = cMe(me, store, now); out.redeemed = { partner: pt.id, prog: pt.prog }; return out;
+}
 function cClaim(me, req, store, now) {
   var r = String(req.receipt || '').trim().toUpperCase(), pt = lnFind(LANA.PARTNERS, req.partner) || LANA.PARTNERS[0];
   if (r.length < 4) throw new Error('BAD_RECEIPT');
@@ -1096,6 +1161,7 @@ function cFulfil(store, o, now) {
     store.saveBooking(b); if (b.status === 'booked') cConfirmMail(store, b, m);
   } else if (o.kind === 'walkin' && b) {
     b.paid = (+b.paid || 0) + +o.amount;
+    for (var w = 1; w < (+o.count || 1); w++) store.saveTicket({ id: 'T' + lnId(8), memberId: o.memberId, prog: o.prog, status: 'active', src: 'course', rule: '', expires: '', orderId: o.id, bookingId: '', createdAt: cStamp(now), usedAt: '' });
     if (b.status === 'hold') { b.status = 'checkedin'; b.q = cQueue(store, b); b.checkedAt = lnHM(now.min); b.holdUntil = ''; }
     store.saveBooking(b);
   } else if (o.kind === 'checkout' && b) cCheckoutDone(store, b, now);
@@ -1165,8 +1231,7 @@ function cKiosk(a, req, store, now) {
   if (a === 'kFind') {
     var m = cKioskFindMember(store, req);
     if (!m) return { member: null };
-    var today = store.bookings().filter(function (b) { return b.memberId === m.id && b.date === now.date && ['booked', 'checkedin', 'accepted', 'inservice', 'finished'].indexOf(b.status) >= 0; })
-      .sort(function (x, y) { return x.people[0].alloc[0].start - y.people[0].alloc[0].start; })[0];
+    var today = cTodayVisit(store, m.id, now);
     var tix = store.tickets().filter(function (k) { return k.memberId === m.id && k.status === 'active' && cTicketOK(k, now.date, now.min); });
     var check = null;
     if (today && today.status === 'booked') {
@@ -1216,21 +1281,24 @@ function cKioskStart(req, store, now, br) {
     member = { id: 'M' + lnId(7), lineUserId: '', name: name, phone: phone, email: email, birthMonth: '', consentMarketing: req.consent ? 'TRUE' : 'FALSE', privacyAt: '', noShows: 0, source: 'kiosk', createdAt: cStamp(now), lastPrefs: '' };
     store.saveMember(member);
   }
+  /* buying a course at the counter: today's visit uses one, the rest go to the member's wallet (needs a phone or email) */
+  var packN = tix ? 1 : ({ '1': 1, '5': 5, '11': 11 })[String(req.pack || '1')] || 1;
+  if (packN > 1 && !member) throw new Error('NEED_CONTACT');
   var kTier = member ? cTier(store, member, now) : null;
-  var extras = lnPersonLines(prog, pe, [], kTier ? kTier.free : [], kTier ? kTier.name_en : ''), total = lnSum(extras) + (tix ? 0 : +prog.price);
+  var extras = lnPersonLines(prog, pe, [], kTier ? kTier.free : [], kTier ? kTier.name_en : ''), total = lnSum(extras) + (tix ? 0 : lnPack(prog, packN));
   var b = { id: lnId(8), code: 'LN' + lnId(5), q: '', branch: br.id, date: now.date, status: 'hold', people: [pe], ext: 0, due: [], live: [], kiosk: true, src: 'kiosk',
     memberId: member ? member.id : '', guest: !member || member.source === 'kiosk' && !member.lineUserId, tix: [], paid: 0, email: email || (member && member.email) || '', phone: phone || (member && member.phone) || '',
     consent: !!req.consent, vkey: lnId(12), verifiedBy: req.useTicket ? (req.phone ? 'phone' : 'email') : '' };
   var kt = null;
   if (tix) { tix.forEach(function (k) { k.status = 'booked'; k.bookingId = b.id; store.saveTicket(k); }); b.tix = tix.map(function (k) { return k.id; }); }
   else {
-    kt = { id: 'T' + lnId(8), memberId: b.memberId, prog: prog.id, status: 'booked', src: 'kiosk', rule: '', expires: '', orderId: '', bookingId: b.id, createdAt: cStamp(now), usedAt: '' };
+    kt = { id: 'T' + lnId(8), memberId: b.memberId, prog: prog.id, status: 'booked', src: packN > 1 ? 'course' : 'kiosk', rule: '', expires: '', orderId: '', bookingId: b.id, createdAt: cStamp(now), usedAt: '' };
     b.tix = [kt.id];
   }
   var out = {};
   if (total > 0) {
     b.holdUntil = cStamp({ date: now.date, min: now.min + LN_C.HOLD_MIN });
-    var o = cNewOrder(store, now, { memberId: b.memberId, kind: 'walkin', amount: total, bookingId: b.id, items: (tix ? [] : [{ th: prog.name_th, en: prog.name_en, amount: +prog.price }]).concat(extras.filter(function (l) { return l.amount; })), label: prog.name_en }, req.returnUrl);
+    var o = cNewOrder(store, now, { memberId: b.memberId, kind: 'walkin', amount: total, bookingId: b.id, prog: prog.id, count: packN, items: (tix ? [] : [{ th: prog.name_th + (packN > 1 ? ' คอร์ส ' + packN + ' ครั้ง' : ''), en: prog.name_en + (packN > 1 ? ' × ' + packN : ''), amount: lnPack(prog, packN) }]).concat(extras.filter(function (l) { return l.amount; })), label: prog.name_en }, req.returnUrl);
     b.orderId = o.id; out.orderId = o.id; out.url = o.beamUrl; out.amount = total;
     if (kt) kt.orderId = o.id;
   } else { b.status = 'checkedin'; b.q = cQueue(store, b); b.checkedAt = lnHM(now.min); }
@@ -1300,7 +1368,7 @@ function makeVisit(store, now, branchId, progId, name, person) {
   var ERR = { BAD_LOGIN: 'เบอร์หรือ PIN ไม่ถูกต้อง', BAD_ID_TOKEN: 'ยืนยันตัวตน LINE ไม่ได้ ลองเปิดใหม่', NOT_LINKED: 'LINE นี้ยังไม่ได้ผูกกับพนักงาน', LOGIN: 'กรุณาเข้าสู่ระบบใหม่', NOT_ON_SHIFT: 'กด "เข้างาน" ก่อนรับงาน', HAS_JOB: 'ทำงานที่รับไว้ให้จบก่อน',
     TAKEN: 'มีคนรับงานนี้ไปแล้ว', NOT_SKILLED: 'งานนี้ไม่อยู่ในโปรแกรมที่คุณทำได้', BAD_BED: 'QR นี้ไม่ใช่ของสาขานี้', WRONG_BED_TYPE: 'เตียงไม่ตรงกับงาน ดูประเภทเตียงอีกครั้ง',
     BED_BUSY: 'เตียงนี้ยังไม่ว่าง ลองเตียงที่ระบบจองไว้', CLOSING: 'เกินเวลาปิดร้าน 21:00', NO_ROOM: 'ต่อเวลาไม่ได้ ที่นั่งมีคิวต่อ', TOO_EARLY: 'ยังไม่ครบเวลา กดจบไม่ได้',
-    NOT_YOURS: 'งานนี้ไม่ใช่ของคุณแล้ว', OTHER_BRANCH: 'รับงานได้เฉพาะสาขาของคุณ', SCAN_DESK: 'สแกน QR ที่เคาน์เตอร์สาขาของคุณเพื่อเข้างาน', NEED_GPS: 'เปิดตำแหน่ง (GPS) ให้แอปก่อน ถึงจะเข้างานได้', NOT_FOUND: 'ไม่พบงานนี้', NET: 'เชื่อมต่อไม่ได้ ลองใหม่' };
+    NOT_YOURS: 'งานนี้ไม่ใช่ของคุณแล้ว', OTHER_BRANCH: 'รับงานได้เฉพาะสาขาของคุณ', SCAN_DESK: 'สแกน QR ที่เคาน์เตอร์สาขาของคุณเพื่อเข้างาน', NEED_GPS: 'เปิดตำแหน่ง (GPS) ให้แอปก่อน ถึงจะเข้างานได้', NOT_FOUND: 'ไม่พบงานนี้', NOT_YET: 'ยังไม่ถึงเวลาย้าย', NET: 'เชื่อมต่อไม่ได้ ลองใหม่' };
   function errText(e) { var k = String(e && e.message || e); if (k.indexOf('TOO_FAR:') === 0) { var m = +k.split(':')[1]; return 'คุณอยู่ห่างร้าน ' + (m >= 1000 ? (m / 1000).toFixed(1) + ' กม.' : m + ' ม.') + ' ต้องอยู่ในระยะ 1 กม. ถึงจะเข้างานได้'; } return ERR[k] || k; }
   try { S.token = localStorage.getItem('lana-staff-token') || ''; } catch (e) {}
 
@@ -1443,7 +1511,7 @@ function makeVisit(store, now, branchId, progId, name, person) {
       if (left < 0) h += '<div class="card" style="border-color:var(--warn)"><p class="err">เลยเวลาจบมา ' + (-left) + ' นาที ร้านเห็นในหน้าสรุป ถ้าลูกค้าอยากนวดต่อ กดต่อเวลาในระบบ</p></div>';
       h += '<div class="hero"><span class="eyebrow">กำลังทำ · ' + esc(j.q) + '</span><div class="big">' + Math.max(0, left) + ' <span style="font-size:18px">นาที</span></div>' +
         '<div class="bar"><i style="width:' + pct + '%"></i></div><p class="hint">เริ่ม ' + lnHM(j.svcStart) + ' · จบ ' + lnHM(j.end) + (j.ext ? ' · ต่อแล้ว ' + j.ext * 30 + ' นาที' : '') + '</p>' +
-        '<div class="seats">' + j.seats.map(function (s) { return '<div class="' + (now >= s.start && now < s.end ? 'now' : '') + '"><span>' + esc(s.label) + '</span><span>' + lnHM(s.start) + '–' + lnHM(s.end) + '</span></div>'; }).join('') + '</div>' +
+        '<div class="seats">' + j.seats.map(function (s) { return '<div class="' + (now >= s.start && now < s.end ? 'now' : '') + '"><span>' + esc(s.label) + (j.people.length > 1 ? ' · ' + esc(s.who) : '') + (s.scanned ? ' ✓' : '') + '</span><span>' + lnHM(s.start) + '–' + lnHM(s.end) + '</span></div>'; }).join('') + '</div>' + moveBox(j, now) +
         jobBody(j) + (j.upgrade && j.upgrade.state === 'pending' ? '<p class="hint">ส่งลิงก์อัปเกรดผมยาวให้ลูกค้าแล้ว ลูกค้าตัดสินใจในมือถือเอง</p>' : '') +
         (left <= 10 && left > 0 ? '<p class="hint" style="opacity:1;font-weight:700">อีก ' + left + ' นาทีครบเวลา ถามลูกค้าว่าอยากต่อไหม</p>' : '') +
         '<button class="btn block olive" id="ext"' + (j.canExtend ? '' : ' disabled') + '>' + (j.canExtend ? 'ลูกค้าตกลงต่อ 30 นาที (+' + baht(LANA.EXT_PRICE) + ' จ่ายตอนจบ)' : 'ต่อเวลาไม่ได้: ' + esc(j.extBlock)) + '</button>' +
@@ -1462,6 +1530,18 @@ function makeVisit(store, now, branchId, progId, name, person) {
       h += '<p class="hint">วันนี้ทำไปแล้ว ' + f.doneToday + ' งาน · ใครกดรับก่อนได้ก่อน ถือได้ทีละ 1 งาน</p>';
     }
     $('view').innerHTML = h;
+  }
+  /* wash bed -> dryer: when it is time, ask the therapist to move the guest and scan the chair */
+  function moveBox(j, now) {
+    var pend = j.seats.filter(function (s) { return !s.scanned && s.i > 0; }).sort(function (a, b) { return a.start - b.start; }), nx = pend[0];
+    if (!nx) return '';
+    if (nx.start - now > 5) return '<p class="hint">ต่อไป: ' + esc(nx.label) + (j.people.length > 1 ? ' (' + esc(nx.who) + ')' : '') + ' เวลา ' + lnHM(nx.start) + '</p>';
+    S.warned = S.warned || {};
+    var key = j.id + ':mv:' + nx.pi + ':' + nx.i;
+    if (!S.warned[key]) { S.warned[key] = 1; setTimeout(function () { alertNew('ถึงเวลาย้าย ' + j.q + ' ไป' + nx.label + ' · สแกน QR ที่' + LANA.RES[nx.res][0], true); }, 0); }
+    return '<div class="card" style="background:var(--olive);color:var(--olive-ink);border-color:var(--olive)"><b>ถึงเวลาย้ายไป ' + esc(nx.label) + (j.people.length > 1 ? ' · ' + esc(nx.who) : '') + '</b>' +
+      '<span class="hint" style="color:inherit">พาลูกค้าไปที่' + esc(LANA.RES[nx.res][0]) + ' แล้วสแกน QR ที่' + esc(LANA.RES[nx.res][0]) + ' (ระบบจองตัวที่ ' + nx.unit + ' ไว้)</span>' +
+      '<button class="btn block" id="movescan" style="background:var(--olive-ink);color:var(--olive)">สแกน QR ' + esc(LANA.RES[nx.res][0]) + '</button></div>';
   }
   function renderBoard() {
     var now = nowMin(), h = '<h2 style="font-size:16px">สถานะเตียง · ' + esc(lnFind(LANA.BRANCHES, S.feed.me.branch).name_th) + ' · ' + lnHM(now) + '</h2><div class="board">';
@@ -1494,7 +1574,19 @@ function makeVisit(store, now, branchId, progId, name, person) {
       if (demo || !navigator.mediaDevices || !('BarcodeDetector' in window)) { deskManual(demo ? 'เดโม: เลือก QR แทนการสแกน (ลองเลือกสาขาอื่นดูได้)' : 'เครื่องนี้สแกนในแอปไม่ได้ ใช้กล้องมือถือสแกน QR ที่เคาน์เตอร์แทน'); return; }
       return startCam(function (code) { closeSheet(); act({ action: 'clock', on: true, desk: code, lat: S.pos && S.pos.lat, lng: S.pos && S.pos.lng, acc: S.pos && S.pos.acc }, 'เข้างานแล้ว รองานได้เลย'); }, deskManual);
     }
-    var j = S.feed.mine, list = S.feed.board.filter(function (s) { return s.code.split('-')[1].charAt(0) === LANA.RES[j.seat.res][2]; });
+    var j = S.feed.mine;
+    if (mode === 'move') {
+      var nx = j.seats.filter(function (s) { return !s.scanned && s.i > 0; }).sort(function (a, b) { return a.start - b.start; })[0];
+      var mlist = S.feed.board.filter(function (s) { return s.code.split('-')[1].charAt(0) === LANA.RES[nx.res][2]; });
+      var doMove = function (code) { closeSheet(); act({ action: 'move', id: j.id, bed: code }, 'ย้ายแล้ว เริ่มขั้นต่อไป'); };
+      $('panel').innerHTML = '<h2>สแกน QR ' + esc(LANA.RES[nx.res][0]) + '</h2><p class="hint">ระบบจองไว้ที่ ' + esc(nx.code) + '</p><video id="cam" playsinline muted hidden></video><p class="hint" id="camnote"></p><div class="choices" id="manual"></div><button class="btn ghost" id="cancel">ยกเลิก</button>';
+      $('sheet').hidden = false;
+      var mman = function (why) { $('camnote').textContent = why; $('manual').innerHTML = mlist.map(function (s) { return '<button class="choice" data-movebed="' + esc(s.code) + '">' + esc(s.label) + ' <small>' + esc(s.code) + (s.code === nx.code ? ' · ตัวที่ระบบจองไว้' : s.busyUntil ? ' · ยังไม่ว่าง' : '') + '</small></button>'; }).join(''); };
+      if (canLineScan()) return lineScan(doMove, function (why) { toast(why); });
+      if (demo || !navigator.mediaDevices || !('BarcodeDetector' in window)) { mman(demo ? 'เดโม: เลือกที่นั่งแทนการสแกน' : 'เครื่องนี้สแกนในแอปไม่ได้ เลือกเตียง/เก้าอี้ที่ลูกค้าอยู่'); return; }
+      return startCam(doMove, function () { mman('เปิดกล้องไม่ได้ เลือกเตียง/เก้าอี้ที่ลูกค้าอยู่แทน'); });
+    }
+    var list = S.feed.board.filter(function (s) { return s.code.split('-')[1].charAt(0) === LANA.RES[j.seat.res][2]; });
     $('panel').innerHTML = '<h2>สแกน QR หัวเตียง</h2><p class="hint">งานนี้ใช้ ' + esc(LANA.RES[j.seat.res][0]) + ' ระบบจองไว้ที่ ' + esc(j.seat.code) + '</p>' +
       '<video id="cam" playsinline muted hidden></video><p class="hint" id="camnote"></p>' +
       '<div class="choices" id="manual"></div><button class="btn ghost" id="cancel">ยกเลิก</button>';
@@ -1567,6 +1659,8 @@ function makeVisit(store, now, branchId, progId, name, person) {
     if (d.spot) { closeSheet(); var sp = { shop: [0, 0], near: [0.004, 0.003], far: [0.03, 0.02] }[d.spot], bb = lnFind(LANA.BRANCHES, S.feed.me.branch); S.pos = { lat: bb.lat + sp[0], lng: bb.lng + sp[1], acc: 25 }; return openScan('desk'); }
     if (d.accept) return act({ action: 'accept', id: d.accept }, 'รับงานแล้ว');
     if (b.id === 'scan') return openScan();
+    if (b.id === 'movescan') return openScan('move');
+    if (d.movebed) { closeSheet(); return act({ action: 'move', id: S.feed.mine.id, bed: d.movebed }, 'ย้ายแล้ว เริ่มขั้นต่อไป'); }
     if (d.bed) { closeSheet(); return afterBed(d.bed); }
     if (d.hair) return act({ action: 'start', id: S.feed.mine.id, bed: d.code, hair: d.hair }, d.hair === 'ok' ? 'เริ่มจับเวลาแล้ว' : 'เริ่มแล้ว · ส่งลิงก์อัปเกรดผมให้ลูกค้า');
     if (b.id === 'ext') return act({ action: 'extend', id: S.feed.mine.id }, 'ต่อเวลาแล้ว 30 นาที');

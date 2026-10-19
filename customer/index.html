@@ -349,7 +349,7 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     BAD_PHONE: ['เบอร์โทรไม่ถูกต้อง', 'Phone number looks wrong'], BAD_EMAIL: ['อีเมลไม่ถูกต้อง', 'Email looks wrong'], PAY_SETUP: ['ระบบจ่ายเงินยังไม่ได้ตั้งค่า', 'Payments are not set up yet'],
     PAY_FAILED: ['เปิดหน้าจ่ายเงินไม่ได้ ลองใหม่', 'Could not open the payment page, try again'], NOT_FOUND: ['ไม่พบรายการนี้', 'Not found'], NOT_NOW: ['ทำรายการนี้ตอนนี้ไม่ได้', 'Not possible right now'],
     CANT_MOVE: ['นัดนี้เลื่อนไม่ได้แล้ว', 'This visit can no longer be moved'], BAD_BRANCH: ['QR นี้ไม่ใช่ของสาขาที่เปิดอยู่', 'This QR is not for an open branch'], BAD_ID_TOKEN: ['ยืนยันตัวตน LINE ไม่ได้ ลองเปิดใหม่', 'LINE sign-in failed, please reopen'],
-    NO_RECORD: ['ไม่พบเบอร์หรืออีเมลนี้ ลองอีกแบบ หรือสมัครใหม่ได้เลย', 'We could not find that phone or email. Try the other one, or sign up.'], ALREADY_MEMBER: ['บัญชี LINE นี้เป็นสมาชิกแล้ว', 'This LINE account is already a member']
+    BAD_CODE: ['โค้ดไม่ถูกต้อง ลองพิมพ์ใหม่', 'That code is not valid'], CODE_USED: ['บัญชีนี้ใช้โค้ดนี้ไปแล้ว', 'You have already used this code'], NO_RECORD: ['ไม่พบเบอร์หรืออีเมลนี้ ลองอีกแบบ หรือสมัครใหม่ได้เลย', 'We could not find that phone or email. Try the other one, or sign up.'], ALREADY_MEMBER: ['บัญชี LINE นี้เป็นสมาชิกแล้ว', 'This LINE account is already a member']
   };
   function errT(e) { var k = String(e && e.message || e), x = ERR[k]; return x ? t(x[0], x[1]) : k; }
 
@@ -756,8 +756,8 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     h += '<div class="sec"><h3>' + t('วอเชอร์', 'Vouchers') + '</h3><div class="wallet">' + (vs.length ? vs.map(function (v) {
       return '<div class="wrow"><div><div class="t">' + esc(nm(addon(v.addon))) + ' ' + t('ฟรี', 'free') + '</div><div class="s">' + (v.kind === 'birthday' ? t('ของขวัญวันเกิด ใช้ได้ทั้งเดือนนี้', 'Birthday gift, this month') : t('ของขวัญสมาชิกใหม่', 'New member gift')) + ' · ' + t('หักให้เองตอนจอง', 'applied when you book') + '</div></div><span class="badge olive">' + t('ฟรี', 'Free') + '</span></div>';
     }).join('') : '<div class="empty">' + t('ยังไม่มีวอเชอร์', 'No vouchers') + '</div>') +
-      S.d.claims.map(function (c) { var pt = find(S.cfg.partners, c.partner); return '<div class="wrow"><div><div class="t">' + t('เคลมจาก ', 'Claim from ') + esc(nm(pt)) + '</div><div class="s">' + t('ใบเสร็จ ', 'Receipt ') + esc(c.receipt) + '</div></div><span class="badge' + (c.status === 'issued' ? ' olive' : '') + '">' + (c.status === 'issued' ? t('ได้ตั๋วแล้ว', 'Added') : c.status === 'rejected' ? t('ไม่ผ่าน', 'Declined') : t('รอพาร์ทเนอร์อนุมัติ', 'Waiting')) + '</span></div>'; }).join('') +
-      (S.cfg.partners.length ? '<button class="btn ghost" data-go="claim">' + t('เคลมวอเชอร์จากพาร์ทเนอร์', 'Claim a partner voucher') + '</button>' : '') + '</div></div>';
+      S.d.claims.map(function (c) { var pt = find(S.cfg.partners, c.partner); return '<div class="wrow"><div><div class="t">' + t('โค้ดจาก ', 'Code from ') + esc(nm(pt) || c.partner) + '</div><div class="s">' + t('ตั๋วฟรีอยู่ในตั๋วของฉัน', 'Free ticket is in My tickets') + '</div></div><span class="badge' + (c.status === 'issued' ? ' olive' : '') + '">' + (c.status === 'issued' ? t('ได้ตั๋วแล้ว', 'Added') : c.status === 'rejected' ? t('ไม่ผ่าน', 'Declined') : t('รอพาร์ทเนอร์อนุมัติ', 'Waiting')) + '</span></div>'; }).join('') +
+      (S.cfg.partners.length ? '<button class="btn ghost" data-go="claim">' + t('ใส่โค้ดจากคลินิกพาร์ทเนอร์', 'Enter a partner clinic code') + '</button>' : '') + '</div></div>';
     var hist = S.d.history || [];
     if (hist.length) h += '<div class="sec"><h3>' + t('ประวัติล่าสุด', 'Recent history') + '</h3><div class="wallet">' + hist.map(function (x) {
       var p = prog(x.prog), title = x.type === 'buy' ? t('ซื้อ ', 'Bought ') + nm(p) + ' × ' + x.count : nm(p) + (x.n > 1 ? ' × ' + x.n : '');
@@ -830,13 +830,12 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     return h;
   }
   function scrClaim() {
-    var u = S.ui, pt = S.cfg.partners[0] || {};
-    var h = '<div class="sec"><p class="hint">' + esc(S.lang === 'en' ? pt.desc_en : pt.desc_th) + ' ' + t('ใส่เลขใบเสร็จ แล้วพาร์ทเนอร์จะอนุมัติให้', 'Enter your receipt number and the partner will approve it.') + '</p>' +
-      '<label class="f" for="cl-p">' + t('พาร์ทเนอร์', 'Partner') + '<select id="cl-p">' + S.cfg.partners.map(function (p) { return '<option value="' + p.id + '">' + esc(nm(p)) + '</option>'; }).join('') + '</select></label>' +
-      '<label class="f" for="cl-r">' + t('เลขใบเสร็จ', 'Receipt number') + '<input id="cl-r" value="' + esc(u.r || '') + '" placeholder="INV-2026-0012"></label>' +
+    var u = S.ui;
+    var h = '<div class="sec"><p class="hint">' + t('ได้โค้ดจากคลินิกพาร์ทเนอร์? ใส่โค้ดที่นี่ รับตั๋วฟรีเข้ากระเป๋าทันที', 'Got a code from a partner clinic? Enter it here and a free ticket goes straight into your wallet.') + '</p>' +
+      '<label class="f" for="cl-r">' + t('โค้ด', 'Code') + '<input id="cl-r" value="' + esc(u.r || '') + '" autocapitalize="off" autocomplete="off" spellcheck="false" style="font-size:18px;letter-spacing:.04em"></label>' +
       (u.err ? '<p class="err">' + esc(u.err) + '</p>' : '') +
-      '<p class="hint">' + t('ใช้ได้ภายใน ', 'Valid ') + (pt.days || 60) + t(' วัน จันทร์–พฤหัส ก่อน 16:00 · 1 ใบเสร็จเคลมได้ครั้งเดียว', ' days, Mon–Thu before 16:00 · one claim per receipt') + '</p></div>';
-    return { title: t('เคลมวอเชอร์', 'Claim voucher'), body: h, foot: '<button class="btn block" id="clgo">' + t('ส่งคำขอ', 'Send claim') + '</button>' };
+      '<p class="hint">' + t('1 โค้ดใช้ได้ 1 ครั้งต่อสมาชิก · ตั๋วจากพาร์ทเนอร์มีวันหมดอายุ ดูได้ในตั๋วของฉัน', 'One use per member · partner tickets expire, see My tickets') + '</p></div>';
+    return { title: t('ใส่โค้ดพาร์ทเนอร์', 'Partner code'), body: h, foot: '<button class="btn block" id="clgo">' + t('รับสิทธิ์', 'Redeem') + '</button>' };
   }
   function scrProfile() {
     var m = S.d.member;
@@ -942,7 +941,8 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
       return run(api('link', { id: u.id, privacy: true, consent: u.consent })).then(function (d) { setD(d); toast(t('เชื่อมบัญชีแล้ว ยินดีต้อนรับกลับมา', 'Linked. Welcome back!')); home('my'); }).catch(function (x) { u.err = errT(x); render(); });
     }
     if (el.id === 'bkgo') return bookGo();
-    if (el.id === 'clgo') { u.r = $('cl-r').value.trim(); return run(api('claim', { partner: $('cl-p').value, receipt: u.r }), t('ส่งคำขอแล้ว รอพาร์ทเนอร์อนุมัติ', 'Sent. Waiting for approval.')).then(function (dd) { setD(dd); back(); }).catch(function (x) { u.err = errT(x); render(); }); }
+    if (el.id === 'clgo') { u.r = $('cl-r').value.trim(); if (!u.r) { u.err = t('ใส่โค้ด', 'Enter the code'); return render(); }
+      return run(api('redeem', { code: u.r })).then(function (dd) { setD(dd); var pr = prog(dd.redeemed.prog); toast(t('ได้ตั๋วฟรีแล้ว: ', 'Free ticket added: ') + nm(pr)); home('my'); }).catch(function (x) { u.err = errT(x); render(); }); }
     if (el.id === 'pfgo') return run(api('profile', { name: $('pf-name').value, phone: $('pf-phone').value, email: $('pf-email').value, birthMonth: +$('pf-bm').value || 0, consent: $('pf-consent').checked }), t('บันทึกแล้ว', 'Saved')).then(function (dd) { setD(dd); back(); }).catch(function () {});
   });
   document.addEventListener('change', function (e) {
