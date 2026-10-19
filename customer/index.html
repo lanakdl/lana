@@ -730,7 +730,16 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
 
   /* ----- MY LANA ----- */
   function scrMy() {
-    if (!S.d || !S.d.member) return { title: 'MY LANA', body: '<div class="sec" style="text-align:center;justify-items:center"><h3>' + t('สมัครสมาชิก รับสครับหนังศีรษะฟรี', 'Join and get a free scalp scrub') + '</h3><p class="hint">' + t('เก็บตั๋ว ดูสถานะ รับวอเชอร์วันเกิด', 'Keep tickets, see your status, get a birthday gift') + '</p><button class="btn" data-go="signup">' + t('สมัครสมาชิก', 'Sign up') + '</button></div>' };
+    if (!S.d || !S.d.member) {
+      var u = S.ui;
+      return { title: 'MY LANA', body: '<div class="sec"><h3>' + t('เคยใช้บริการหรือซื้อคอร์สที่ร้านแล้ว?', 'Already visited or bought at the shop?') + '</h3>' +
+        '<p class="hint">' + t('ใส่เบอร์โทรหรืออีเมลที่ให้ไว้ที่หน้าร้าน ตั๋ว คอร์ส และสถานะจะขึ้นที่นี่ทันที', 'Enter the phone or email you gave at the counter. Your tickets, courses and status show up here right away.') + '</p>' +
+        '<label class="f" for="ln-id">' + t('เบอร์โทร หรือ อีเมล', 'Phone or email') + '<input id="ln-id" value="' + esc(u.id || '') + '" placeholder="08x xxx xxxx / you@example.com" autocomplete="tel"></label>' +
+        '<label class="check"><input type="checkbox" id="ln-privacy"' + (u.privacy ? ' checked' : '') + '><span>' + t('ยอมรับ', 'I accept the ') + '<button class="linkbtn" data-go="privacy" style="font-size:13px">' + t('นโยบายความเป็นส่วนตัว', 'privacy policy') + '</button>' + t(' ของ Lana', '') + '</span></label>' +
+        '<label class="check"><input type="checkbox" id="ln-consent"' + (u.consent ? ' checked' : '') + '><span>' + t('ยินดีรับโปรโมชันจาก Lana (ไม่บังคับ)', 'Send me offers from Lana (optional)') + '</span></label>' +
+        (u.err ? '<p class="err">' + esc(u.err) + '</p>' : '') + '<button class="btn block" id="lngo">' + t('ดูตั๋วและสถานะของฉัน', 'Show my tickets & status') + '</button></div>' +
+        '<div class="sec" style="text-align:center;justify-items:center"><h3>' + t('ยังไม่เคยมา Lana', 'New to Lana?') + '</h3><p class="hint">' + t('สมัครสมาชิก รับสครับหนังศีรษะฟรี เก็บตั๋ว รับของขวัญวันเกิด', 'Join for a free scalp scrub, keep tickets, get a birthday gift') + '</p><button class="btn ghost" data-go="signup">' + t('สมัครสมาชิกใหม่', 'Sign up') + '</button></div>' };
+    }
     var h = '<div class="sec">' + statusCard() + '</div><div class="sec">' + tierCard() + '</div>';
     var cur = currentBooking(), up = S.d.bookings.filter(function (b) { return (b.status === 'booked' || b.status === 'hold') && b !== cur; });
     if (up.length) h += '<div class="sec"><h3>' + t('นัดที่จะถึง', 'Upcoming') + '</h3>' + up.map(upRow).join('') + '</div>';
