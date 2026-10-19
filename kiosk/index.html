@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lana Check-in</title>
+<meta name="theme-color" content="#3c2219">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600&family=Gilda+Display&family=Noto+Serif+Thai:wght@500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+
+/* Layout: a phone showing the shop's LINE OA, with a "shop side" control panel beside it (above it on phones) */
+:root {
+  --paper: #f7eedf; --card: #fffaf1; --ink: #3c2219; --ink-2: #7b6352; --olive: #6c7454; --olive-ink: #fffaf1;
+  --sand: #ead6b6; --line: #e2d1b6; --mute: #b9a993; --ok: #5e7a45; --warn: #a3542f; --chat: #e9e2d4; --bubble: #ffffff; --me: #d9e2c4;
+  --stage: #efe6d6;
+  --f-display: 'Gilda Display', 'Noto Serif Thai', Georgia, serif;
+  --f-thai: 'Noto Serif Thai', 'Gilda Display', Georgia, serif;
+  --f-body: 'Anuphan', 'Noto Sans Thai', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #1d1612; --card: #29201a; --ink: #f2e4cf; --ink-2: #bba58c; --olive: #a7b287; --olive-ink: #1d1612;
+  --sand: #4a3a2a; --line: #3b2f25; --mute: #6c5d4d; --ok: #9cbf7c; --warn: #e39a72; --chat: #231b16; --bubble: #2f2520; --me: #3c4430; --stage: #141009; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #1d1612; --card: #29201a; --ink: #f2e4cf; --ink-2: #bba58c; --olive: #a7b287; --olive-ink: #1d1612;
+  --sand: #4a3a2a; --line: #3b2f25; --mute: #6c5d4d; --ok: #9cbf7c; --warn: #e39a72; --chat: #231b16; --bubble: #2f2520; --me: #3c4430; --stage: #141009; color-scheme: dark }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--stage); color: var(--ink); font-family: var(--f-body); font-size: 14.5px; line-height: 1.5; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--olive); outline-offset: 2px; }
+input, select, textarea { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%; }
+h1, h2, h3 { margin: 0; font-weight: 400; text-wrap: balance; }
+:lang(th) h2, :lang(th) h3 { font-family: var(--f-thai); font-weight: 600; }
+
+.stage { min-height: 100%; display: flex; gap: 28px; justify-content: center; align-items: flex-start; padding-block: 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.sim { width: 300px; flex: 0 0 auto; display: grid; gap: 12px; position: sticky; top: 24px; }
+.sim .intro { display: grid; gap: 6px; }
+.sim h1 { font-family: var(--f-display); font-size: 26px; line-height: 1.15; }
+.sim p { margin: 0; color: var(--ink-2); font-size: 13px; }
+.clock { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-variant-numeric: tabular-nums; }
+.clock b { font-size: 18px; }
+.simbtns { display: grid; gap: 8px; }
+.simbtns .lbl { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); }
+.sbtn { text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; font-size: 13.5px; }
+.sbtn:hover:not(:disabled) { border-color: var(--olive); }
+.sbtn:disabled { opacity: .45; }
+.sbtn small { display: block; color: var(--ink-2); font-size: 12px; }
+.linkbtn { background: none; border: 0; color: var(--ink-2); text-decoration: underline; padding: 0; font-size: 12.5px; justify-self: start; }
+
+.phone { width: 390px; max-width: 100%; height: min(820px, calc(100dvh - 48px)); min-height: 600px; flex: 0 0 auto; background: var(--chat); border-radius: 34px; border: 8px solid var(--ink); position: relative; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgb(40 20 10 / .18); }
+.chead { background: var(--card); border-bottom: 1px solid var(--line); padding: 14px 16px 10px; display: flex; align-items: center; gap: 10px; }
+.avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--olive); color: var(--olive-ink); display: grid; place-items: center; font-family: var(--f-display); font-size: 18px; }
+.chead b { display: block; font-size: 14px; }
+.chead span { font-size: 11.5px; color: var(--ink-2); }
+.chat { flex: 1; overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 10px; }
+.msg { max-width: 82%; background: var(--bubble); border-radius: 16px 16px 16px 4px; padding: 9px 12px; font-size: 14px; white-space: pre-line; }
+.msg.me { align-self: flex-end; background: var(--me); border-radius: 16px 16px 4px 16px; }
+.msg .meta { display: block; font-size: 10.5px; color: var(--ink-2); margin-top: 3px; }
+.sysnote { align-self: center; font-size: 11.5px; color: var(--ink-2); background: var(--card); border-radius: 999px; padding: 3px 10px; }
+
+.rmbar { background: var(--card); border-top: 1px solid var(--line); text-align: center; font-size: 12.5px; padding: 6px; border-left: 0; border-right: 0; border-bottom: 0; width: 100%; }
+.rm { position: relative; line-height: 0; }
+.rm img { width: 100%; display: block; }
+.rm .hit { position: absolute; background: transparent; border: 0; padding: 0; }
+.rm .hit:hover, .rm .hit:focus-visible { background: rgb(255 255 255 / .12); outline: 2px solid var(--olive); outline-offset: -2px; }
+.rm .dot { position: absolute; top: 8px; right: 10px; width: 12px; height: 12px; border-radius: 50%; background: var(--warn); border: 2px solid var(--card); }
+
+.liff { position: absolute; inset: 0; background: var(--paper); display: flex; flex-direction: column; z-index: 5; }
+.lhead { display: flex; align-items: center; gap: 10px; padding: 14px 14px 10px; border-bottom: 1px solid var(--line); background: var(--paper); }
+.lhead h2 { flex: 1; font-family: var(--f-display); font-size: 20px; }
+.x { background: none; border: 0; font-size: 22px; line-height: 1; padding: 4px 8px; color: var(--ink-2); }
+.lang { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.lang button { background: none; border: 0; padding: 3px 10px; font-size: 12px; color: var(--ink-2); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.lbody { flex: 1; overflow-y: auto; padding: 4px 16px 24px; }
+.lfoot { border-top: 1px solid var(--line); background: var(--card); padding: 10px 14px 14px; display: flex; gap: 10px; align-items: center; }
+.lfoot .sum { flex: 1; min-width: 0; font-size: 12.5px; color: var(--ink-2); }
+.lfoot .sum b { display: block; color: var(--ink); font-size: 16px; }
+
+.sec { padding-block: 16px; border-bottom: 1px dashed var(--line); display: grid; gap: 10px; }
+.sec:last-child { border-bottom: 0; }
+.sec h3 { font-size: 16px; display: flex; gap: 8px; align-items: baseline; }
+.sec h3 .n { font-family: var(--f-body); font-size: 11.5px; font-weight: 600; color: var(--olive); }
+.hint { margin: 0; color: var(--ink-2); font-size: 13px; }
+.btn { background: var(--ink); color: var(--paper); border: 0; border-radius: 999px; padding: 11px 20px; font-weight: 600; white-space: nowrap; }
+.btn:disabled { opacity: .35; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn.small { padding: 7px 14px; font-size: 13px; }
+.btn.block { width: 100%; }
+.row2 { display: flex; gap: 8px; flex-wrap: wrap; }
+.row2 .btn { flex: 1; }
+
+.opt { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; text-align: left; display: grid; gap: 3px; width: 100%; }
+.opt[aria-pressed="true"] { border-color: var(--olive); box-shadow: inset 0 0 0 1px var(--olive); }
+.opt:disabled { opacity: .5; }
+.opt .t { font-weight: 600; }
+.opt .s { font-size: 12.5px; color: var(--ink-2); }
+.opts { display: grid; gap: 8px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.badge { justify-self: start; font-size: 10.5px; font-weight: 600; letter-spacing: .04em; border-radius: 999px; padding: 1px 8px; background: var(--sand); color: var(--ink); }
+.badge.olive { background: var(--olive); color: var(--olive-ink); }
+.price { font-variant-numeric: tabular-nums; }
+.strike { text-decoration: line-through; color: var(--mute); }
+
+.pcard { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: grid; gap: 8px; }
+.pcard h3 { font-size: 17px; }
+.pcard .top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.pcard .dur { font-family: var(--f-display); font-size: 22px; white-space: nowrap; }
+.pcard .dur small { font-family: var(--f-body); font-size: 11px; color: var(--ink-2); }
+.pcard p { margin: 0; font-size: 13.5px; }
+.steps { display: flex; height: 8px; border-radius: 999px; overflow: hidden; gap: 2px; }
+.steps span { display: block; height: 100%; }
+.stepl { display: grid; gap: 2px; font-size: 12.5px; color: var(--ink-2); }
+.stepl div { display: flex; gap: 8px; align-items: center; }
+.stepl i { width: 9px; height: 9px; border-radius: 3px; flex: 0 0 auto; }
+.c0 { background: var(--olive); } .c1 { background: #c79a6b; } .c2 { background: #d9c3a1; } .c3 { background: #8b5a3c; }
+.packs { display: grid; gap: 6px; font-size: 13px; }
+.packs div { display: flex; justify-content: space-between; gap: 8px; }
+
+.hair { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.hair .opt .t { font-size: 12px !important; line-height: 1.25; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 13px; }
+.chip small { color: var(--ink-2); font-size: 11.5px; }
+.chip[aria-pressed="true"] { background: var(--olive); color: var(--olive-ink); border-color: var(--olive); }
+.chip[aria-pressed="true"] small { color: var(--olive-ink); }
+.prefs { display: grid; gap: 8px; border-top: 1px dashed var(--line); padding-top: 10px; }
+.prow { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 8px; align-items: center; font-size: 13px; }
+.prow > span { color: var(--ink-2); }
+.hair .opt { justify-items: center; text-align: center; padding: 10px 6px; }
+.hair svg { width: 46px; height: 52px; }
+.addon { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: start; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 11px 12px; cursor: pointer; }
+.addon input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--olive); }
+.addon .t { font-weight: 600; font-size: 14px; }
+.addon .s { font-size: 12.5px; color: var(--ink-2); }
+.addon .p { font-weight: 600; white-space: nowrap; text-align: right; font-size: 13.5px; }
+.person { background: transparent; border: 1px solid var(--line); border-radius: 16px; padding: 12px; display: grid; gap: 10px; }
+.person > b { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+
+.dates { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.date { flex: 0 0 auto; width: 58px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 7px 0; text-align: center; display: grid; }
+.date .w, .date .m { font-size: 11px; color: var(--ink-2); }
+.date .d { font-family: var(--f-display); font-size: 21px; line-height: 1.1; }
+.date[aria-pressed="true"] { background: var(--olive); color: var(--olive-ink); border-color: var(--olive); }
+.date[aria-pressed="true"] .w, .date[aria-pressed="true"] .m { color: var(--olive-ink); }
+.date:disabled { opacity: .4; }
+.slots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+.slot { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.slot:disabled { background: transparent; border-style: dashed; color: var(--mute); text-decoration: line-through; font-weight: 400; }
+.slot[aria-pressed="true"] { background: var(--olive); color: var(--olive-ink); border-color: var(--olive); }
+
+.ticket { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: grid; gap: 6px; }
+.kv { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; }
+.kv span:first-child { color: var(--ink-2); }
+.kv span:last-child { text-align: right; font-weight: 500; }
+.kv.total { border-top: 1px solid var(--line); padding-top: 6px; font-size: 15px; }
+.kv.total span:last-child { font-weight: 700; }
+
+.status { background: var(--ink); color: var(--paper); border-radius: 18px; padding: 16px; display: grid; gap: 10px; }
+.status .eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; opacity: .75; }
+.status h3 { font-family: var(--f-display); font-size: 24px; line-height: 1.2; }
+:lang(th) .status h3 { font-family: var(--f-thai); font-size: 20px; }
+.status p { margin: 0; font-size: 13.5px; opacity: .9; }
+.status .btn { background: var(--paper); color: var(--ink); }
+.status .btn.ghost { background: transparent; color: var(--paper); border-color: rgb(255 255 255 / .35); }
+.bar { height: 8px; background: rgb(255 255 255 / .2); border-radius: 999px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--sand); }
+.big { font-family: var(--f-display); font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; }
+.upcard { background: var(--paper); color: var(--ink); border-radius: 14px; padding: 12px; display: grid; gap: 8px; }
+.upcard .btn { background: var(--ink); color: var(--paper); }
+.upcard .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.stars { display: flex; gap: 6px; }
+.stars button { background: none; border: 0; font-size: 30px; line-height: 1; padding: 0; color: var(--mute); }
+.stars button[aria-pressed="true"] { color: #d9a441; }
+.tips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.tips button { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 0; font-weight: 600; }
+.tips button[aria-pressed="true"] { background: var(--olive); color: var(--olive-ink); border-color: var(--olive); }
+
+.wallet { display: grid; gap: 8px; }
+.wrow { display: flex; justify-content: space-between; gap: 10px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 11px 12px; }
+.wrow .t { font-weight: 600; font-size: 14px; }
+.wrow .s { font-size: 12px; color: var(--ink-2); }
+.wrow .cnt { font-family: var(--f-display); font-size: 26px; line-height: 1; }
+.empty { border: 1px dashed var(--line); border-radius: 14px; padding: 14px; color: var(--ink-2); font-size: 13px; text-align: center; }
+label.f { display: grid; gap: 4px; font-size: 12.5px; color: var(--ink-2); }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; }
+.check input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--olive); flex: 0 0 auto; }
+.err { color: var(--warn); font-size: 13px; margin: 0; }
+
+.beam { position: absolute; inset: 0; background: rgb(20 12 8 / .55); display: flex; align-items: flex-end; z-index: 9; }
+.beam .panel { width: 100%; background: #ffffff; color: #1d1d1f; border-radius: 22px 22px 0 0; padding: 18px 18px 22px; display: grid; gap: 12px; font-family: system-ui, sans-serif; }
+.beam .note { font-size: 11.5px; color: #6b6b70; }
+.beam .amt { font-size: 30px; font-weight: 700; }
+.beam label { display: flex; gap: 10px; align-items: center; border: 1px solid #dcdce0; border-radius: 12px; padding: 11px 12px; font-size: 14px; color: #1d1d1f; }
+.beam label:has(input:checked) { border-color: #1d1d1f; }
+.beam .pay { background: #1d1d1f; color: #fff; border: 0; border-radius: 12px; padding: 13px; font-weight: 600; font-size: 15px; }
+.toast { position: absolute; left: 14px; right: 14px; bottom: 18px; background: var(--ink); color: var(--paper); border-radius: 14px; padding: 10px 14px; font-size: 13px; z-index: 12; box-shadow: 0 8px 24px rgb(0 0 0 / .2); }
+.foot { font-size: 12px; color: var(--ink-2); }
+
+.devsw { justify-self: start; }
+.devsw button { padding: 5px 12px; font-size: 13px; }
+.tablet { width: 860px; max-width: 100%; height: min(640px, calc(100dvh - 48px)); min-height: 520px; flex: 0 1 auto; background: var(--paper); border-radius: 28px; border: 10px solid var(--ink); position: relative; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgb(40 20 10 / .18); }
+.tbar { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.tname { flex: 1; font-family: var(--f-display); font-size: 18px; }
+.tbody { flex: 1; overflow-y: auto; padding: 22px 26px 28px; }
+.khome { display: grid; gap: 16px; justify-items: center; text-align: center; max-width: 620px; margin: 0 auto; padding-top: 10px; }
+.khome h1 { font-family: var(--f-display); font-size: 40px; }
+:lang(th) .khome h1 { font-family: var(--f-thai); font-weight: 600; font-size: 32px; }
+.khome .eyebrow, .kcol .eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+.kbtns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; width: 100%; }
+.kbig { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 26px 18px; display: grid; gap: 6px; text-align: center; width: 100%; }
+.kbig b { font-size: 19px; }
+.kbig span { font-size: 13.5px; color: var(--ink-2); }
+.kbig:not(:disabled):hover { border-color: var(--olive); }
+.kbig.small { padding: 14px; }
+.kbig:disabled { opacity: .5; }
+.kbtns .kbig:first-child { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.kbtns .kbig:first-child span { color: var(--paper); opacity: .8; }
+.kcol { max-width: 440px; margin: 0 auto; display: grid; gap: 14px; }
+.kcol h2, .kleft h2 { font-family: var(--f-display); font-size: 24px; }
+:lang(th) .kcol h2, :lang(th) .kleft h2, :lang(th) .khome h2 { font-family: var(--f-thai); font-weight: 600; font-size: 21px; }
+.kdisp { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; text-align: center; font-size: 28px; letter-spacing: .08em; font-variant-numeric: tabular-nums; min-height: 64px; }
+.keys { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.key { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 0; font-size: 22px; font-weight: 600; }
+.key.ok { background: var(--olive); color: var(--olive-ink); border-color: var(--olive); font-size: 17px; }
+.ksplit { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 22px; }
+.kleft, .kright { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.kb { padding-block: 14px; font-size: 16px; }
+.qno { font-family: var(--f-display); font-size: 96px; line-height: 1; color: var(--olive); }
+.qno.small { font-size: 34px; }
+.bhead { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-bottom: 12px; }
+.bhead h2 { font-family: var(--f-thai); font-weight: 600; font-size: 20px; }
+.bsum { display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: 12px; }
+.pill { border-radius: 999px; padding: 3px 12px; font-size: 13px; font-weight: 600; }
+.pill.free, .bed.free .bn::before { background: var(--sand); }
+.pill.busy { background: var(--olive); color: var(--olive-ink); }
+.pill.over { background: var(--warn); color: var(--paper); }
+.beds { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+.bed { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; background: var(--card); display: grid; gap: 4px; min-width: 0; }
+.bed .bn { font-size: 12px; font-weight: 600; letter-spacing: .04em; color: var(--ink-2); }
+.bed .bs { font-size: 13px; line-height: 1.35; }
+.bed .bs span { color: var(--ink-2); font-size: 12px; }
+.bed .bs .badge { color: var(--olive-ink); font-size: 10.5px; }
+.bed.busy { border-color: var(--olive); box-shadow: inset 4px 0 0 var(--olive); }
+.bed.over { border-color: var(--warn); box-shadow: inset 4px 0 0 var(--warn); }
+.bed.over .bs { color: var(--warn); }
+.bed.free .bs { color: var(--ink-2); }
+.bcols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding-top: 16px; }
+.bcols h3 { font-size: 15px; padding-bottom: 6px; }
+.bcols .wrow { margin-bottom: 6px; }
+.qrbox { display: flex; gap: 16px; align-items: center; text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; max-width: 520px; }
+.qrbox > div { display: grid; gap: 4px; min-width: 0; }
+.qr { width: 120px; height: 120px; flex: 0 0 auto; color: var(--ink); }
+@media (max-width: 760px) {
+  .tablet { width: 100%; border-width: 6px; height: calc(100dvh - 190px); }
+  .ksplit, .kbtns, .bcols { grid-template-columns: 1fr; }
+  .tname { display: none; }
+  .stage { flex-direction: column; align-items: stretch; gap: 12px; padding-block: 12px; }
+  .sim { width: auto; position: static; }
+  .sim .intro, .sim .foot { display: none; }
+  .simbtns { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  .simbtns .lbl, .simbtns > p, .simbtns .devsw { grid-column: 1 / -1; }
+  .simbtns .lbl { display: none; }
+  .phone { width: 100%; border-width: 6px; border-radius: 26px; height: calc(100dvh - 190px); min-height: 560px; }
+}
+@media (prefers-reduced-motion: no-preference) { .opt, .slot, .date, .sbtn { transition: border-color .15s, background .15s; } }
+
+body.real, body { background: var(--paper); }
+.kapp { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--paper); }
+.kapp .tbody { flex: 1; overflow-y: auto; padding: 22px max(22px, env(safe-area-inset-right)) 28px max(22px, env(safe-area-inset-left)); }
+.kapp .tbar { padding-top: max(12px, env(safe-area-inset-top)); }
+.qr svg { width: 100%; height: 100%; }
+.qrbox .qr { background: #fff; padding: 6px; border-radius: 10px; }
+@media (max-width: 760px) { .ksplit, .kbtns { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body class="real">
+
+
+<div class="kapp" id="app" lang="th">
+  <div class="tbar"><button class="x" id="tback" aria-label="Back">‹</button><span class="tname" id="tname">Lana</span><div class="lang" id="tlang"></div></div>
+  <div class="tbody" id="tbody"></div>
+  <div class="beam" id="beam" hidden><div class="panel" id="beampanel"></div></div>
+  <div class="toast" id="toast" hidden></div>
+</div>
+
+<script src="../config.js"></script>
+<script>var C = window.LANA_CONFIG || {}; var APP = { API_URL: C.API_URL || 'MISSING_API_URL', CUST_URL: new URL('../customer/', location.href).href };</script>
+<script>
+
+</script>
+<script>
+(function () {
+  var demo = !APP.API_URL, $ = function (id) { return document.getElementById(id); }, Q = new URLSearchParams(location.search);
+  var S = { lang: 'th', cfg: null, k: { screen: 'home' }, key: '', branch: '', co: {} };
+  try { S.key = localStorage.getItem('lana-kiosk-key') || ''; S.branch = localStorage.getItem('lana-kiosk-branch') || ''; } catch (e) {}
+  var DS = null, DNOW = null;
+  if (demo) {
+    var p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date()), g = {};
+    p.forEach(function (x) { g[x.type] = x.value; });
+    DNOW = { date: g.year + '-' + g.month + '-' + g.day, min: 14 * 60 }; DS = memStore(); S.key = 'demo-kiosk'; S.branch = S.branch || 'NIM';
+    window.__DEMO = { store: DS, now: DNOW };
+  }
+  function api(action, data) {
+    var req = Object.assign({ app: 'cust', action: action, kiosk: S.key, branch: S.branch }, data || {});
+    if (demo) return new Promise(function (res, rej) { setTimeout(function () { try { var r = custApi(JSON.parse(JSON.stringify(req)), DS, DNOW); if (window.__demoAfter) window.__demoAfter(); res(r); } catch (e) { rej(e); } }, 150); });
+    return fetch(APP.API_URL, { method: 'POST', body: JSON.stringify(req) }).then(function (r) { return r.json(); }, function () { throw new Error('NET'); })
+      .then(function (j) { if (!j.ok) throw new Error(j.error); return j.data; });
+  }
+  var ERR = { NET: ['เชื่อมต่อไม่ได้ ลองใหม่', 'Connection problem, try again'], KIOSK_KEY: ['รหัสแท็บเล็ตไม่ถูกต้อง', 'Wrong tablet password'], FULL: ['วันนี้เต็มแล้ว', 'Fully booked today'],
+    CLOSED: ['ร้านปิดแล้ว เปิด 10:00–21:00', 'We are closed. Open 10:00–21:00'], NEED_NAME: ['ใส่ชื่อ', 'Enter your name'], BAD_PHONE: ['เบอร์ไม่ครบ หรือเว้นว่างไว้ก็ได้', 'Phone looks incomplete; you can leave it empty'],
+    BAD_EMAIL: ['อีเมลไม่ถูกต้อง หรือเว้นว่างไว้ก็ได้', 'Email looks wrong; you can leave it empty'], NEED_HAIR: ['เลือกความยาวผมก่อน', 'Choose hair length first'], NO_TICKET: ['ตั๋วใช้เวลานี้ไม่ได้', 'No ticket usable now'],
+    NOT_HERE: ['สาขานี้ไม่มีโปรแกรมนี้', 'Not available here'], NEED_STARS: ['ให้ดาวก่อน', 'Please rate first'], PAY_SETUP: ['ระบบจ่ายเงินยังไม่ได้ตั้งค่า', 'Payments are not set up yet'], PAY_FAILED: ['เปิดหน้าจ่ายเงินไม่ได้ ลองใหม่', 'Could not open payment, try again'], NOT_FOUND: ['ไม่พบรายการ', 'Not found'], BAD_BRANCH: ['สาขานี้ยังไม่เปิด', 'This branch is not open'] };
+  function errT(e) { var k = String(e && e.message || e), x = ERR[k]; return x ? t(x[0], x[1]) : k; }
+  function t(th, en) { return S.lang === 'en' ? en : th; }
+  function nm(o) { return o ? (S.lang === 'en' ? (o.name_en || o.name_th) : o.name_th) : ''; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function baht(n) { return '฿' + Number(n).toLocaleString('en-US'); }
+  function hm(m) { var h = Math.floor(m / 60), x = m % 60; return (h < 10 ? '0' : '') + h + ':' + (x < 10 ? '0' : '') + x; }
+  function find(list, id) { return (list || []).filter(function (x) { return x.id === id; })[0] || null; }
+  function prog(id) { return find(S.cfg.programs, id); }
+  function branch(id) { return find(S.cfg.branches, id); }
+  function hairT(id) { return find(S.cfg.hair, id); }
+  function styleT(id) { return find(S.cfg.styles, id) || S.cfg.styles[0]; }
+  function kv(k, v, cls) { return '<div class="kv' + (cls ? ' ' + cls : '') + '"><span>' + esc(k) + '</span><span>' + esc(v) + '</span></div>'; }
+  function chip(attr, on, label) { return '<button class="chip" ' + attr + ' aria-pressed="' + !!on + '">' + label + '</button>'; }
+  function toast(m) { $('toast').textContent = m; $('toast').hidden = false; clearTimeout(toast._t); toast._t = setTimeout(function () { $('toast').hidden = true; }, 3400); }
+  function totalMin(p) { return p.segs.reduce(function (s, x) { return s + x.min; }, 0); }
+  function normPhone(raw, intl) { var str = String(raw || '').trim(), d = str.replace(/\D/g, ''); if (!d) return ''; if (intl || (str.charAt(0) === '+' && d.indexOf('66') !== 0)) return '+' + d; if (d.indexOf('66') === 0 && d.length >= 11) d = d.slice(2); if (d.charAt(0) === '0') d = d.slice(1); return '+66' + d; }
+  function phoneOK(e) { return /^\+66\d{9}$/.test(e) || (/^\+\d{8,15}$/.test(e) && e.indexOf('+66') !== 0); }
+  function hairSvg(id) { var len = { short: 24, blade: 34, mid: 43, waist: 51 }[id] || 30; return '<svg viewBox="0 0 46 52" aria-hidden="true"><path d="M8 ' + len + ' C8 6, 38 6, 38 ' + len + '" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" opacity=".55"/><circle cx="23" cy="20" r="10" fill="currentColor" opacity=".9"/><path d="M12 52 C12 38, 34 38, 34 52" fill="currentColor" opacity=".35"/></svg>'; }
+  var PRESSURE = [['light', 'เบา', 'Light'], ['medium', 'กลาง', 'Medium'], ['firm', 'หนัก', 'Firm']];
+  function bodyWork(p) { return p.segs.some(function (s) { return s.res === 'thai' || s.res === 'chair'; }); }
+  function newPerson() { return { hair: null, addons: [], style: 'normal', pressure: 'medium', elbow: 'ok', focus: [], quiet: false }; }
+  function lines(p, pe, useT) {
+    var out = [], h = hairT(pe.hair), st = styleT(pe.style);
+    if (!useT) out.push({ label: nm(p), amount: p.price });
+    if (p.hair && h && h.price) out.push({ label: t('ผมยาว', 'Long hair') + ' (' + nm(h) + ')', amount: h.price });
+    if (p.hair && st.price) out.push({ label: nm(st), amount: st.price });
+    pe.addons.forEach(function (id) { var a = find(S.cfg.addons, id); if (a) out.push({ label: nm(a), amount: a.price }); });
+    return out;
+  }
+  function go(screen, extra) { S.k = Object.assign({ screen: screen }, extra || {}); $('beam').hidden = true; render(); $('tbody').scrollTop = 0; }
+
+  /* ---------- screens ---------- */
+  function keypad(val, label, phoneMode) {
+    var k = S.k, shown = !val ? '<span class="hint">' + label + '</span>' : phoneMode && k.intl ? '+' + esc(val) : phoneMode ? esc(val.replace(/(\d{3})(\d{3})(\d{0,4})/, '$1-$2-$3')) : esc(val);
+    var sw = phoneMode ? '<div class="lang" style="justify-self:center"><button data-kintl="0" aria-pressed="' + !k.intl + '">' + t('เบอร์ไทย', 'Thai number') + '</button><button data-kintl="1" aria-pressed="' + !!k.intl + '">' + t('เบอร์ต่างประเทศ (+)', 'Other country (+)') + '</button></div>' : '';
+    return sw + '<div class="kdisp">' + shown + '</div><div class="keys">' + ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'DEL', '0', 'OK'].map(function (x) { return '<button class="key' + (x === 'OK' ? ' ok' : '') + '" data-key="' + x + '">' + (x === 'DEL' ? t('ลบ', 'Del') : x === 'OK' ? t('ถัดไป', 'Next') : x) + '</button>'; }).join('') + '</div>';
+  }
+  function idTabs() { return '<div class="lang" style="justify-self:center"><button data-kmode="phone" aria-pressed="' + (S.k.mode !== 'email') + '">' + t('เบอร์โทร', 'Phone') + '</button><button data-kmode="email" aria-pressed="' + (S.k.mode === 'email') + '">' + t('อีเมล', 'Email') + '</button></div>'; }
+  function body() {
+    var k = S.k, br = branch(S.branch);
+    if (k.screen === 'setup') {
+      return '<div class="kcol"><h2>' + t('ตั้งค่าแท็บเล็ต (ครั้งเดียว)', 'Set up this tablet (once)') + '</h2><label class="f">' + t('รหัสแท็บเล็ต (KIOSK_KEY ที่ตั้งใน Apps Script)', 'Tablet password (KIOSK_KEY in Apps Script)') + '<input id="s-key" type="password" value="' + esc(S.key) + '"></label>' +
+        '<label class="f">' + t('แท็บเล็ตนี้อยู่สาขา', 'This tablet is at') + '<select id="s-br">' + S.cfg.branches.filter(function (b) { return b.active; }).map(function (b) { return '<option value="' + b.id + '"' + (b.id === S.branch ? ' selected' : '') + '>' + esc(b.name_th) + '</option>'; }).join('') + '</select></label>' +
+        (k.err ? '<p class="err">' + esc(k.err) + '</p>' : '') + '<button class="btn block kb" data-setup>' + t('บันทึก', 'Save') + '</button></div>';
+    }
+    if (k.screen === 'home') {
+      return '<div class="khome"><span class="eyebrow">' + esc(nm(br)) + '</span><h1>' + t('ยินดีต้อนรับสู่ Lana', 'Welcome to Lana') + '</h1>' +
+        '<div class="kbtns"><button class="kbig" data-k="phone"><b>' + t('มีนัดแล้ว / เป็นสมาชิก', 'I have a booking / I\'m a member') + '</b><span>' + t('ใส่เบอร์โทรเพื่อเช็กอิน', 'Enter your phone to check in') + '</span></button>' +
+        '<button class="kbig" data-k="walkask"><b>' + t('ยังไม่ได้จอง', 'Walk in') + '</b><span>' + t('เลือกโปรแกรมและเริ่มเลย', 'Choose a treatment and start') + '</span></button></div>' +
+        '<button class="kbig small" data-k="out"><b>' + t('จ่ายและให้ดาวก่อนกลับ', 'Pay & rate before you leave') + '</b><span>' + t('แตะหมายเลขคิวของคุณ', 'Tap your queue number') + '</span></button>' +
+        '<p class="hint">' + t('ไม่ต้องแอด LINE · ร้านไม่รับเงินสด จ่ายด้วย QR หรือบัตร', 'No LINE needed · cashless: QR or card') + '</p><button class="linkbtn" data-k="setup">' + t('ตั้งค่า (พนักงาน)', 'Settings (staff)') + '</button></div>';
+    }
+    if (k.screen === 'phone' && k.mode === 'email') return '<div class="kcol"><h2>' + t('อีเมลที่ใช้จองหรือสมัคร', 'Your email') + '</h2>' + idTabs() + '<input id="k-em" type="email" inputmode="email" placeholder="you@example.com" value="' + esc(k.email || '') + '" style="font-size:20px;padding:14px">' + (k.err ? '<p class="err">' + esc(k.err) + '</p>' : '') + '<button class="btn block kb" data-kemail>' + t('ถัดไป', 'Next') + '</button><p class="hint">' + t('นักท่องเที่ยวที่ไม่รู้เบอร์ซิม ใช้อีเมลได้เลย', 'Not sure of your SIM number? Use your email.') + '</p></div>';
+    if (k.screen === 'phone') return '<div class="kcol"><h2>' + t('เบอร์โทรที่ใช้จองหรือสมัคร', 'Your phone number') + '</h2>' + idTabs() + keypad(k.val || '', k.intl ? t('รหัสประเทศ + เบอร์ เช่น 4479…', 'Country code + number, e.g. 4479…') : '08x-xxx-xxxx', true) + (k.err ? '<p class="err">' + esc(k.err) + '</p>' : '') + '</div>';
+    if (k.screen === 'found') {
+      var f = k.found, h = '<div class="kcol"><h2>' + t('สวัสดีคุณ ', 'Hello ') + esc(f.member.name) + '</h2>', bk = f.booking, c = f.check;
+      if (bk && bk.status === 'booked') {
+        h += '<div class="ticket">' + kv(t('นัดวันนี้', 'Today'), hm(bk.start) + ' · ' + nm(prog(bk.people[0].prog)) + ' × ' + bk.people.length) + kv(t('สาขา', 'Branch'), nm(branch(bk.branch))) + '</div>';
+        if (c.late) h += '<p class="err">' + t('เลยเวลานัดเกิน 30 นาที ตั๋วกลับเข้ากระเป๋าแล้ว', 'More than 30 min late; your ticket is back in your wallet') + '</p><button class="btn block kb" data-kci="' + bk.id + '">' + t('ตกลง', 'OK') + '</button>';
+        else if (c.other) h += '<p class="err">' + t('นัดนี้อยู่อีกสาขา', 'This booking is at another branch') + '</p>' + (c.canNow ? '<button class="btn block kb" data-kci-move="' + bk.id + '">' + t('ย้ายมาที่นี่และเริ่มเลย', 'Move here & start') + '</button>' : '<p class="hint">' + t('สาขานี้ยังไม่ว่าง', 'No free seat here now') + '</p>');
+        else if (c.early) h += '<p class="hint">' + t('เช็กอินได้ตั้งแต่ ', 'Check-in opens at ') + hm(c.opensAt) + '</p>' + (c.canNow ? '<button class="btn block kb" data-kci-move="' + bk.id + '">' + t('มีที่ว่าง เริ่มตอนนี้เลย', 'A seat is free, start now') + '</button>' : '');
+        else h += '<button class="btn block kb" data-kci="' + bk.id + '">' + t('เช็กอิน', 'Check in') + '</button>';
+      } else if (bk) {
+        h += '<p class="hint">' + t('คุณเช็กอินแล้ว', 'You are already checked in') + (bk.q ? ' · ' + t('คิว ', 'queue ') + esc(bk.q) : '') + '</p><button class="btn block kb" data-k="home">' + t('กลับหน้าแรก', 'Home') + '</button>';
+      } else if (f.tickets.length) {
+        h += '<p class="hint">' + t('วันนี้ไม่มีนัด แต่คุณมีตั๋ว ', 'No booking today, but you have ') + f.tickets.length + t(' ใบ', ' tickets') + '</p><button class="btn block kb" data-kuse>' + t('ใช้ตั๋วเริ่มตอนนี้', 'Use a ticket now') + '</button><button class="btn ghost block kb" data-kbuy>' + t('ซื้อโปรแกรมใหม่ เข้าบัญชีนี้', 'Buy something new on this account') + '</button>';
+      } else h += '<p class="hint">' + t('วันนี้ไม่มีนัดและไม่มีตั๋ว', 'No booking or tickets today') + '</p><button class="btn block kb" data-kbuy>' + t('ซื้อและเริ่มเลย', 'Buy & start') + '</button>';
+      return h + '</div>';
+    }
+    if (k.screen === 'walkask') return '<div class="khome"><h1>' + t('เคยเป็นสมาชิก Lana ไหม?', 'Are you a Lana member?') + '</h1><p class="hint">' + t('สมาชิกใช้ตั๋วหรือคอร์สที่ซื้อไว้ได้ หรือเก็บการซื้อครั้งนี้เข้าบัญชีเดิม', 'Members can use tickets or courses they bought, or add this visit to their account.') + '</p>' +
+      '<div class="kbtns"><button class="kbig" data-k="phone"><b>' + t('เป็นสมาชิกแล้ว', 'Yes, I am') + '</b><span>' + t('ใส่เบอร์หรืออีเมล', 'Use phone or email') + '</span></button><button class="kbig" data-k="walkin"><b>' + t('ยังไม่เคย', 'Not yet') + '</b><span>' + t('เลือกโปรแกรมและเริ่มเลย', 'Choose a treatment and start') + '</span></button></div></div>';
+    if (k.screen === 'walkin') return walkin();
+    if (k.screen === 'queue') {
+      var url = (APP.CUST_URL || (demo ? 'https://example.com/customer/' : '')) + '?v=' + encodeURIComponent(k.vkey || '');
+      return '<div class="khome"><span class="eyebrow">' + t('เช็กอินแล้ว', 'Checked in') + '</span><div class="qno">' + esc(k.q) + '</div><h2>' + t('หมอนวดจะมารับที่นี่', 'Your therapist will come to you') + '</h2>' +
+        '<p class="hint">' + esc(k.label || '') + '</p>' + (k.vkey && (APP.CUST_URL || demo) ? '<div class="qrbox"><div class="qr">' + qrSvg(url) + '</div><div><b>' + t('สแกนเก็บไว้ในมือถือ', 'Scan to keep it on your phone') + '</b><span class="hint">' + t('เปิดในเบราว์เซอร์ได้เลย ไม่ต้องมี LINE ดูนาฬิกา ต่อเวลา และจ่ายตอนจบได้จากมือถือ', 'Opens in your browser, no LINE needed: see your timer, extend, and pay at the end.') + '</span><span class="hint">' + t('ไม่สแกนก็ได้ จบแล้วกลับมาที่แท็บเล็ต แตะ "จ่ายและให้ดาวก่อนกลับ"', 'Or come back here and tap "Pay & rate before you leave".') + '</span></div></div>' : '') +
+        '<button class="btn kb" data-k="home">' + t('เสร็จ', 'Done') + '</button></div>';
+    }
+    if (k.screen === 'out') {
+      if (!k.list) { api('kOut').then(function (r) { S.k.list = r.list; render(); }).catch(function (e) { toast(errT(e)); }); return '<p class="hint">…</p>'; }
+      return '<div class="kcol"><h2>' + t('แตะหมายเลขคิวของคุณ', 'Tap your queue number') + '</h2>' + (k.list.length ? '<div class="grid3">' + k.list.map(function (b) { return '<button class="opt" data-kout="' + b.id + '"><span class="qno small">' + esc(b.q) + '</span><span class="s">' + esc(b.name) + '</span></button>'; }).join('') + '</div>' : '<div class="empty">' + t('ยังไม่มีคิวที่จบ', 'No finished visits yet') + '</div>') + '</div>';
+    }
+    if (k.screen === 'checkout') {
+      var bo = k.view, c2 = S.co[bo.id] || (S.co[bo.id] = { tip: 0, stars: 0, cmt: '' }), total = bo.due.reduce(function (s, l) { return s + l.amount; }, 0) + c2.tip;
+      return '<div class="kcol"><div class="status"><span class="eyebrow">' + t('จบแล้ว ขอบคุณค่ะ', 'All done, thank you') + ' · ' + esc(bo.q) + '</span><h3>' + t('สรุปก่อนกลับ', 'Before you go') + '</h3></div><div class="ticket">' +
+        (bo.due.length ? bo.due.map(function (l) { return kv(t(l.th, l.en), baht(l.amount)); }).join('') : '<span class="hint">' + t('ไม่มียอดค้าง', 'Nothing to pay') + '</span>') +
+        '<span class="hint" style="padding-top:6px">' + t('ทิปให้ ', 'Tip for ') + esc(bo.staffName || t('หมอนวด', 'your therapist')) + t(' (ได้เต็มจำนวน)', ' (100% to them)') + '</span><div class="tips">' + [0, 20, 50, 100].map(function (v) { return '<button data-tip="' + v + '" aria-pressed="' + (c2.tip === v) + '">' + (v ? baht(v) : t('ไม่ทิป', 'None')) + '</button>'; }).join('') + '</div>' +
+        '<span class="hint" style="padding-top:6px">' + t('ให้ดาววันนี้', 'Rate your visit') + '</span><div class="stars">' + [1, 2, 3, 4, 5].map(function (s) { return '<button data-star="' + s + '" aria-pressed="' + (c2.stars >= s) + '" aria-label="' + s + '">★</button>'; }).join('') + '</div>' +
+        (c2.stars && c2.stars <= 3 ? '<label class="f">' + t('บอกเราหน่อยว่าเกิดอะไรขึ้น', 'Tell us what happened') + '<textarea id="cmt">' + esc(c2.cmt) + '</textarea></label>' : '') +
+        kv(t('รวม', 'Total'), baht(total), 'total') + '<button class="btn block kb" data-kcheckout' + (c2.stars ? '' : ' disabled') + '>' + (total ? t('จ่าย ', 'Pay ') + baht(total) : t('ส่งดาว', 'Send rating')) + '</button></div></div>';
+    }
+    if (k.screen === 'thanks') return '<div class="khome"><h1>' + t('ขอบคุณค่ะ', 'Thank you') + '</h1><p class="hint">' + t('แล้วพบกันใหม่', 'See you soon') + '</p><button class="btn kb" data-k="home">' + t('กลับหน้าแรก', 'Home') + '</button></div>';
+    if (k.screen === 'wait') return '<div class="khome"><div class="spin"></div><p class="hint">' + t('กำลังยืนยันการชำระเงินกับ Beam…', 'Confirming your payment with Beam…') + '</p></div>';
+    return '';
+  }
+  function walkin() {
+    var k = S.k, br = branch(S.branch), useT = !!k.useT, owned = {};
+    (k.tickets || []).forEach(function (x) { owned[x.prog] = (owned[x.prog] || 0) + 1; });
+    var list = S.cfg.programs.filter(function (p) { return p.at.indexOf(br.id) >= 0 && (!useT || owned[p.id]); });
+    if (!list.length) return '<div class="khome"><h2>' + t('ตั๋วของคุณใช้ที่สาขานี้ไม่ได้', 'Your tickets cannot be used at this branch') + '</h2><div class="row2"><button class="btn kb" data-kbuy>' + t('ซื้อโปรแกรมที่มีที่นี่', 'Buy a treatment here') + '</button><button class="btn ghost kb" data-k="home">' + t('กลับหน้าแรก', 'Home') + '</button></div></div>';
+    if (!k.prog || !list.some(function (p) { return p.id === k.prog; })) k.prog = list[0].id;
+    if (!k.person) k.person = newPerson();
+    var p = prog(k.prog), pe = k.person;
+    var h = '<div class="ksplit"><div class="kleft"><h2>' + (useT ? t('ใช้ตั๋ว', 'Use a ticket') : t('เลือกโปรแกรม', 'Choose a treatment')) + '</h2><div class="opts">' + list.map(function (x) {
+      return '<button class="opt" data-kprog="' + x.id + '" aria-pressed="' + (x.id === k.prog) + '"><span class="t">' + esc(nm(x)) + '</span><span class="s">' + totalMin(x) + ' ' + t('นาที', 'min') + (useT ? ' · ' + t('เหลือ ', '') + owned[x.id] + t(' ใบ', ' left') : ' · ' + baht(x.price)) + '</span></button>'; }).join('') + '</div></div><div class="kright">';
+    if (p.hair) h += '<span class="hint">' + t('ผมยาวแค่ไหน', 'Hair length') + '</span><div class="hair">' + S.cfg.hair.map(function (x) { return '<button class="opt" data-khair="' + x.id + '" aria-pressed="' + (pe.hair === x.id) + '">' + hairSvg(x.id) + '<span class="t" style="font-size:13px">' + esc(nm(x)) + '</span><span class="s">' + (x.price ? '+' + baht(x.price) : t('ไม่เพิ่ม', 'no extra')) + '</span></button>'; }).join('') + '</div>';
+    h += S.cfg.addons.filter(function (a) { return a.for.indexOf(p.id) >= 0; }).map(function (a) {
+      return '<label class="addon"><input type="checkbox" data-kaddon="' + a.id + '"' + (pe.addons.indexOf(a.id) >= 0 ? ' checked' : '') + '><span><span class="t">' + esc(nm(a)) + '</span>' + (a.rec ? ' <span class="badge">' + t('ลูกค้าส่วนใหญ่เลือก', 'Most popular') + '</span>' : '') + '<br><span class="s">' + esc(S.lang === 'en' ? a.desc_en : a.desc_th) + '</span></span><span class="p">+' + baht(a.price) + '</span></label>'; }).join('');
+    if (p.hair) h += '<span class="hint">' + t('ทรงผมตอนเป่า', 'Blow-dry style') + '</span><div class="chips">' + S.cfg.styles.map(function (x) { return chip('data-kstyle="' + x.id + '"', pe.style === x.id, esc(nm(x)) + ' <small>' + (x.price ? '+' + baht(x.price) : t('รวมแล้ว', 'included')) + '</small>'); }).join('') + '</div>';
+    h += '<div class="prefs"><div class="prow"><span>' + t('น้ำหนักมือ', 'Pressure') + '</span><div class="chips">' + PRESSURE.map(function (x) { return chip('data-kpref="pressure|' + x[0] + '"', pe.pressure === x[0], S.lang === 'en' ? x[2] : x[1]); }).join('') + '</div></div>' +
+      (bodyWork(p) ? '<div class="prow"><span>' + t('ใช้ศอกรีด', 'Elbows') + '</span><div class="chips">' + chip('data-kpref="elbow|ok"', pe.elbow === 'ok', t('ใช้ได้', 'OK')) + chip('data-kpref="elbow|no"', pe.elbow === 'no', t('ไม่ใช้ศอก', 'No elbows')) + '</div></div>' : '') +
+      '<div class="prow"><span>' + t('ระหว่างนวด', 'During') + '</span><div class="chips">' + chip('data-kpref="quiet|0"', !pe.quiet, t('คุยได้', 'Happy to chat')) + chip('data-kpref="quiet|1"', !!pe.quiet, t('ขอพักเงียบๆ', 'Quiet, please')) + '</div></div></div>';
+    var ls = lines(p, pe, useT), total = ls.reduce(function (s, l) { return s + l.amount; }, 0);
+    h += '<div class="ticket">' + ls.map(function (l) { return kv(l.label, baht(l.amount)); }).join('') + (useT ? kv(t('ใช้ตั๋ว', 'Ticket'), '1') : '') + kv(t('รวม', 'Total'), baht(total), 'total') + '</div>';
+    if (!useT && !k.memberChoice) h += '<label class="f">' + t('ชื่อ', 'Name') + '<input id="k-name" value="' + esc(k.name || '') + '"></label><span class="hint">' + t('เบอร์หรืออีเมลไม่บังคับ ไม่ใส่ก็ได้ รับ QR ไปเก็บในมือถือแทน', 'Phone and email are optional. Skip them and scan a QR to keep your visit on your phone.') + '</span>' +
+      '<label class="f">' + t('เบอร์โทร (ไม่บังคับ)', 'Phone (optional)') + '<input id="k-phone" type="tel" inputmode="tel" placeholder="08x xxx xxxx / +44…" value="' + esc(k.phoneRaw || '') + '"></label>' +
+      '<label class="f">' + t('อีเมล (ไม่บังคับ ใส่ถ้าอยากได้ใบเสร็จ)', 'Email (optional, for a receipt)') + '<input id="k-email" type="email" value="' + esc(k.email || '') + '"></label>' +
+      '<label class="check"><input type="checkbox" id="k-consent"' + (k.consent ? ' checked' : '') + '><span>' + t('ยินดีรับโปรโมชันจาก Lana (ไม่บังคับ)', 'Send me offers from Lana (optional)') + '</span></label>';
+    if (k.match) h += '<div class="ticket" style="background:var(--sand);border-color:var(--sand)"><b>' + t('เบอร์หรืออีเมลนี้เป็นสมาชิก Lana อยู่แล้ว (คุณ ', 'This phone or email already has a Lana account (') + esc(k.match.name) + ')</b>' +
+      '<span style="font-size:13px">' + (k.match.tickets ? t('บัญชีนี้มีตั๋วที่ใช้ที่สาขานี้ได้ ', 'This account has tickets usable here: ') + k.match.tickets + t(' ใบ ใช้แทนการจ่ายได้', '. Use one instead of paying.') : t('ซื้อครั้งนี้เข้าบัญชีเดิมได้ ตั๋ว ประวัติ และของขวัญอยู่ที่เดียวกัน', 'Add this purchase to the same account so tickets, history and gifts stay together.')) + '</span>' +
+      '<div class="row2">' + (k.match.tickets ? '<button class="btn small" data-kmember="tickets">' + t('ใช้ตั๋วที่มี', 'Use my ticket') + '</button>' : '') + '<button class="btn small' + (k.match.tickets ? ' ghost' : '') + '" data-kmember="buy">' + t('ซื้อใหม่ เข้าบัญชีเดิม', 'Buy, add to my account') + '</button><button class="btn small ghost" data-kmember="edit">' + t('ไม่ใช่ฉัน แก้เบอร์', 'Not me, edit') + '</button></div></div>';
+    if (k.err) h += '<p class="err">' + esc(k.err) + '</p>';
+    var ready = !p.hair || pe.hair;
+    h += '<button class="btn block kb" data-kpay' + (ready ? '' : ' disabled') + '>' + (total ? t('จ่าย ', 'Pay ') + baht(total) + t(' และรับคิว', ' & get queue number') : t('รับคิว', 'Get queue number')) + '</button>' + (ready ? '' : '<span class="hint">' + t('เลือกความยาวผมก่อน', 'Choose hair length first') + '</span>') + '</div></div>';
+    return h;
+  }
+  function qrSvg(text) {
+    try { var q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); } catch (e) { return '<span class="hint">' + esc(text) + '</span>'; }
+  }
+  function render() {
+    $('app').lang = S.lang;
+    $('tlang').innerHTML = '<button data-lang="th" aria-pressed="' + (S.lang === 'th') + '">ไทย</button><button data-lang="en" aria-pressed="' + (S.lang === 'en') + '">EN</button>';
+    if (!S.cfg) { $('tbody').innerHTML = '<div class="khome"><div class="spin"></div></div>'; return; }
+    $('tback').style.visibility = S.k.screen === 'home' ? 'hidden' : 'visible';
+    $('tname').textContent = 'Lana · ' + nm(branch(S.branch));
+    $('tbody').innerHTML = body();
+  }
+
+  /* ---------- payment ---------- */
+  function goPay(r, label, then) {
+    if (demo) {
+      $('beampanel').innerHTML = '<span class="note">' + t('หน้าจ่ายเงินจำลอง ระบบจริงเปิดหน้าของ Beam (บัตร · พร้อมเพย์)', 'Pretend checkout. The real tablet opens Beam (card · PromptPay).') + '</span><div><div class="note">' + esc(label) + '</div><div class="amt">' + baht(r.amount) + '</div></div>' +
+        '<label><input type="radio" name="pm" checked> ' + t('บัตรเครดิต / เดบิต', 'Credit / debit card') + '</label><label><input type="radio" name="pm"> PromptPay</label><button class="pay" id="paygo">' + t('จ่าย ', 'Pay ') + baht(r.amount) + '</button><button class="linkbtn" id="paycancel" style="justify-self:center">' + t('ยกเลิก', 'Cancel') + '</button>';
+      $('beam').hidden = false; $('paycancel').onclick = function () { $('beam').hidden = true; };
+      $('paygo').onclick = function () { DS.db.beam['B' + r.orderId] = 'PAID'; $('beam').hidden = true; waitOrder(r.orderId, label); };
+      return;
+    }
+    try { sessionStorage.setItem('lana-k-label', label); } catch (e) {}
+    location.href = r.url;
+  }
+  function waitOrder(id, label) {
+    go('wait'); var tries = 0;
+    (function poll() {
+      api('order', { id: id }).then(function (o) {
+        if (o.status === 'paid') { if (o.kind === 'checkout') return go('thanks'); return go('queue', { q: o.q, vkey: o.vkey, label: label }); }
+        if (o.status !== 'pending' || ++tries > 40) { toast(t('ยังไม่ได้รับเงิน ลองอีกครั้ง หรือเรียกพนักงาน', 'Payment not confirmed. Try again or ask our staff.')); return go('home'); }
+        setTimeout(poll, 3000);
+      }).catch(function (e) { toast(errT(e)); go('home'); });
+    })();
+  }
+  function returnUrl() { return demo ? '' : location.origin + location.pathname; }
+
+  /* ---------- actions ---------- */
+  function keyIn(key) {
+    var k = S.k, max = k.intl ? 15 : 10;
+    if (key === 'DEL') k.val = (k.val || '').slice(0, -1);
+    else if (key !== 'OK') { if ((k.val || '').length < max) k.val = (k.val || '') + key; }
+    else {
+      var e164 = normPhone(k.val, k.intl);
+      if (!phoneOK(e164)) { k.err = t('ใส่เบอร์ให้ครบ', 'Enter the full number'); return render(); }
+      return find_({ phone: e164, intl: k.intl });
+    }
+    k.err = ''; render();
+  }
+  function find_(who) {
+    api('kFind', who).then(function (r) {
+      if (r.member) return go('found', { found: r, who: who });
+      go('walkin', { phoneRaw: who.phone || '', email: who.email || '', intl: who.intl });
+    }).catch(function (e) { toast(errT(e)); });
+  }
+  function kpay() {
+    var k = S.k, p = prog(k.prog), req = { prog: k.prog, person: k.person, returnUrl: returnUrl() };
+    if (k.useT) Object.assign(req, k.who, { useTicket: true });
+    else if (k.memberChoice) Object.assign(req, k.who, { memberChoice: 'buy' });
+    else {
+      k.name = $('k-name').value.trim(); k.phoneRaw = $('k-phone').value.trim(); k.email = $('k-email').value.trim(); k.consent = $('k-consent').checked;
+      if (!k.name) { k.err = errT('NEED_NAME'); return render(); }
+      Object.assign(req, { name: k.name, phone: k.phoneRaw, email: k.email, consent: k.consent, memberChoice: k.choice || undefined });
+    }
+    api('kStart', req).then(function (r) {
+      if (r.match) { k.match = r.match; k.who = { phone: k.phoneRaw, email: k.email }; k.err = ''; return render(); }
+      if (r.url) return goPay(r, nm(p));
+      go('queue', { q: r.q, vkey: r.vkey, label: nm(p) + ' · ' + t('เริ่ม ', 'starts ') + hm(r.start) });
+    }).catch(function (e) { k.err = errT(e); render(); });
+  }
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest('button'); if (!el) return;
+    var d = el.dataset, k = S.k; idle();
+    if (d.lang) { S.lang = d.lang; return render(); }
+    if (d.setup !== undefined) {
+      S.key = $('s-key').value.trim(); S.branch = $('s-br').value;
+      return api('kOut').then(function () { try { localStorage.setItem('lana-kiosk-key', S.key); localStorage.setItem('lana-kiosk-branch', S.branch); } catch (x) {} go('home'); }).catch(function (x) { k.err = errT(x); render(); });
+    }
+    if (d.k) return go(d.k, d.k === 'walkin' ? {} : {});
+    if (d.key) return keyIn(d.key);
+    if (d.kintl) { k.intl = d.kintl === '1'; k.val = ''; k.err = ''; return render(); }
+    if (d.kmode) { k.mode = d.kmode; k.err = ''; k.val = ''; return render(); }
+    if (d.kemail !== undefined) { var em = $('k-em').value.trim(); k.email = em; if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { k.err = t('อีเมลไม่ถูกต้อง', 'Please check the email'); return render(); } return find_({ email: em }); }
+    if (d.kci || d.kciMove) {
+      return api('kCheckin', { id: d.kci || d.kciMove, move: !!d.kciMove }).then(function (r) {
+        if (r.result === 'checkedin') return go('queue', { q: r.q, vkey: r.vkey, label: nm(prog(r.booking.people[0].prog)) + (r.late ? ' · ' + t('มาสาย บริการจบตามเวลาเดิม', 'late, ends at the original time') : '') });
+        if (r.result === 'noshow') { toast(t('ตั๋วกลับเข้ากระเป๋าแล้ว ใช้ตั๋วเริ่มตอนนี้ได้', 'Ticket returned, you can use it now')); return find_(k.who); }
+        toast(r.result === 'nofree' ? t('ตอนนี้ไม่มีที่ว่าง', 'No free seat right now') : r.result); return find_(k.who);
+      }).catch(function (x) { toast(errT(x)); });
+    }
+    if (d.kuse !== undefined) return go('walkin', { useT: true, tickets: k.found.tickets, who: k.who });
+    if (d.kbuy !== undefined) return go('walkin', k.who && k.found ? { memberChoice: 'buy', who: k.who } : {});
+    if (d.kprog) { k.prog = d.kprog; k.person = newPerson(); return render(); }
+    if (d.khair) { k.person.hair = d.khair; return render(); }
+    if (d.kstyle) { k.person.style = d.kstyle; return render(); }
+    if (d.kpref) { var pp = d.kpref.split('|'); k.person[pp[0]] = pp[0] === 'quiet' ? pp[1] === '1' : pp[1]; return render(); }
+    if (d.kmember) {
+      if (d.kmember === 'edit') { k.match = null; k.phoneRaw = ''; k.email = ''; return render(); }
+      if (d.kmember === 'tickets') return api('kFind', k.who).then(function (r) { go('walkin', { useT: true, tickets: r.tickets, who: k.who }); });
+      k.memberChoice = 'buy'; k.match = null; return kpay();
+    }
+    if (d.kpay !== undefined) return kpay();
+    if (d.kout) return api('kOut').then(function (r) { var b = find(r.list, d.kout); go('checkout', { view: b.view }); });
+    if (d.tip) { S.co[k.view.id].tip = +d.tip; return render(); }
+    if (d.star) { var c = $('cmt'); if (c) S.co[k.view.id].cmt = c.value; S.co[k.view.id].stars = +d.star; return render(); }
+    if (d.kcheckout !== undefined) {
+      var co = S.co[k.view.id], cm = $('cmt'); if (cm) co.cmt = cm.value;
+      return api('checkout', { id: k.view.id, tip: co.tip, stars: co.stars, cmt: co.cmt, returnUrl: returnUrl() }).then(function (r) { if (r.url) return goPay(r, t('ยอดค้างและทิป', 'Balance and tip')); go('thanks'); }).catch(function (x) { toast(errT(x)); });
+    }
+  });
+  document.addEventListener('change', function (e) {
+    var el = e.target, k = S.k;
+    if (el.dataset.kaddon) { var i = k.person.addons.indexOf(el.dataset.kaddon); if (el.checked && i < 0) k.person.addons.push(el.dataset.kaddon); if (!el.checked && i >= 0) k.person.addons.splice(i, 1); render(); }
+    if (el.id === 'k-phone' || el.id === 'k-email') { k.match = null; k.choice = null; }
+  });
+  $('tback').onclick = function () { go('home'); };
+  /* back to the welcome screen after 90 s without a touch */
+  var idleT; function idle() { clearTimeout(idleT); idleT = setTimeout(function () { if (S.k.screen !== 'wait' && S.k.screen !== 'setup') { S.lang = 'th'; go('home'); } }, 90000); }
+  document.addEventListener('pointerdown', idle);
+
+  api('config').then(function (cfg) {
+    S.cfg = cfg;
+    if (!S.key || !branch(S.branch)) return go('setup');
+    var o = Q.get('order');
+    if (o) { history.replaceState(null, '', location.pathname); var label = ''; try { label = sessionStorage.getItem('lana-k-label') || ''; } catch (e) {} return waitOrder(o, label); }
+    go('home');
+  }).catch(function (e) { $('tbody').innerHTML = '<div class="khome"><p class="err">' + esc(errT(e)) + '</p><button class="btn" onclick="location.reload()">' + t('ลองใหม่', 'Try again') + '</button></div>'; });
+  window.__KIOSK = { state: function () { return S; }, go: go };
+})();
+</script>
+
+
+</body>
+</html>

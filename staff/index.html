@@ -1,0 +1,1543 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lana Staff</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#3c2219"><script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Gilda+Display&display=swap">
+<style>
+/* Layout: one-thumb phone app; content column + fixed bottom tab bar; the current job always fills the top */
+:root {
+  --paper: #f7eedf; --card: #fffaf1; --ink: #3c2219; --ink-2: #7b6352; --olive: #6c7454; --olive-ink: #fffaf1;
+  --sand: #ead6b6; --line: #e2d1b6; --mute: #b9a993; --ok: #5e7a45; --warn: #a3542f; --hero: #3c2219; --hero-ink: #f7eedf;
+  --f-display: 'Gilda Display', Georgia, serif; --f-body: 'Anuphan', 'Noto Sans Thai', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #1d1612; --card: #29201a; --ink: #f2e4cf; --ink-2: #bba58c; --olive: #a7b287; --olive-ink: #1d1612;
+  --sand: #4a3a2a; --line: #3b2f25; --mute: #6c5d4d; --ok: #9cbf7c; --warn: #e39a72; --hero: #322620; --hero-ink: #f2e4cf; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #1d1612; --card: #29201a; --ink: #f2e4cf; --ink-2: #bba58c; --olive: #a7b287; --olive-ink: #1d1612;
+  --sand: #4a3a2a; --line: #3b2f25; --mute: #6c5d4d; --ok: #9cbf7c; --warn: #e39a72; --hero: #322620; --hero-ink: #f2e4cf; color-scheme: dark }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.45; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--olive); outline-offset: 2px; }
+.wrap { max-width: 480px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px 96px; display: grid; gap: 14px; }
+h1, h2, h3 { margin: 0; font-weight: 600; }
+.demo { background: var(--sand); border-radius: 14px; padding: 10px 12px; display: grid; gap: 8px; font-size: 13px; }
+.demo .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.demo b { font-variant-numeric: tabular-nums; }
+.lchat { background: #8cabd9; border-radius: 18px; padding: 10px; display: grid; gap: 8px; font-size: 13.5px; }
+.lchat .h { display: flex; justify-content: space-between; gap: 8px; color: #10213f; font-weight: 700; font-size: 12.5px; flex-wrap: wrap; }
+.lchat .m { background: #fff; color: #222; border-radius: 4px 16px 16px 16px; padding: 10px 12px; max-width: 88%; display: grid; gap: 4px; box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+.lchat .m small { color: #6b7a45; font-weight: 700; font-size: 11.5px; }
+.lchat .m.warn small { color: #b5651d; }
+.lchat .m p { margin: 0; white-space: pre-line; }
+.lchat .m button { background: #3c2219; color: #fff; border: 0; border-radius: 8px; padding: 8px; font-weight: 700; font-size: 13px; }
+.lchat .t { color: #10213f; font-size: 11px; opacity: .8; }
+.btn { background: var(--ink); color: var(--paper); border: 0; border-radius: 14px; padding: 13px 18px; font-weight: 700; font-size: 16px; }
+.btn.block { width: 100%; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn.olive { background: var(--olive); color: var(--olive-ink); }
+.btn.small { padding: 7px 12px; font-size: 13px; border-radius: 10px; font-weight: 600; }
+.btn:disabled { opacity: .4; }
+.hint { color: var(--ink-2); font-size: 13px; margin: 0; }
+.err { color: var(--warn); font-size: 14px; margin: 0; font-weight: 600; }
+
+.top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.top .who b { font-size: 18px; display: block; }
+.top .who span { font-size: 12.5px; color: var(--ink-2); }
+.shift { border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: 14px; border: 1px solid var(--line); background: var(--card); white-space: nowrap; }
+.shift.on { background: var(--olive); color: var(--olive-ink); border-color: var(--olive); }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: grid; gap: 10px; }
+.hero { background: var(--hero); color: var(--hero-ink); border-radius: 22px; padding: 18px; display: grid; gap: 12px; }
+.hero .eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; opacity: .75; }
+.hero .q { font-family: var(--f-display); font-size: 40px; line-height: 1; }
+.hero .big { font-family: var(--f-display); font-size: 64px; line-height: 1; font-variant-numeric: tabular-nums; }
+.hero .btn { background: var(--hero-ink); color: var(--hero); }
+.hero .btn.ghost { background: transparent; color: var(--hero-ink); border-color: rgb(255 255 255 / .3); }
+.hero .btn.olive { background: var(--olive); color: var(--olive-ink); }
+.hero .hint { color: var(--hero-ink); opacity: .75; }
+.bar { height: 10px; border-radius: 999px; background: rgb(255 255 255 / .18); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--sand); }
+.seats { display: grid; gap: 4px; font-size: 13px; }
+.seats div { display: flex; justify-content: space-between; gap: 8px; opacity: .85; font-variant-numeric: tabular-nums; }
+.seats div.now { opacity: 1; font-weight: 700; }
+
+.job { display: grid; gap: 8px; }
+.job .head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.job .head b { font-size: 17px; }
+.job .head span { font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+.prefs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { border-radius: 999px; padding: 3px 10px; font-size: 12.5px; background: var(--sand); color: var(--ink); }
+.tag.strong { background: var(--warn); color: var(--paper); }
+.tag.olive { background: var(--olive); color: var(--olive-ink); }
+.note { border-left: 3px solid var(--warn); padding: 4px 10px; font-size: 13.5px; }
+.hero .tag { background: rgb(255 255 255 / .14); color: var(--hero-ink); }
+.hero .tag.strong { background: var(--warn); color: #fff; }
+
+.board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.seat { border: 1px solid var(--line); border-radius: 14px; padding: 10px; background: var(--card); display: grid; gap: 2px; }
+.seat b { font-size: 14px; }
+.seat span { font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.seat.busy { border-color: var(--olive); box-shadow: inset 4px 0 0 var(--olive); }
+.payrow { display: grid; gap: 4px; border-bottom: 1px dashed var(--line); padding-bottom: 10px; }
+.payrow:last-child { border-bottom: 0; padding-bottom: 0; }
+.kv { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; }
+.kv span:first-child { color: var(--ink-2); }
+.kv.total { font-weight: 700; font-size: 15px; }
+.kv.total span:first-child { color: var(--ink); }
+.total-big { font-family: var(--f-display); font-size: 48px; line-height: 1; font-variant-numeric: tabular-nums; }
+
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(3, 1fr); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); z-index: 5; }
+.tabs button { background: none; border: 0; padding: 12px 0 14px; font-weight: 600; color: var(--ink-2); position: relative; }
+.tabs button[aria-selected="true"] { color: var(--ink); box-shadow: inset 0 3px 0 var(--olive); }
+.tabs .badge { position: absolute; top: 6px; margin-left: 4px; background: var(--warn); color: #fff; border-radius: 999px; font-size: 11px; padding: 0 6px; }
+
+.login { max-width: 360px; margin: 0 auto; display: grid; gap: 14px; padding-top: 24px; }
+.login h1 { font-family: var(--f-display); font-weight: 400; font-size: 36px; }
+.disp { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; text-align: center; font-size: 26px; letter-spacing: .08em; min-height: 62px; font-variant-numeric: tabular-nums; }
+.keys { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.key { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 0; font-size: 22px; font-weight: 700; }
+.key.ok { background: var(--olive); color: var(--olive-ink); border-color: var(--olive); font-size: 17px; }
+
+.sheet { position: fixed; inset: 0; background: rgb(20 12 8 / .5); display: flex; align-items: flex-end; justify-content: center; z-index: 20; }
+.sheet .panel { background: var(--paper); width: 100%; max-width: 480px; border-radius: 22px 22px 0 0; padding: 18px max(16px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 12px; max-height: 90vh; overflow-y: auto; }
+.choices { display: grid; gap: 8px; }
+.choice { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 13px; text-align: left; font-weight: 600; }
+.choice small { display: block; font-weight: 400; color: var(--ink-2); }
+video { width: 100%; border-radius: 14px; background: #000; max-height: 50vh; }
+.alert { position: fixed; left: 12px; right: 12px; top: calc(12px + env(safe-area-inset-top, 0px)); background: var(--warn); color: #fff; border-radius: 16px; padding: 14px 16px; font-weight: 700; z-index: 30; box-shadow: 0 10px 30px rgb(0 0 0 / .25); max-width: 456px; margin: 0 auto; }
+.toast { position: fixed; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--paper); border-radius: 14px; padding: 11px 14px; font-size: 14px; z-index: 30; max-width: 456px; margin: 0 auto; }
+@media (prefers-reduced-motion: no-preference) { .alert { animation: pop .25s ease-out; } @keyframes pop { from { transform: translateY(-12px); opacity: 0; } } }
+</style>
+</head>
+<body>
+
+
+<div class="wrap" id="wrap" lang="th">
+  <div class="demo" id="demo" hidden></div>
+  <main id="view"></main>
+  <div class="lchat" id="lchat" hidden></div>
+</div>
+<nav class="tabs" id="tabs" hidden>
+  <button data-tab="work" id="tab-work">งาน</button>
+  <button data-tab="board" id="tab-board">เตียง</button>
+  <button data-tab="pay" id="tab-pay">ค่ามือ</button>
+</nav>
+<div class="sheet" id="sheet" hidden><div class="panel" id="panel"></div></div>
+<div class="alert" id="alert" hidden></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="../config.js"></script>
+<script>var C = window.LANA_CONFIG || {}; var APP = { API_URL: C.API_URL || 'MISSING_API_URL', LIFF_ID: C.STAFF_LIFF_ID || '' };</script>
+<script>
+/* ===== LANA CORE (shared by staff app demo + Google Apps Script backend) ===== */
+var LANA = {
+  OPEN: 600, CLOSE: 1260, BUFFER: 10, EXT_MIN: 30, EXT_PRICE: 290, TZ: 'Asia/Bangkok',
+  RES: { wash: ['เตียงสระ', 'Wash bed', 'W'], dry: ['เก้าอี้ได', 'Dryer', 'D'], thai: ['เตียงนวดไทย', 'Massage bed', 'T'], chair: ['เก้าอี้นวดเท้า', 'Foot chair', 'C'] },
+  /* staff pay: baht per minute by kind of work */
+  RATE: { head: 150 / 45, thai: 170 / 60, foot: 170 / 60, neck: 170 / 60 },
+  DRY_FEE: 30, FT_SHARE: 0.10
+};
+LANA.BRANCHES = [
+  /* lat/lng are EXAMPLES — replace with each branch's real Google Maps pin. radiusM = how far staff may be when clocking in */
+  { id: 'NIM', name_th: 'สาขานิมมาน', name_en: 'Nimman', wash: 2, dry: 2, thai: 2, chair: 2, active: 'TRUE', lat: 18.7965, lng: 98.9681, radiusM: 1000, addr: '', map: '' },
+  { id: 'MCH', name_th: 'สาขามหาโชค', name_en: 'Mahachok', wash: 3, dry: 3, thai: 0, chair: 0, active: 'TRUE', lat: 18.7995, lng: 98.9870, radiusM: 1000, addr: '', map: '' },
+  { id: 'CBP', name_th: 'สาขา CBP', name_en: 'CBP', wash: 0, dry: 0, thai: 0, chair: 0, active: 'SOON', lat: '', lng: '', radiusM: 1000, addr: '', map: '' }
+];
+/* segs: seat:minutes; pay: kind:minutes (+ dry fee when the program has blow-dry) */
+/* steps: "ชื่อไทย|English|นาที; ..." shown to customers. pack5 / pack11 empty = automatic (5 sessions save 9%, 10+1 free) */
+LANA.PROGRAMS = [
+  { id: 'SPA45', name_th: 'แฮร์สปา ซิกเนเจอร์', name_en: 'Signature Hair Spa', price: 590, segs: 'wash:35,dry:10', pay: 'head:45', dry: 'TRUE', hair: 'TRUE', active: 'TRUE', pack5: '', pack11: '',
+    steps: 'นวดศีรษะ คอ บ่า|Head, neck & shoulder massage|20;สระและดูแลหนังศีรษะ|Wash & scalp care|15;เป่าและจัดทรง|Blow-dry|10',
+    desc_th: 'นวดศีรษะให้หายตึง สระสะอาดถึงหนังศีรษะ ออกจากร้านผมเบาสบาย เหมาะกับวันที่ปวดหัวหรือนอนไม่ค่อยหลับ', desc_en: 'A head massage that melts tension, a deep scalp wash, and light, fresh hair. Good for headache days and poor sleep.' },
+  { id: 'SPA90', name_th: 'LANA แฮร์สปา & ทรีตเมนต์', name_en: 'LANA Hair Spa & Treatment', price: 990, segs: 'wash:75,dry:15', pay: 'head:90', dry: 'TRUE', hair: 'TRUE', active: 'TRUE', pack5: '', pack11: '',
+    steps: 'นวดศีรษะ คอ บ่า|Head, neck & shoulder massage|45;สระ ทรีตเมนต์บำรุงผม|Wash & hair treatment|30;เป่าและจัดทรง|Blow-dry|15',
+    desc_th: 'เวอร์ชันเต็มของเรา นวดนานเกือบเท่าตัว และบำรุงให้ผมแห้งเสียกลับมานุ่มลื่น หลายคนหลับไปตั้งแต่ครึ่งทาง', desc_en: 'Our full version: nearly twice the massage, plus a treatment that brings dry hair back to soft. Many guests fall asleep halfway.' },
+  { id: 'THAI120', name_th: 'นวดไทย', name_en: 'Thai Massage', price: 690, segs: 'thai:120', pay: 'thai:120', dry: 'FALSE', hair: 'FALSE', active: 'TRUE', pack5: '', pack11: '',
+    steps: 'เท้าและขา|Feet & legs|40;หลังและไหล่|Back & shoulders|50;แขน คอ ศีรษะ|Arms, neck & head|30',
+    desc_th: 'กดจุดและยืดเส้นแบบไทย ไม่ใช้น้ำมัน คลายกล้ามเนื้อที่ตึงจากการนั่งทำงานหรือเดินเที่ยวทั้งวัน', desc_en: 'Pressure points and stretches, no oil. Loosens muscles tight from desk work or a long day of walking.' },
+  { id: 'FOOT90', name_th: 'นวดเท้า', name_en: 'Foot Massage', price: 590, segs: 'chair:90', pay: 'foot:90', dry: 'FALSE', hair: 'FALSE', active: 'TRUE', pack5: '', pack11: '',
+    steps: 'แช่และขัดเท้า|Foot soak & scrub|10;นวดเท้าและน่อง|Feet & calves|70;คอ บ่า|Neck & shoulders|10',
+    desc_th: 'นวดเท้าและน่องด้วยครีม เท้าเบาตั้งแต่ลุกจากเก้าอี้ เหมาะหลังเดินมาทั้งวัน', desc_en: 'Feet and calves with cream. Your feet feel light the moment you stand up.' },
+  { id: 'NECK60', name_th: 'นวดคอ บ่า ไหล่', name_en: 'Neck & Shoulder Massage', price: 450, segs: 'chair:60', pay: 'neck:60', dry: 'FALSE', hair: 'FALSE', active: 'TRUE', pack5: '', pack11: '',
+    steps: 'คอและบ่า|Neck & shoulders|35;หลังส่วนบน|Upper back|15;ศีรษะ|Head|10',
+    desc_th: 'ตัวช่วยของคนก้มหน้าจอทั้งวัน คลายจุดที่ตึงจนปวดหัว นั่งเก้าอี้ ไม่ต้องเปลี่ยนชุด', desc_en: 'For screen-heavy days. Works the knots that cause headaches. Seated, no change of clothes.' },
+  { id: 'COMBO120', name_th: 'นวดไทย + แฮร์สปา', name_en: 'Thai Massage + Hair Spa', price: 1190, segs: 'thai:60,wash:50,dry:10', pay: 'thai:60,head:60', dry: 'TRUE', hair: 'TRUE', active: 'TRUE', pack5: '', pack11: '',
+    steps: 'นวดไทยทั้งตัว|Full-body Thai massage|60;นวดศีรษะ|Head massage|25;สระและบำรุง|Wash & care|25;เป่าและจัดทรง|Blow-dry|10',
+    desc_th: 'เริ่มที่ตัว จบที่หัว นวดไทยให้ตัวเบา แล้วปิดท้ายด้วยแฮร์สปา ออกจากร้านด้วยผมสวย ไม่ยุ่งจากการนอนนวด', desc_en: 'Body first, head last. Thai massage, then a hair spa, so you leave with fresh hair, not bed hair.' }
+];
+LANA.HAIR = [
+  { id: 'short', name_th: 'ไม่เกินสะบัก', name_en: 'Above shoulder blades', price: 0, min: 0 },
+  { id: 'blade', name_th: 'ใต้สะบัก ถึงกลางหลัง', name_en: 'Below blades to mid-back', price: 100, min: 5 },
+  { id: 'mid', name_th: 'กลางหลัง ถึงเอว', name_en: 'Mid-back to waist', price: 200, min: 10 },
+  { id: 'waist', name_th: 'ยาวกว่าเอว', name_en: 'Below waist', price: 300, min: 15 }
+];
+LANA.STYLES = [
+  { id: 'normal', name_th: 'เป่าแห้งธรรมดา', name_en: 'Simple blow-dry', price: 0, min: 0, staffFee: 0 },
+  { id: 'volume', name_th: 'ไดเพิ่มวอลลุ่ม', name_en: 'Volume blow-dry', price: 100, min: 5, staffFee: 0 },
+  { id: 'straight', name_th: 'หนีบตรง', name_en: 'Flat-iron straight', price: 150, min: 10, staffFee: 0 },
+  { id: 'curl', name_th: 'ม้วนลอน', name_en: 'Curls', price: 150, min: 15, staffFee: 0 },
+  { id: 'farrah', name_th: 'ไดลอนฟาร่า', name_en: 'Farrah blowout', price: 150, min: 15, staffFee: 0 }
+];
+/* for: programs that can take this add-on. seat: where the extra minutes go (wash / first seat / none) */
+LANA.ADDONS = [
+  { id: 'VIT', name_th: 'วิตามินบำรุงผม', name_en: 'Hair vitamin boost', price: 190, min: 0, seat: '', staffFee: 0, for: 'SPA45,SPA90,COMBO120', rec: 'FALSE',
+    desc_th: 'ผมนุ่มลื่นติดทนถึงสัปดาห์หน้า เหมาะกับผมทำสีหรือผมแห้ง', desc_en: 'Soft, glossy hair that lasts into next week. Great for coloured or dry hair.' },
+  { id: 'SCRUB', name_th: 'สครับหนังศีรษะ', name_en: 'Scalp scrub', price: 250, min: 10, seat: 'wash', staffFee: 0, for: 'SPA45,SPA90,COMBO120', rec: 'TRUE',
+    desc_th: 'ล้างความมันและรังแคที่สระธรรมดาไม่ออก ผมพองสวยขึ้นตั้งแต่ครั้งแรก', desc_en: 'Clears oil and flakes a normal wash leaves behind. More volume from the first visit.' },
+  { id: 'HERB', name_th: 'ลูกประคบสมุนไพรอุ่น', name_en: 'Warm herbal compress', price: 150, min: 0, seat: '', staffFee: 0, for: 'THAI120,COMBO120,NECK60', rec: 'TRUE',
+    desc_th: 'ความร้อนจากสมุนไพรช่วยให้กล้ามเนื้อคลายเร็วขึ้น เหมาะกับคนปวดหลัง', desc_en: 'Herbal heat helps muscles let go faster. Good for back pain.' },
+  { id: 'EXT30', name_th: 'เพิ่มเวลานวด 30 นาที', name_en: 'Add 30 minutes', price: 290, min: 30, seat: 'first', staffFee: 0, for: 'THAI120,FOOT90,NECK60', rec: 'FALSE',
+    desc_th: 'นวดต่อเนื่องไม่ต้องรีบ ได้เวลาเพิ่มในจุดที่คุณบอกหมอนวด', desc_en: 'More time on the spots you ask for, no rush.' }
+];
+/* partner vouchers: rule quiet = Mon–Thu before 16:00 */
+LANA.PARTNERS = [
+  { id: 'CLINIC', name_th: 'คลินิกพาร์ทเนอร์', name_en: 'Partner clinic', prog: 'SPA45', days: 60, rule: 'quiet',
+    desc_th: 'ลูกค้าคลินิกที่ใช้จ่ายครบ ฿5,000 รับแฮร์สปา ซิกเนเจอร์ ฟรี 1 ครั้ง', desc_en: 'Clinic guests who spent ฿5,000 get one free Signature Hair Spa.' }
+];
+LANA.STAFF = [
+  { id: 'S1', name: 'แอน', phone: '+66811111111', pin: '1111', type: 'PT', branch: 'NIM', skills: 'ALL', active: 'TRUE' },
+  { id: 'S2', name: 'นิด', phone: '+66822222222', pin: '2222', type: 'FT', branch: 'NIM', skills: 'ALL', active: 'TRUE' },
+  { id: 'S3', name: 'มุก', phone: '+66833333333', pin: '3333', type: 'PT', branch: 'MCH', skills: 'SPA45,SPA90', active: 'TRUE' }
+];
+
+/* distance in metres between two GPS points */
+function lnDistance(lat1, lng1, lat2, lng2) {
+  var R = 6371000, r = Math.PI / 180, dLat = (lat2 - lat1) * r, dLng = (lng2 - lng1) * r;
+  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return Math.round(2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+function lnFind(list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return null; }
+function lnHM(m) { var h = Math.floor(m / 60), x = m % 60; return (h < 10 ? '0' : '') + h + ':' + (x < 10 ? '0' : '') + x; }
+function lnPairs(str) { return String(str || '').split(',').filter(Boolean).map(function (p) { var kv = p.split(':'); return { k: kv[0].trim(), v: parseFloat(kv[1]) || 0 }; }); }
+function lnNormPhone(raw, intl) {
+  var str = String(raw || '').trim(), d = str.replace(/\D/g, '');
+  if (!d) return '';
+  if (intl || (str.charAt(0) === '+' && d.indexOf('66') !== 0)) return '+' + d;
+  if (d.indexOf('66') === 0 && d.length >= 11) d = d.slice(2);
+  if (d.charAt(0) === '0') d = d.slice(1);
+  return '+66' + d;
+}
+function lnCanDo(staff, progId) { var s = String(staff.skills || 'ALL').toUpperCase(); return s === 'ALL' || s.split(',').map(function (x) { return x.trim(); }).indexOf(progId) >= 0; }
+
+/* seats one person's visit needs, in order, with hair / style / add-on minutes added */
+function lnChain(prog, person) {
+  var segs = lnPairs(prog.segs).map(function (p) { return { res: p.k, min: p.v }; });
+  var hair = lnFind(LANA.HAIR, person.hair) || LANA.HAIR[0], style = lnFind(LANA.STYLES, person.style) || LANA.STYLES[0];
+  if (String(prog.hair).toUpperCase() === 'TRUE') segs.forEach(function (s) { if (s.res === 'dry') s.min += hair.min + style.min; });
+  (person.addons || []).forEach(function (id) {
+    var a = lnFind(LANA.ADDONS, id); if (!a || !a.min) return;
+    var target = a.seat === 'first' ? segs[0] : segs.filter(function (s) { return s.res === a.seat; })[0];
+    if (target) target.min += a.min;
+  });
+  return segs;
+}
+function lnChainMin(segs) { return segs.reduce(function (s, x) { return s + x.min; }, 0); }
+
+function lnUnitFree(rows, br, date, res, unit, a, b) {
+  for (var i = 0; i < rows.length; i++) { var r = rows[i];
+    if (r.branch === br && r.date === date && r.res === res && r.unit === unit && a < r.end + LANA.BUFFER && r.start < b + LANA.BUFFER) return false; }
+  return true;
+}
+/* booked or live seats of every visit except one */
+function lnOccupied(bookings, exceptId) {
+  var rows = [];
+  bookings.forEach(function (bk) {
+    if (bk.id === exceptId || ['noshow', 'cancelled'].indexOf(bk.status) >= 0) return;
+    if (bk.live && bk.live.length) {
+      bk.live.forEach(function (r) { var e = bk.finishedAt != null && bk.finishedAt !== '' ? Math.min(r.end, +bk.finishedAt) : r.end; if (e > r.start) rows.push({ branch: bk.branch, date: bk.date, res: r.res, unit: r.unit, start: r.start, end: e, bid: bk.id }); });
+    } else bk.people.forEach(function (p) { (p.alloc || []).forEach(function (a) { rows.push({ branch: bk.branch, date: bk.date, res: a.res, unit: a.unit, start: a.start, end: a.end, bid: bk.id }); }); });
+  });
+  return rows;
+}
+function lnAllocate(branch, date, start, chains, rows) {
+  if (start < LANA.OPEN || start + Math.max.apply(null, chains.map(lnChainMin)) > LANA.CLOSE) return null;
+  var used = rows.slice(), out = [];
+  for (var i = 0; i < chains.length; i++) {
+    var m = start, alloc = [];
+    for (var j = 0; j < chains[i].length; j++) {
+      var s = chains[i][j], found = 0;
+      for (var u = 1; u <= (+branch[s.res] || 0); u++) if (lnUnitFree(used, branch.id, date, s.res, u, m, m + s.min)) { found = u; break; }
+      if (!found) return null;
+      var row = { branch: branch.id, date: date, res: s.res, unit: found, start: m, end: m + s.min };
+      alloc.push(row); used.push(row); m += s.min;
+    }
+    out.push(alloc);
+  }
+  return out;
+}
+/* actual seats once a visit starts. Seats already in use never change; later seats may move to a free unit. */
+function lnBuildLive(bk, branch, others, nowMin) {
+  var placed = [], rows = others.slice();
+  for (var pi = 0; pi < bk.people.length; pi++) {
+    var pe = bk.people[pi], m = +bk.svcStart;
+    for (var i = 0; i < pe.alloc.length; i++) {
+      var seg = pe.alloc[i], len = seg.end - seg.start;
+      if (i === 0) len += (pe.ext || 0) * LANA.EXT_MIN - (pe.cut || 0);
+      if (seg.res === 'dry') len += pe.dryPlus || 0;
+      var prev = (bk.live || []).filter(function (r) { return r.pi === pi && r.i === i; })[0];
+      var units = [prev ? prev.unit : seg.unit], started = prev && prev.start <= nowMin;
+      if (!started) for (var u = 1; u <= (+branch[seg.res] || 0); u++) if (units.indexOf(u) < 0) units.push(u);
+      var got = 0;
+      for (var k = 0; k < units.length; k++) if (lnUnitFree(rows, bk.branch, bk.date, seg.res, units[k], m, m + len)) { got = units[k]; break; }
+      if (!got) return { ok: false, res: seg.res, start: m, end: m + len };
+      if (m + len > LANA.CLOSE) return { ok: false, res: 'close', start: m, end: m + len };
+      var row = { branch: bk.branch, date: bk.date, res: seg.res, unit: got, start: m, end: m + len, pi: pi, i: i };
+      placed.push(row); rows.push(row); m += len;
+    }
+  }
+  return { ok: true, live: placed };
+}
+/* try a change; if a not-yet-started visit is in the way, move it to another free seat at the same time */
+function lnTryChange(bk, branch, all, nowMin, apply) {
+  var others = lnOccupied(all, bk.id), r = lnBuildLive(bk, branch, others, nowMin);
+  if (r.ok) { if (apply) bk.live = r.live; return { ok: true, moved: [] }; }
+  if (r.res === 'close') return r;
+  var blockers = all.filter(function (x) { return x.id !== bk.id && x.branch === bk.branch && x.date === bk.date && ['booked', 'checkedin', 'accepted'].indexOf(x.status) >= 0 &&
+    x.people.some(function (pe) { return pe.alloc.some(function (a) { return a.res === r.res && a.start < r.end + LANA.BUFFER && r.start < a.end + LANA.BUFFER; }); }); });
+  for (var i = 0; i < blockers.length; i++) {
+    var B = blockers[i], without = others.filter(function (row) { return row.bid !== B.id; }), r2 = lnBuildLive(bk, branch, without, nowMin);
+    if (!r2.ok) continue;
+    var rowsB = lnOccupied(all, B.id).filter(function (row) { return row.bid !== bk.id; }).concat(r2.live);
+    var alt = lnAllocate(branch, B.date, B.people[0].alloc[0].start, B.people.map(function (pe) { return pe.chain; }), rowsB);
+    if (!alt) continue;
+    if (apply) { bk.live = r2.live; B.people.forEach(function (pe, j) { pe.alloc = alt[j]; }); }
+    return { ok: true, moved: [B] };
+  }
+  return { ok: false, res: r.res, at: r.start };
+}
+function lnEnd(bk) { return bk.live && bk.live.length ? Math.max.apply(null, bk.live.map(function (r) { return r.end; })) : 0; }
+
+/* staff pay for one finished visit */
+function lnPay(bk, staff) {
+  var lines = [], total = 0;
+  function add(label, amt) { amt = Math.round(amt * 100) / 100; if (amt) { lines.push({ label: label, amount: amt }); total += amt; } }
+  bk.people.forEach(function (pe) {
+    var prog = lnFind(LANA.PROGRAMS, pe.prog); if (!prog) return;
+    var hair = lnFind(LANA.HAIR, pe.hair) || LANA.HAIR[0], style = lnFind(LANA.STYLES, pe.style) || LANA.STYLES[0];
+    if (staff.type === 'FT') {
+      var sale = (+pe.value || prog.price) + hair.price + style.price + (pe.addons || []).reduce(function (s, id) { var a = lnFind(LANA.ADDONS, id); return s + (a ? a.price : 0); }, 0);
+      add('10% ' + prog.name_th, sale * LANA.FT_SHARE);
+    } else {
+      lnPairs(prog.pay).forEach(function (p) { add(prog.name_th + ' (' + p.k + ' ' + p.v + ' นาที)', p.v * LANA.RATE[p.k]); });
+      if (String(prog.dry).toUpperCase() === 'TRUE') add('ค่าได', LANA.DRY_FEE);
+      if (style.staffFee) add(style.name_th, style.staffFee);
+      (pe.addons || []).forEach(function (id) { var a = lnFind(LANA.ADDONS, id); if (a && a.staffFee) add(a.name_th, a.staffFee); });
+    }
+  });
+  var extPaid = (bk.due || []).filter(function (d) { return d.kind === 'ext'; }).length;
+  if (extPaid && !bk.paidDue) lines.push({ label: 'ต่อเวลา ' + extPaid * 30 + ' นาที · รอลูกค้าจ่าย ยังไม่นับ', amount: 0, pending: true });
+  if (extPaid && bk.paidDue) {
+    var p0 = lnFind(LANA.PROGRAMS, bk.people[0].prog), kind = lnPairs(p0.pay)[0].k;
+    if (staff.type === 'FT') add('10% ต่อเวลา', extPaid * LANA.EXT_PRICE * LANA.FT_SHARE);
+    else add('ต่อเวลา ' + extPaid * 30 + ' นาที', extPaid * 30 * LANA.RATE[kind]);
+  }
+  if (+bk.tip) add('ทิป', +bk.tip);
+  return { lines: lines, total: Math.round(total * 100) / 100 };
+}
+
+/* ----- customer side helpers ----- */
+function lnTrue(v) { return String(v).toUpperCase() === 'TRUE'; }
+function lnId(n) { var c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', s = ''; for (var i = 0; i < (n || 8); i++) s += c.charAt(Math.floor(Math.random() * c.length)); return s; }
+function lnPack(p, n) {
+  if (n === 5) return +p.pack5 || Math.round(p.price * 5 * 0.91 / 10) * 10;
+  if (n === 11) return +p.pack11 || p.price * 10;
+  return +p.price;
+}
+function lnSteps(p) { return String(p.steps || '').split(';').filter(Boolean).map(function (x) { var a = x.split('|'); return [a[0] || '', a[1] || a[0] || '', +a[2] || 0]; }); }
+function lnProgAt(p, br) { return !!br && lnTrue(br.active) && lnPairs(p.segs).every(function (s) { return (+br[s.k] || 0) > 0; }); }
+function lnAddonFor(a, progId) { return String(a.for || '').split(',').map(function (x) { return x.trim(); }).indexOf(progId) >= 0; }
+/* what one person pays on top of the ticket: long hair, blow-dry style, add-ons (free ones from vouchers) */
+function lnPersonLines(prog, pe, free) {
+  var lines = [], hair = lnFind(LANA.HAIR, pe.hair), style = lnFind(LANA.STYLES, pe.style);
+  if (lnTrue(prog.hair) && hair && +hair.price) lines.push({ kind: 'hair', th: 'ผมยาว (' + hair.name_th + ')', en: 'Long hair (' + (hair.name_en || hair.name_th) + ')', amount: +hair.price });
+  if (lnTrue(prog.hair) && style && +style.price) lines.push({ kind: 'style', th: style.name_th, en: style.name_en || style.name_th, amount: +style.price });
+  (pe.addons || []).forEach(function (id) {
+    var ad = lnFind(LANA.ADDONS, id); if (!ad) return;
+    var f = (free || []).indexOf(id) >= 0;
+    lines.push({ kind: 'addon', id: id, th: ad.name_th + (f ? ' · ฟรีด้วยวอเชอร์' : ''), en: (ad.name_en || ad.name_th) + (f ? ' · free with voucher' : ''), amount: f ? 0 : +ad.price });
+  });
+  return lines;
+}
+function lnSum(lines) { return lines.reduce(function (s, l) { return s + (+l.amount || 0); }, 0); }
+function lnDow(date) { return new Date(date + 'T00:00:00Z').getUTCDay(); }
+function lnAddDays(d, n) { var x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); }
+/* ===== END CORE ===== */
+
+/* ===== LANA STAFF API (same code runs in Apps Script and in the demo) =====
+   store: { bookings(): [...], saveBooking(bk), staff(): [...], branches(): [...],
+            shifts(): [...], addShift(row), updateShift(row), session(token) -> staffId, newSession(staffId) -> token,
+            log(staffId, bookingId, action, detail), lock(fn) }
+   now:   { date: 'YYYY-MM-DD', min: minutes since midnight (Bangkok) }  */
+function staffApi(req, store, now) {
+  var a = req.action;
+  if (a === 'login') return apiLogin(req, store);
+  if (a === 'lineLogin') return apiLineLogin(req, store);
+  var sid = store.session(req.token);
+  if (!sid) throw new Error('LOGIN');
+  var me = lnFind(store.staff(), sid);
+  if (!me || String(me.active).toUpperCase() !== 'TRUE') throw new Error('LOGIN');
+  if (a === 'feed') return apiFeed(me, store, now);
+  if (a === 'clock') return store.lock(function () { return apiClock(me, req, store, now); });
+  if (a === 'accept') return store.lock(function () { return apiAccept(me, req, store, now); });
+  if (a === 'start') return store.lock(function () { return apiStart(me, req, store, now); });
+  if (a === 'extend') return store.lock(function () { return apiExtend(me, req, store, now); });
+  if (a === 'finish') return store.lock(function () { return apiFinish(me, req, store, now); });
+  if (a === 'pay') return apiPayReport(me, store, now);
+  if (a === 'unlink') return store.lock(function () { me.lineUserId = ''; store.saveStaff(me); store.log(me.id, '', 'line_unlink', ''); return { ok: true }; });
+  throw new Error('UNKNOWN');
+}
+function apiLogin(req, store) {
+  var phone = lnNormPhone(req.phone, req.intl);
+  var s = store.staff().filter(function (x) { return x.phone === phone && String(x.active).toUpperCase() === 'TRUE'; })[0];
+  if (!s || String(s.pin) !== String(req.pin)) throw new Error('BAD_LOGIN');
+  /* first time inside LINE: phone + PIN links this LINE account to the staff row, later opens skip the PIN */
+  if (req.idToken) {
+    var uid = store.lineUser(req.idToken);
+    store.lock(function () {
+      store.staff().forEach(function (x) { if (x.lineUserId === uid && x.id !== s.id) { x.lineUserId = ''; store.saveStaff(x); } });
+      s.lineUserId = uid; store.saveStaff(s); store.log(s.id, '', 'line_link', '');
+    });
+  }
+  return { token: store.newSession(s.id), staff: apiStaffPublic(s), linked: !!req.idToken };
+}
+function apiLineLogin(req, store) {
+  var uid = store.lineUser(req.idToken);
+  var s = store.staff().filter(function (x) { return x.lineUserId && x.lineUserId === uid && String(x.active).toUpperCase() === 'TRUE'; })[0];
+  if (!s) throw new Error('NOT_LINKED');
+  return { token: store.newSession(s.id), staff: apiStaffPublic(s), linked: true };
+}
+function apiStaffPublic(s) { return { id: s.id, name: s.name, type: s.type, branch: s.branch }; }
+function apiOnShift(me, store, now) {
+  return store.shifts().filter(function (r) { return r.staffId === me.id && r.date === now.date && !r.out; })[0] || null;
+}
+function apiClock(me, req, store, now) {
+  var open = apiOnShift(me, store, now);
+  /* clock-in only at your own branch: scan the QR on the counter (e.g. NIM-DESK) */
+  var dist = '';
+  if (req.on && !open) {
+    var br = lnFind(store.branches(), me.branch);
+    if (br && br.lat !== '' && br.lat != null && br.lng !== '' && br.lng != null) {
+      if (req.lat == null || req.lng == null || req.lat === '' || req.lng === '') throw new Error('NEED_GPS');
+      dist = lnDistance(+req.lat, +req.lng, +br.lat, +br.lng);
+      if (dist > (+br.radiusM || 1000)) { var e = new Error('TOO_FAR:' + dist); throw e; }
+    }
+    if (String(req.desk || '').trim().toUpperCase() !== me.branch + '-DESK') throw new Error('SCAN_DESK');
+  }
+  if (req.on && !open) store.addShift({ staffId: me.id, date: now.date, branch: me.branch, in: lnHM(now.min), out: '', inDistance: dist, inAccuracy: req.acc || '' });
+  if (!req.on && open) {
+    if (apiMine(me, store, now)) throw new Error('HAS_JOB');
+    open.out = lnHM(now.min); store.updateShift(open);
+  }
+  var res = apiFeed(me, store, now);
+  if (!req.on) { var p = apiPayReport(me, store, now); res.summary = { jobs: res.doneToday, pay: p.today }; }
+  store.log(me.id, '', req.on ? 'clock_in' : 'clock_out', req.on ? (req.desk || '') + ' · ' + dist + ' m (±' + (req.acc || '?') + ' m)' : '');
+  return res;
+}
+function apiMine(me, store, now) {
+  return store.bookings().filter(function (b) { return b.staffId === me.id && b.date === now.date && (b.status === 'accepted' || b.status === 'inservice'); })[0] || null;
+}
+function apiJobView(b, store, now, withCheck) {
+  var branch = lnFind(store.branches(), b.branch), people = b.people.map(function (pe) {
+    var prog = lnFind(LANA.PROGRAMS, pe.prog) || {}, hair = lnFind(LANA.HAIR, pe.hair), style = lnFind(LANA.STYLES, pe.style);
+    return { name: pe.name, prog: prog.name_th, progId: pe.prog, hair: hair ? hair.name_th : '', hairId: pe.hair || '', style: style && style.id !== 'normal' ? style.name_th : '',
+      addons: (pe.addons || []).map(function (id) { var x = lnFind(LANA.ADDONS, id); return x ? x.name_th : id; }), pressure: pe.pressure || 'medium', elbow: pe.elbow || 'ok',
+      focus: pe.focus || [], quiet: !!pe.quiet, note: pe.healthOk ? (pe.note || '') : '', minutes: lnChainMin(pe.chain) };
+  });
+  var first = b.people[0].alloc[0], v = { id: b.id, q: b.q || b.code, status: b.status, branch: b.branch, people: people,
+    start: first.start, seat: { res: first.res, unit: first.unit, code: b.branch + '-' + LANA.RES[first.res][2] + first.unit },
+    plannedEnd: Math.max.apply(null, b.people.map(function (pe) { return pe.alloc[pe.alloc.length - 1].end; })),
+    ext: b.ext || 0, earlyReq: !!b.earlyReq, upgrade: b.upgrade || null };
+  if (b.status === 'inservice') {
+    v.svcStart = +b.svcStart; v.end = lnEnd(b);
+    v.seats = b.live.map(function (r) { return { label: LANA.RES[r.res][0] + ' ' + r.unit, start: r.start, end: r.end }; });
+    if (withCheck) {
+      var copy = JSON.parse(JSON.stringify(b)), all = store.bookings().map(function (x) { return x.id === b.id ? copy : JSON.parse(JSON.stringify(x)); });
+      copy.people[0].ext = (copy.people[0].ext || 0) + 1;
+      var r = lnTryChange(copy, branch, all, now.min, false);
+      v.canExtend = r.ok; v.extMoves = r.ok && r.moved.length ? (r.moved[0].q || r.moved[0].code) : '';
+      v.extBlock = r.ok ? '' : (r.res === 'close' ? 'ร้านปิด 21:00' : LANA.RES[r.res][0] + ' มีคิวต่อ');
+    }
+  }
+  return v;
+}
+function apiFeed(me, store, now) {
+  var shift = apiOnShift(me, store, now), all = store.bookings(), mine = apiMine(me, store, now);
+  var waiting = all.filter(function (b) { return b.branch === me.branch && b.date === now.date && b.status === 'checkedin' && b.people.every(function (pe) { return lnCanDo(me, pe.prog); }); })
+    .sort(function (x, y) { return x.people[0].alloc[0].start - y.people[0].alloc[0].start; });
+  var done = all.filter(function (b) { return b.staffId === me.id && b.date === now.date && ['finished', 'done'].indexOf(b.status) >= 0; });
+  return {
+    now: now, me: apiStaffPublic(me), onShift: !!shift, shiftIn: shift ? shift.in : '',
+    waiting: shift && !mine ? waiting.map(function (b) { return apiJobView(b, store, now, false); }) : [],
+    waitingCount: waiting.length,
+    mine: mine ? apiJobView(mine, store, now, true) : null,
+    doneToday: done.length,
+    board: apiBoard(me.branch, store, now)
+  };
+}
+function apiBoard(branchId, store, now) {
+  var br = lnFind(store.branches(), branchId), rows = lnOccupied(store.bookings().filter(function (b) { return b.date === now.date; }), null), out = [];
+  ['wash', 'dry', 'thai', 'chair'].forEach(function (res) {
+    for (var u = 1; u <= (+br[res] || 0); u++) {
+      var cur = rows.filter(function (r) { return r.branch === branchId && r.res === res && r.unit === u && now.min >= r.start && now.min < r.end; })[0];
+      var nxt = rows.filter(function (r) { return r.branch === branchId && r.res === res && r.unit === u && r.start > now.min; }).sort(function (x, y) { return x.start - y.start; })[0];
+      out.push({ label: LANA.RES[res][0] + ' ' + u, code: branchId + '-' + LANA.RES[res][2] + u, busyUntil: cur ? cur.end : null, next: nxt ? nxt.start : null });
+    }
+  });
+  return out;
+}
+function apiGet(store, id) { var b = store.bookings().filter(function (x) { return x.id === id; })[0]; if (!b) throw new Error('NOT_FOUND'); return b; }
+function apiAccept(me, req, store, now) {
+  if (!apiOnShift(me, store, now)) throw new Error('NOT_ON_SHIFT');
+  if (apiMine(me, store, now)) throw new Error('HAS_JOB');
+  var b = apiGet(store, req.id);
+  if (b.branch !== me.branch) throw new Error('OTHER_BRANCH');
+  if (b.status !== 'checkedin') throw new Error('TAKEN');
+  if (!b.people.every(function (pe) { return lnCanDo(me, pe.prog); })) throw new Error('NOT_SKILLED');
+  b.status = 'accepted'; b.staffId = me.id; b.staffName = me.name; b.acceptedAt = lnHM(now.min);
+  store.saveBooking(b); store.log(me.id, b.id, 'accept', '');
+  return apiFeed(me, store, now);
+}
+function apiStart(me, req, store, now) {
+  var b = apiGet(store, req.id);
+  if (b.staffId !== me.id || b.status !== 'accepted') throw new Error('NOT_YOURS');
+  if (b.branch !== me.branch) throw new Error('OTHER_BRANCH');
+  var first = b.people[0].alloc[0], code = String(req.bed || '').trim().toUpperCase(), m = /^([A-Z]+)-([WDTC])(\d+)$/.exec(code);
+  if (!m || m[1] !== b.branch) throw new Error('BAD_BED');
+  var res = { W: 'wash', D: 'dry', T: 'thai', C: 'chair' }[m[2]];
+  if (res !== first.res) throw new Error('WRONG_BED_TYPE');
+  var br = lnFind(store.branches(), b.branch), all = store.bookings();
+  b.svcStart = now.min;
+  if (b.endCap) b.people.forEach(function (pe) { pe.cut = Math.max(0, now.min + lnChainMin(pe.chain) - b.endCap); });
+  b.people[0].alloc[0] = Object.assign({}, first, { unit: +m[3] });
+  var r = lnTryChange(b, br, all, now.min, true);
+  if (!r.ok) { b.svcStart = ''; b.people[0].alloc[0] = first; throw new Error(r.res === 'close' ? 'CLOSING' : 'BED_BUSY'); }
+  if (b.live[0].unit !== +m[3]) { b.svcStart = ''; b.live = []; b.people[0].alloc[0] = first; throw new Error('BED_BUSY'); }
+  if (req.hair && req.hair !== 'ok') {
+    var order = LANA.HAIR.map(function (h) { return h.id; }), from = b.people[0].hair || 'short';
+    if (order.indexOf(req.hair) > order.indexOf(from)) b.upgrade = { from: from, to: req.hair, state: 'pending' };
+  }
+  b.status = 'inservice';
+  store.saveBooking(b); if (r.moved) r.moved.forEach(function (x) { store.saveBooking(x); });
+  store.log(me.id, b.id, 'start', code + (b.upgrade ? ' hair:' + b.upgrade.to : ''));
+  return apiFeed(me, store, now);
+}
+function apiExtend(me, req, store, now) {
+  var b = apiGet(store, req.id);
+  if (b.staffId !== me.id || b.status !== 'inservice') throw new Error('NOT_YOURS');
+  var br = lnFind(store.branches(), b.branch), all = store.bookings();
+  b.people[0].ext = (b.people[0].ext || 0) + 1;
+  var r = lnTryChange(b, br, all, now.min, true);
+  if (!r.ok) { b.people[0].ext--; throw new Error(r.res === 'close' ? 'CLOSING' : 'NO_ROOM'); }
+  b.ext = (b.ext || 0) + 1;
+  b.due = b.due || []; b.due.push({ kind: 'ext', th: 'ต่อเวลา 30 นาที', en: 'Extra 30 min', amount: LANA.EXT_PRICE });
+  store.saveBooking(b); r.moved.forEach(function (x) { store.saveBooking(x); });
+  store.log(me.id, b.id, 'extend', r.moved.length ? 'moved ' + (r.moved[0].q || r.moved[0].code) : '');
+  return apiFeed(me, store, now);
+}
+function apiFinish(me, req, store, now) {
+  var b = apiGet(store, req.id);
+  if (b.staffId !== me.id || b.status !== 'inservice') throw new Error('NOT_YOURS');
+  var end = lnEnd(b);
+  if (now.min < end && !b.earlyReq) throw new Error('TOO_EARLY');
+  b.status = 'finished'; b.finishedAt = now.min;
+  store.saveBooking(b); store.log(me.id, b.id, 'finish', lnHM(now.min) + ' / end ' + lnHM(end));
+  return apiFeed(me, store, now);
+}
+function apiPayReport(me, store, now) {
+  var mine = store.bookings().filter(function (b) { return b.staffId === me.id && ['finished', 'done'].indexOf(b.status) >= 0; });
+  var days = {}, out = [];
+  mine.forEach(function (b) {
+    var p = lnPay(b, me), held = !!b.flagged;
+    out.push({ date: b.date, q: b.q || b.code, prog: (lnFind(LANA.PROGRAMS, b.people[0].prog) || {}).name_th, lines: p.lines, total: p.total, held: held, status: b.status });
+    if (!held) days[b.date] = (days[b.date] || 0) + p.total;
+  });
+  out.sort(function (x, y) { return x.date < y.date ? 1 : -1; });
+  return { me: apiStaffPublic(me), today: days[now.date] || 0, jobs: out.slice(0, 40), byDay: days };
+}
+
+/* ===== LINE ALERTS (run every minute by a time trigger; the demo runs it on every clock step) =====
+   Saves messages: a new job goes first to the PUSH_FIRST idle therapists with the fewest jobs today,
+   after PUSH_WAIT minutes nobody took it -> the rest of the idle ones. One 10-minute warning per job end.
+   Returns [{ staffId, to, kind, text, bookingId }] for store.push(). */
+var LN_PUSH = { FIRST: 2, WAIT: 2, WARN: 10, warnOn: true };
+function staffTick(store, now) {
+  var out = [], all = store.bookings().filter(function (b) { return b.date === now.date; }), staff = store.staff();
+  var busy = {}, jobs = {};
+  all.forEach(function (b) {
+    if (b.status === 'accepted' || b.status === 'inservice') busy[b.staffId] = 1;
+    if (b.status === 'finished' || b.status === 'done') jobs[b.staffId] = (jobs[b.staffId] || 0) + 1;
+  });
+  var onShift = {}; store.shifts().forEach(function (r) { if (r.date === now.date && !r.out) onShift[r.staffId] = 1; });
+  all.forEach(function (b) {
+    if (b.status === 'checkedin') {
+      var start = b.people[0].alloc[0].start;
+      if (start - now.min > 15) return; /* booked guest who checked in very early: wait until 15 min before */
+      var free = staff.filter(function (s) {
+        return String(s.active).toUpperCase() === 'TRUE' && s.branch === b.branch && onShift[s.id] && !busy[s.id] && s.lineUserId &&
+          b.people.every(function (pe) { return lnCanDo(s, pe.prog); });
+      }).sort(function (x, y) { return (jobs[x.id] || 0) - (jobs[y.id] || 0); });
+      var sent = b.notified || [], fresh = free.filter(function (s) { return sent.indexOf(s.id) < 0; });
+      if (!fresh.length) return;
+      if (!sent.length) { fresh = fresh.slice(0, LN_PUSH.FIRST); b.notifyAt = now.min; }
+      else if (now.min - (+b.notifyAt || 0) < LN_PUSH.WAIT) return;
+      var pe = b.people[0], prog = lnFind(LANA.PROGRAMS, pe.prog) || {}, more = b.people.length > 1 ? ' (+' + (b.people.length - 1) + ' คน)' : '';
+      var text = 'มีลูกค้ารอ ' + (b.q || b.code) + ' · ' + (prog.name_th || pe.prog) + more + ' · ' + lnChainMin(pe.chain) + ' นาที\nแตะเพื่อเปิดแอปแล้วกดรับงาน';
+      fresh.forEach(function (s) { out.push({ staffId: s.id, to: s.lineUserId, kind: 'job', text: text, bookingId: b.id }); });
+      b.notified = sent.concat(fresh.map(function (s) { return s.id; }));
+      store.saveBooking(b);
+    } else if (b.status === 'inservice' && LN_PUSH.warnOn) {
+      var end = lnEnd(b), left = end - now.min, s = lnFind(staff, b.staffId);
+      if (left > LN_PUSH.WARN || left <= 0 || +b.warned === end || !s || !s.lineUserId) return;
+      out.push({ staffId: s.id, to: s.lineUserId, kind: 'warn', text: 'อีก ' + left + ' นาทีครบเวลา ' + (b.q || b.code) + ' (' + lnHM(end) + ')\nถามลูกค้าว่าอยากต่อเวลาไหม', bookingId: b.id });
+      b.warned = end; store.saveBooking(b);
+    }
+  });
+  return out;
+}
+/* ===== END API ===== */
+
+/* ===== LANA CUSTOMER + COUNTER TABLET API (same code runs in Apps Script and in the demo) =====
+   Extra store methods used here (see memstore.js / gas.js):
+     members(), saveMember(m), tickets(), saveTicket(t), orders(), saveOrder(o), vouchers(), saveVoucher(v),
+     claims(), saveClaim(c), csession(token) -> lineUserId, newCsession(lineUserId) -> token,
+     lineUser(idToken, 'cust'), kioskKey(), beamCreate(order, returnUrl) -> { id, url }, beamStatus(beamId) -> 'PAID' | ...,
+     mail(to, subject, html)
+   Booking status: hold (waiting for payment) > booked > checkedin > accepted > inservice > finished > done; noshow; cancelled */
+
+var LN_C = { LEAD: 30, HOLD_MIN: 20, PAY_MIN: 15, MAX_UPCOMING: 2, DAYS: 8, STEP: 30 };
+
+function custApi(req, store, now) {
+  var a = req.action;
+  if (a === 'config') return cConfig(store);
+  if (a === 'hello') return cHello(req, store);
+  if (a === 'order') return store.lock(function () { return cOrderState(req, store, now); });
+  if (a === 'visit') return store.lock(function () { cSweep(store, now); var b = cByVkey(store, req.vkey); return { booking: cView(b, store, now, true) }; });
+  if (a === 'slots') return store.lock(function () { return cSlots(req, store, now, req.token ? cMeOrNull(req, store) : null); });
+  if (/^(extend|early|upgrade|checkout|thanked|upcourse|seen)$/.test(a) && (req.vkey || req.kiosk)) {
+    if (req.kiosk) cKioskAuth(req, store);
+    return store.lock(function () { return cVisitAction(a, req, store, now, null); });
+  }
+  if (a.charAt(0) === 'k' && a.length > 1 && a.charAt(1) === a.charAt(1).toUpperCase()) { cKioskAuth(req, store); return store.lock(function () { return cKiosk(a, req, store, now); }); }
+  var uid = store.csession(req.token); if (!uid) throw new Error('LOGIN');
+  if (a === 'signup') return store.lock(function () { return cSignup(uid, req, store, now); });
+  var me = cMemberBy(store, 'lineUserId', uid); if (!me) throw new Error('NOT_MEMBER');
+  if (a === 'me') return store.lock(function () { return cMe(me, store, now); });
+  return store.lock(function () {
+    if (a === 'profile') return cProfile(me, req, store, now);
+    if (a === 'buy') return cBuy(me, req, store, now);
+    if (a === 'book') return cBook(me, req, store, now);
+    if (a === 'resched') return cResched(me, req, store, now);
+    if (a === 'earlier') return cEarlier(me, req, store, now);
+    if (a === 'checkin') return cCheckinAt(me, req, store, now);
+    if (a === 'claim') return cClaim(me, req, store, now);
+    if (/^(extend|early|upgrade|checkout|thanked|upcourse|seen)$/.test(a)) return cVisitAction(a, req, store, now, me);
+    throw new Error('UNKNOWN');
+  });
+}
+
+/* ---------- catalogue for the apps ---------- */
+function cConfig(store) {
+  var brs = store.branches();
+  return {
+    open: LANA.OPEN, close: LANA.CLOSE, extPrice: LANA.EXT_PRICE, extMin: LANA.EXT_MIN, lead: LN_C.LEAD, days: LN_C.DAYS, step: LN_C.STEP,
+    branches: brs.map(function (b) { return { id: b.id, name_th: b.name_th, name_en: b.name_en, active: lnTrue(b.active), soon: String(b.active).toUpperCase() === 'SOON', addr: b.addr || '', map: b.map || '', res: { wash: +b.wash || 0, dry: +b.dry || 0, thai: +b.thai || 0, chair: +b.chair || 0 } }; }).filter(function (b) { return b.active || b.soon; }),
+    programs: LANA.PROGRAMS.filter(function (p) { return p.active === undefined || p.active === '' || lnTrue(p.active); }).map(function (p) {
+      return { id: p.id, name_th: p.name_th, name_en: p.name_en || p.name_th, price: +p.price, pack5: lnPack(p, 5), pack11: lnPack(p, 11), hair: lnTrue(p.hair),
+        segs: lnPairs(p.segs).map(function (s) { return { res: s.k, min: s.v }; }), steps: lnSteps(p), desc_th: p.desc_th || '', desc_en: p.desc_en || p.desc_th || '',
+        at: brs.filter(function (b) { return lnProgAt(p, b); }).map(function (b) { return b.id; }) };
+    }),
+    hair: LANA.HAIR.map(function (h) { return { id: h.id, name_th: h.name_th, name_en: h.name_en || h.name_th, price: +h.price, min: +h.min }; }),
+    styles: LANA.STYLES.map(function (h) { return { id: h.id, name_th: h.name_th, name_en: h.name_en || h.name_th, price: +h.price, min: +h.min }; }),
+    addons: LANA.ADDONS.map(function (x) { return { id: x.id, name_th: x.name_th, name_en: x.name_en || x.name_th, price: +x.price, min: +x.min, for: String(x.for || '').split(',').map(function (y) { return y.trim(); }).filter(Boolean), rec: lnTrue(x.rec), desc_th: x.desc_th || '', desc_en: x.desc_en || x.desc_th || '' }; }),
+    partners: (LANA.PARTNERS || []).map(function (x) { return { id: x.id, name_th: x.name_th, name_en: x.name_en || x.name_th, prog: x.prog, days: +x.days || 60, rule: x.rule || '', desc_th: x.desc_th || '', desc_en: x.desc_en || x.desc_th || '' }; })
+  };
+}
+
+/* ---------- members ---------- */
+function cMemberBy(store, key, val) {
+  if (!val) return null;
+  var v = key === 'email' ? String(val).toLowerCase() : val;
+  return store.members().filter(function (m) { return (key === 'email' ? String(m.email || '').toLowerCase() : m[key]) === v; })[0] || null;
+}
+function cMeOrNull(req, store) { var uid = store.csession(req.token); return uid ? cMemberBy(store, 'lineUserId', uid) : null; }
+function cPhoneOK(e) { return /^\+66\d{9}$/.test(e) || (/^\+\d{8,15}$/.test(e) && e.indexOf('+66') !== 0); }
+function cEmailOK(e) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e || ''); }
+function cHello(req, store) {
+  var uid = store.lineUser(req.idToken, 'cust'), m = cMemberBy(store, 'lineUserId', uid);
+  return { token: store.newCsession(uid), member: m ? cMemberPub(m) : null };
+}
+function cMemberPub(m) { return { id: m.id, name: m.name, phone: m.phone, email: m.email, birthMonth: +m.birthMonth || null, consent: lnTrue(m.consentMarketing), noShows: +m.noShows || 0 }; }
+function cSignup(uid, req, store, now) {
+  if (cMemberBy(store, 'lineUserId', uid)) throw new Error('ALREADY_MEMBER');
+  var name = String(req.name || '').trim().slice(0, 60), phone = lnNormPhone(req.phone, req.intl), email = String(req.email || '').trim().slice(0, 120);
+  if (!name || !cPhoneOK(phone) || !cEmailOK(email)) throw new Error('BAD_FORM');
+  if (!req.privacy) throw new Error('NEED_PRIVACY');
+  /* someone who first came through the counter tablet with this phone: link that record to LINE */
+  var m = cMemberBy(store, 'phone', phone);
+  if (m && m.lineUserId) throw new Error('PHONE_TAKEN');
+  var isNew = !m;
+  if (!m) m = { id: 'M' + lnId(7), createdAt: cStamp(now), noShows: 0, source: 'line' };
+  Object.assign(m, { lineUserId: uid, name: name, phone: phone, email: email, consentMarketing: req.consent ? 'TRUE' : 'FALSE', privacyAt: cStamp(now) });
+  store.saveMember(m);
+  if (isNew || !store.vouchers().some(function (v) { return v.memberId === m.id && v.kind === 'welcome'; }))
+    store.saveVoucher({ id: 'V' + lnId(7), memberId: m.id, kind: 'welcome', addon: 'SCRUB', month: '', year: '', status: 'active', bookingId: '', createdAt: cStamp(now) });
+  store.log('', '', 'member_signup', m.id);
+  return cMe(m, store, now);
+}
+function cProfile(me, req, store, now) {
+  var name = String(req.name || '').trim(), phone = lnNormPhone(req.phone, req.intl), email = String(req.email || '').trim();
+  if (name) me.name = name.slice(0, 60);
+  if (req.phone != null && req.phone !== '') { if (!cPhoneOK(phone)) throw new Error('BAD_PHONE'); var o = cMemberBy(store, 'phone', phone); if (o && o.id !== me.id) throw new Error('PHONE_TAKEN'); me.phone = phone; }
+  if (email) { if (!cEmailOK(email)) throw new Error('BAD_EMAIL'); me.email = email; }
+  if (req.consent != null) me.consentMarketing = req.consent ? 'TRUE' : 'FALSE';
+  if (req.birthMonth != null) { var bm = +req.birthMonth; me.birthMonth = bm >= 1 && bm <= 12 ? bm : ''; }
+  store.saveMember(me);
+  return cMe(me, store, now);
+}
+/* gifts that appear on their own: birthday vitamin in the birth month, partner tickets once approved in the Claims sheet */
+function cGifts(me, store, now) {
+  var month = +now.date.slice(5, 7), year = now.date.slice(0, 4), out = [];
+  if (+me.birthMonth === month && !store.vouchers().some(function (v) { return v.memberId === me.id && v.kind === 'birthday' && String(v.year) === year; })) {
+    store.saveVoucher({ id: 'V' + lnId(7), memberId: me.id, kind: 'birthday', addon: 'VIT', month: month, year: year, status: 'active', bookingId: '', createdAt: cStamp(now) });
+    out.push('birthday');
+  }
+  store.claims().filter(function (c) { return c.memberId === me.id && String(c.status).toLowerCase() === 'approved'; }).forEach(function (c) {
+    var pt = lnFind(LANA.PARTNERS, c.partner) || LANA.PARTNERS[0];
+    store.saveTicket({ id: 'T' + lnId(8), memberId: me.id, prog: pt.prog, status: 'active', src: 'partner', rule: pt.rule || '', expires: lnAddDays(now.date, +pt.days || 60), orderId: '', bookingId: '', createdAt: cStamp(now), usedAt: '' });
+    c.status = 'issued'; store.saveClaim(c); out.push('claim');
+  });
+  return out;
+}
+
+/* ---------- state for MY LANA ---------- */
+function cMe(me, store, now) {
+  cSweep(store, now);
+  var gifts = cGifts(me, store, now);
+  var tix = store.tickets().filter(function (k) { return k.memberId === me.id && k.status === 'active' && !(k.expires && now.date > k.expires); });
+  var vs = store.vouchers().filter(function (v) { return v.memberId === me.id && v.status === 'active' && (v.kind !== 'birthday' || +v.month === +now.date.slice(5, 7)); });
+  var mine = store.bookings().filter(function (b) { return b.memberId === me.id; });
+  var show = mine.filter(function (b) {
+    if (['booked', 'checkedin', 'accepted', 'inservice', 'finished'].indexOf(b.status) >= 0) return true;
+    if (b.status === 'hold') return true;
+    if (b.status === 'done') return !b.thanked && b.date === now.date;
+    if (b.status === 'noshow') return !b.seen;
+    return false;
+  }).sort(function (x, y) { return (x.date + lnHM(x.people[0].alloc[0].start)) < (y.date + lnHM(y.people[0].alloc[0].start)) ? -1 : 1; });
+  return {
+    member: cMemberPub(me), gifts: gifts, now: now,
+    tickets: tix.map(function (k) { return { id: k.id, prog: k.prog, src: k.src, rule: k.rule || '', expires: k.expires || '' }; }),
+    vouchers: vs.map(function (v) { return { id: v.id, kind: v.kind, addon: v.addon }; }),
+    claims: store.claims().filter(function (c) { return c.memberId === me.id; }).map(function (c) { return { id: c.id, partner: c.partner, receipt: c.receipt, status: String(c.status).toLowerCase() }; }),
+    bookings: show.map(function (b) { return cView(b, store, now, true); }),
+    lastPrefs: cJSON(me.lastPrefs, {})
+  };
+}
+function cJSON(s, d) { if (s && typeof s === 'object') return s; try { return s ? JSON.parse(s) : d; } catch (e) { return d; } }
+function cStamp(now) { return now.date + ' ' + lnHM(now.min); }
+
+/* what the customer sees about one visit */
+function cView(b, store, now, withChecks) {
+  var p0 = b.people[0], a0 = p0.alloc, st = a0[0].start;
+  var v = { id: b.id, code: b.code, q: b.q || '', status: b.status, branch: b.branch, date: b.date, start: st,
+    end: Math.max.apply(null, b.people.map(function (pe) { return pe.alloc[pe.alloc.length - 1].end; })),
+    people: b.people.map(function (pe) { return { name: pe.name, prog: pe.prog, hair: pe.hair || '', style: pe.style || 'normal', addons: pe.addons || [], pressure: pe.pressure || 'medium', elbow: pe.elbow || 'ok', focus: pe.focus || [], quiet: !!pe.quiet }; }),
+    ext: b.ext || 0, due: (b.due || []).map(function (d) { return { th: d.th, en: d.en, amount: d.amount }; }), paid: +b.paid || 0, guest: !!b.guest, kiosk: !!b.kiosk,
+    staffName: b.staffName || '', upgrade: b.upgrade || null, earlyReq: !!b.earlyReq, endCap: b.endCap || null, stars: +b.stars || 0,
+    single: (b.tix || []).every(function (id) { var k = lnFind(store.tickets(), id); return !k || k.src === 'single' || k.src === 'kiosk'; }),
+    quiet: (b.tix || []).some(function (id) { var k = lnFind(store.tickets(), id); return k && k.rule === 'quiet'; }), holdUntil: b.holdUntil || null, orderId: b.orderId || '' };
+  if (b.status === 'inservice' || b.status === 'finished') { v.svcStart = +b.svcStart; v.liveEnd = lnEnd(b) || v.end; }
+  if (withChecks && b.status === 'inservice') {
+    var br = lnFind(store.branches(), b.branch), copy = JSON.parse(JSON.stringify(b)), all = store.bookings().map(function (x) { return x.id === b.id ? copy : JSON.parse(JSON.stringify(x)); });
+    copy.people[0].ext = (copy.people[0].ext || 0) + 1;
+    var r = lnTryChange(copy, br, all, now.min, false);
+    v.canExtend = r.ok; v.extBlock = r.ok ? '' : r.res === 'close' ? 'close' : r.res;
+    var nxt = r.ok ? null : cNextOn(store, b, r.res, now); v.extNext = nxt;
+  }
+  if (withChecks && b.status === 'booked' && b.date === now.date) v.earlier = cEarlierSlots(b, store, now);
+  return v;
+}
+function cNextOn(store, b, res, now) {
+  var t = []; store.bookings().forEach(function (x) { if (x.id !== b.id && x.branch === b.branch && x.date === b.date && ['booked', 'checkedin', 'accepted', 'hold'].indexOf(x.status) >= 0) x.people.forEach(function (pe) { pe.alloc.forEach(function (a) { if (a.res === res && a.start >= now.min) t.push(a.start); }); }); });
+  t.sort(function (x, y) { return x - y; }); return t.length ? t[0] : null;
+}
+
+/* ---------- tickets ---------- */
+function cTicketOK(k, date, start) {
+  if (k.expires && date > k.expires) return false;
+  if (k.rule === 'quiet') { var d = lnDow(date); if (d < 1 || d > 4 || start >= 16 * 60) return false; }
+  return true;
+}
+function cPickTickets(store, memberId, prog, n, date, start) {
+  var ok = store.tickets().filter(function (k) { return k.memberId === memberId && k.status === 'active' && k.prog === prog && cTicketOK(k, date, start); });
+  ok.sort(function (a, b) { var q = (a.rule === 'quiet' ? 0 : 1) - (b.rule === 'quiet' ? 0 : 1); if (q) return q; var ea = a.expires || '9999', eb = b.expires || '9999'; return ea < eb ? -1 : ea > eb ? 1 : 0; });
+  return ok.length >= n ? ok.slice(0, n) : null;
+}
+
+/* ---------- people, seats, times ---------- */
+function cCleanPerson(prog, raw, i, me) {
+  raw = raw || {};
+  var hair = lnTrue(prog.hair) ? (lnFind(LANA.HAIR, raw.hair) ? raw.hair : null) : '';
+  var style = lnTrue(prog.hair) && lnFind(LANA.STYLES, raw.style) ? raw.style : 'normal';
+  var addons = (raw.addons || []).filter(function (id, j, arr) { var x = lnFind(LANA.ADDONS, id); return x && lnAddonFor(x, prog.id) && arr.indexOf(id) === j; });
+  var note = String(raw.note || '').trim().slice(0, 200);
+  return { name: String(raw.name || (i === 0 && me ? me.name : '') || '').trim().slice(0, 40) || (i === 0 ? 'Guest' : 'ผู้ติดตาม ' + (i + 1)), prog: prog.id, hair: hair, style: style, addons: addons,
+    pressure: ['light', 'medium', 'firm'].indexOf(raw.pressure) >= 0 ? raw.pressure : 'medium', elbow: raw.elbow === 'no' ? 'no' : 'ok',
+    focus: (raw.focus || []).map(String).slice(0, 6), quiet: !!raw.quiet, note: note && raw.healthOk ? note : '', healthOk: !!(note && raw.healthOk) };
+}
+function cRows(store, date, exceptId) { return lnOccupied(store.bookings().filter(function (b) { return b.date === date; }), exceptId); }
+function cDateOK(date, now) { return /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= now.date && date <= lnAddDays(now.date, LN_C.DAYS - 1); }
+function cSlots(req, store, now, me) {
+  cSweep(store, now);
+  var br = lnFind(store.branches(), req.branch), resch = null, chains, tixCheck, n;
+  if (!br || !cDateOK(req.date, now)) return { times: [] };
+  if (req.resched) {
+    if (!me) throw new Error('LOGIN');
+    resch = lnFind(store.bookings(), req.resched); if (!resch || resch.memberId !== me.id) throw new Error('NOT_FOUND');
+    var rt = (resch.tix || []).map(function (id) { return lnFind(store.tickets(), id); }).filter(Boolean);
+    chains = resch.people.map(function (pe) { return pe.chain; }); n = chains.length;
+    tixCheck = function (m) { return rt.every(function (k) { return cTicketOK(k, req.date, m); }); };
+    if (!lnProgAt(lnFind(LANA.PROGRAMS, resch.people[0].prog), br)) return { times: [] };
+  } else {
+    var prog = lnFind(LANA.PROGRAMS, req.prog); if (!prog || !lnProgAt(prog, br)) return { times: [] };
+    var people = (req.people || [{}]).slice(0, 4).map(function (x, i) { return cCleanPerson(prog, x, i, me); });
+    n = people.length; chains = people.map(function (pe) { return lnChain(prog, pe); });
+    tixCheck = me ? function (m) { return !!cPickTickets(store, me.id, prog.id, n, req.date, m); } : function () { return true; };
+  }
+  var rows = cRows(store, req.date, resch ? resch.id : null), maxLen = Math.max.apply(null, chains.map(lnChainMin)), out = [];
+  for (var m = LANA.OPEN; m + maxLen <= LANA.CLOSE; m += LN_C.STEP) {
+    if (req.date === now.date && m < now.min + LN_C.LEAD) continue;
+    out.push({ m: m, ok: !!(tixCheck(m) && lnAllocate(br, req.date, m, chains, rows)) });
+  }
+  return { times: out, minutes: maxLen };
+}
+function cUpcoming(store, memberId) { return store.bookings().filter(function (b) { return b.memberId === memberId && (b.status === 'booked' || b.status === 'hold'); }); }
+function cVoucherFree(store, me, now, prog, addons) {
+  var month = +now.date.slice(5, 7), free = [], used = [];
+  (addons || []).forEach(function (id) {
+    var v = store.vouchers().filter(function (x) { return x.memberId === me.id && x.status === 'active' && x.addon === id && used.indexOf(x) < 0 && (x.kind !== 'birthday' || +x.month === month); })[0];
+    if (v) { free.push(id); used.push(v); }
+  });
+  return { free: free, used: used };
+}
+function cBook(me, req, store, now) {
+  cSweep(store, now);
+  var prog = lnFind(LANA.PROGRAMS, req.prog), br = lnFind(store.branches(), req.branch), m = +req.time;
+  if (!prog || !br || !lnProgAt(prog, br)) throw new Error('NOT_HERE');
+  if (!cDateOK(req.date, now) || (req.date === now.date && m < now.min + LN_C.LEAD)) throw new Error('BAD_TIME');
+  if (cUpcoming(store, me.id).length >= LN_C.MAX_UPCOMING) throw new Error('TOO_MANY');
+  if ((+me.noShows || 0) >= 2 && req.date !== now.date) throw new Error('SAME_DAY_ONLY');
+  var people = (req.people || []).slice(0, 4).map(function (x, i) { return cCleanPerson(prog, x, i, me); });
+  if (!people.length) throw new Error('BAD_FORM');
+  if (lnTrue(prog.hair) && people.some(function (pe) { return !pe.hair; })) throw new Error('NEED_HAIR');
+  var tix = cPickTickets(store, me.id, prog.id, people.length, req.date, m); if (!tix) throw new Error('NO_TICKET');
+  var chains = people.map(function (pe) { return lnChain(prog, pe); }), al = lnAllocate(br, req.date, m, chains, cRows(store, req.date, null));
+  if (!al) throw new Error('SLOT_TAKEN');
+  var vf = cVoucherFree(store, me, now, prog, people[0].addons), due = 0;
+  people.forEach(function (pe, i) { pe.chain = chains[i]; pe.alloc = al[i]; due += lnSum(lnPersonLines(prog, pe, i === 0 ? vf.free : [])); });
+  var b = { id: lnId(8), code: 'LN' + lnId(5), q: '', branch: br.id, date: req.date, status: due ? 'hold' : 'booked', people: people, ext: 0, due: [], live: [],
+    memberId: me.id, tix: tix.map(function (k) { return k.id; }), vouchers: vf.used.map(function (v) { return v.id; }), paid: 0, src: 'line', email: me.email, phone: me.phone };
+  tix.forEach(function (k) { k.status = 'booked'; k.bookingId = b.id; store.saveTicket(k); });
+  vf.used.forEach(function (v) { v.status = 'used'; v.bookingId = b.id; store.saveVoucher(v); });
+  me.lastPrefs = JSON.stringify({ prog: prog.id, addons: people[0].addons, style: people[0].style, pressure: people[0].pressure, elbow: people[0].elbow, focus: people[0].focus, quiet: people[0].quiet, hair: people[0].hair });
+  store.saveMember(me);
+  var out = { bookingId: b.id };
+  if (due) {
+    b.holdUntil = cStamp({ date: now.date, min: now.min + LN_C.HOLD_MIN });
+    var lines = []; people.forEach(function (pe, i) { lnPersonLines(prog, pe, i === 0 ? vf.free : []).forEach(function (l) { if (l.amount) lines.push(l); }); });
+    var o = cNewOrder(store, now, { memberId: me.id, kind: 'book', amount: due, bookingId: b.id, items: lines, label: prog.name_en + ' extras' }, req.returnUrl);
+    b.orderId = o.id; out.orderId = o.id; out.url = o.beamUrl; out.amount = due;
+  }
+  store.saveBooking(b);
+  if (!due) cConfirmMail(store, b, me);
+  store.log('', b.id, 'book', b.status + ' ' + br.id + ' ' + b.date + ' ' + lnHM(m));
+  out.booking = cView(b, store, now, false);
+  return out;
+}
+function cOwn(store, me, id) { var b = lnFind(store.bookings(), id); if (!b || !me || b.memberId !== me.id) throw new Error('NOT_FOUND'); return b; }
+function cResched(me, req, store, now) {
+  cSweep(store, now);
+  var b = cOwn(store, me, req.id); if (b.status !== 'booked') throw new Error('CANT_MOVE');
+  var br = lnFind(store.branches(), req.branch), m = +req.time;
+  if (!br || !lnProgAt(lnFind(LANA.PROGRAMS, b.people[0].prog), br)) throw new Error('NOT_HERE');
+  if (!cDateOK(req.date, now) || (req.date === now.date && m < now.min + LN_C.LEAD)) throw new Error('BAD_TIME');
+  if ((+me.noShows || 0) >= 2 && req.date !== now.date) throw new Error('SAME_DAY_ONLY');
+  if (!(b.tix || []).every(function (id) { var k = lnFind(store.tickets(), id); return !k || cTicketOK(k, req.date, m); })) throw new Error('TICKET_RULE');
+  var al = lnAllocate(br, req.date, m, b.people.map(function (pe) { return pe.chain; }), cRows(store, req.date, b.id));
+  if (!al) throw new Error('SLOT_TAKEN');
+  b.branch = br.id; b.date = req.date; b.people.forEach(function (pe, i) { pe.alloc = al[i]; }); b.reminded = false;
+  store.saveBooking(b); cConfirmMail(store, b, me, true); store.log('', b.id, 'resched', br.id + ' ' + b.date + ' ' + lnHM(m));
+  return cMe(me, store, now);
+}
+/* same-day earlier times that fit everyone (they need ~30 min to get here) */
+function cEarlierSlots(b, store, now) {
+  var st = b.people[0].alloc[0].start, out = [], br = lnFind(store.branches(), b.branch), chains = b.people.map(function (pe) { return pe.chain; }), rows = cRows(store, b.date, b.id);
+  var tix = (b.tix || []).map(function (id) { return lnFind(store.tickets(), id); }).filter(Boolean);
+  for (var m = Math.ceil((now.min + LN_C.LEAD) / LN_C.STEP) * LN_C.STEP; m <= st - 60 && out.length < 4; m += LN_C.STEP)
+    if (tix.every(function (k) { return cTicketOK(k, b.date, m); }) && lnAllocate(br, b.date, m, chains, rows)) out.push(m);
+  return out;
+}
+function cEarlier(me, req, store, now) {
+  var b = cOwn(store, me, req.id); if (b.status !== 'booked' || b.date !== now.date) throw new Error('CANT_MOVE');
+  if (cEarlierSlots(b, store, now).indexOf(+req.time) < 0) throw new Error('SLOT_TAKEN');
+  var al = lnAllocate(lnFind(store.branches(), b.branch), b.date, +req.time, b.people.map(function (pe) { return pe.chain; }), cRows(store, b.date, b.id));
+  b.people.forEach(function (pe, i) { pe.alloc = al[i]; }); b.reminded = false;
+  store.saveBooking(b); cConfirmMail(store, b, me, true);
+  return cMe(me, store, now);
+}
+
+/* ---------- check-in (shop QR in LINE, or counter tablet) ----------
+   window: 30 min before to 30 min after the booked time. Late > 5 min: ends at the original time. Late > 30: no-show, tickets go back. */
+function cNoShow(store, b, now) {
+  b.status = 'noshow';
+  (b.tix || []).forEach(function (id) { var k = lnFind(store.tickets(), id); if (k && k.status === 'booked') { k.status = 'active'; k.bookingId = ''; store.saveTicket(k); } });
+  store.saveBooking(b);
+  var m = lnFind(store.members(), b.memberId); if (m) { m.noShows = (+m.noShows || 0) + 1; store.saveMember(m); }
+  store.log('', b.id, 'noshow', '');
+}
+function cQueue(store, b) {
+  if (b.q) return b.q;
+  var n = store.bookings().filter(function (x) { return x.branch === b.branch && x.date === b.date && x.q; }).length + 1;
+  return 'A' + (n < 10 ? '0' : '') + n;
+}
+function cDoCheckin(store, b, branchId, now, move) {
+  var st = b.people[0].alloc[0].start, br = lnFind(store.branches(), branchId);
+  if (b.status !== 'booked') return { result: 'already' };
+  if (b.date !== now.date) return { result: 'otherday' };
+  if (now.min > st + 30) { cNoShow(store, b, now); return { result: 'noshow' }; }
+  var startNow = Math.ceil(now.min / 5) * 5, chains = b.people.map(function (pe) { return pe.chain; });
+  var canNow = lnProgAt(lnFind(LANA.PROGRAMS, b.people[0].prog), br) && !!lnAllocate(br, now.date, startNow, chains, cRows(store, now.date, b.id));
+  if (b.branch !== branchId || now.min < st - 30) {
+    if (!move) return { result: b.branch !== branchId ? 'otherbranch' : 'early', canNow: canNow, opensAt: st - 30 };
+    if (!canNow) return { result: 'nofree' };
+    var al = lnAllocate(br, now.date, startNow, chains, cRows(store, now.date, b.id));
+    b.branch = branchId; b.people.forEach(function (pe, i) { pe.alloc = al[i]; }); b.endCap = null;
+  } else if (now.min > st + 5) b.endCap = st + Math.max.apply(null, chains.map(lnChainMin));
+  b.status = 'checkedin'; b.q = cQueue(store, b); b.checkedAt = lnHM(now.min);
+  store.saveBooking(b); store.log('', b.id, 'checkin', branchId + (move ? ' moved' : ''));
+  return { result: 'checkedin', q: b.q, late: b.endCap ? now.min - st : 0 };
+}
+function cCheckinAt(me, req, store, now) {
+  cSweep(store, now);
+  var br = lnFind(store.branches(), String(req.branch || '').toUpperCase()); if (!br || !lnTrue(br.active)) throw new Error('BAD_BRANCH');
+  var b = req.id ? cOwn(store, me, req.id) : store.bookings().filter(function (x) { return x.memberId === me.id && x.date === now.date && ['booked', 'checkedin', 'accepted', 'inservice', 'finished'].indexOf(x.status) >= 0; })
+    .sort(function (x, y) { return x.people[0].alloc[0].start - y.people[0].alloc[0].start; })[0];
+  var r = b ? cDoCheckin(store, b, br.id, now, !!req.move) : { result: 'none' };
+  var out = cMe(me, store, now); out.checkin = r; out.checkin.bookingId = b ? b.id : ''; return out;
+}
+
+/* ---------- during and after the visit ---------- */
+function cByVkey(store, vkey) { var b = vkey ? store.bookings().filter(function (x) { return x.vkey && x.vkey === vkey; })[0] : null; if (!b) throw new Error('NOT_FOUND'); return b; }
+function cVisitAction(a, req, store, now, me) {
+  var b = me ? cOwn(store, me, req.id) : req.vkey ? cByVkey(store, req.vkey) : lnFind(store.bookings(), req.id);
+  if (!b) throw new Error('NOT_FOUND');
+  if (req.kiosk && !req.vkey && !me && req.branch && b.branch !== req.branch) throw new Error('NOT_FOUND');
+  var br = lnFind(store.branches(), b.branch), out = {};
+  if (a === 'extend') {
+    if (b.status !== 'inservice') throw new Error('NOT_NOW');
+    b.people[0].ext = (b.people[0].ext || 0) + 1;
+    var r = lnTryChange(b, br, store.bookings(), now.min, true);
+    if (!r.ok) { b.people[0].ext--; throw new Error(r.res === 'close' ? 'CLOSING' : 'NO_ROOM'); }
+    b.ext = (b.ext || 0) + 1; b.due = b.due || []; b.due.push({ kind: 'ext', th: 'ต่อเวลา 30 นาที', en: 'Extra 30 min', amount: LANA.EXT_PRICE });
+    store.saveBooking(b); r.moved.forEach(function (x) { store.saveBooking(x); }); store.log('', b.id, 'extend_by_guest', '');
+  } else if (a === 'early') {
+    if (b.status !== 'inservice') throw new Error('NOT_NOW');
+    b.earlyReq = true; store.saveBooking(b); store.log('', b.id, 'early_request', lnHM(now.min));
+  } else if (a === 'upgrade') {
+    var u = b.upgrade; if (b.status !== 'inservice' || !u || u.state !== 'pending') throw new Error('NOT_NOW');
+    if (req.yes) {
+      var hTo = lnFind(LANA.HAIR, u.to), hFrom = lnFind(LANA.HAIR, u.from) || LANA.HAIR[0];
+      b.due = b.due || []; b.due.push({ kind: 'hair', th: 'อัปเกรดผมยาว', en: 'Long-hair upgrade', amount: Math.max(0, hTo.price - hFrom.price) });
+      b.people[0].hair = u.to; var before = b.people[0].dryPlus || 0; b.people[0].dryPlus = before + Math.max(0, hTo.min - hFrom.min);
+      var ru = lnTryChange(b, br, store.bookings(), now.min, true);
+      if (!ru.ok) { b.people[0].dryPlus = before; out.note = 'DRYER_BUSY'; } else ru.moved.forEach(function (x) { store.saveBooking(x); });
+      u.state = 'accepted';
+    } else u.state = 'declined';
+    store.saveBooking(b);
+  } else if (a === 'checkout') {
+    if (b.status !== 'finished') throw new Error('NOT_NOW');
+    var tip = Math.max(0, Math.min(5000, Math.round(+req.tip || 0))), stars = Math.max(1, Math.min(5, Math.round(+req.stars || 0)));
+    if (!+req.stars) throw new Error('NEED_STARS');
+    b.co = { tip: tip, stars: stars, cmt: String(req.cmt || '').slice(0, 500) };
+    var total = lnSum(b.due || []) + tip;
+    if (total > 0) {
+      var o = cNewOrder(store, now, { memberId: b.memberId || '', kind: 'checkout', amount: total, bookingId: b.id, items: (b.due || []).concat(tip ? [{ th: 'ทิป', en: 'Tip', amount: tip }] : []), label: 'Lana balance' }, req.returnUrl);
+      b.orderId = o.id; store.saveBooking(b); out.orderId = o.id; out.url = o.beamUrl; out.amount = total;
+    } else cCheckoutDone(store, b, now);
+  } else if (a === 'thanked' || a === 'seen') {
+    if (a === 'thanked') b.thanked = true; else b.seen = true; store.saveBooking(b);
+  } else if (a === 'upcourse') {
+    if (b.status !== 'done' || b.thanked || +b.stars !== 5) throw new Error('NOT_NOW');
+    var p = lnFind(LANA.PROGRAMS, b.people[0].prog), credit = p.price * b.people.length, rest = Math.max(0, lnPack(p, 5) - credit), more = 5 - b.people.length;
+    if (more <= 0 || !b.memberId) throw new Error('NOT_NOW');
+    var o2 = cNewOrder(store, now, { memberId: b.memberId, kind: 'upcourse', amount: rest, bookingId: b.id, items: [{ th: p.name_th + ' คอร์ส 5 ครั้ง (หักที่จ่ายวันนี้)', en: p.name_en + ' 5-session pack', amount: rest }], label: p.name_en + ' pack', prog: p.id, count: more }, req.returnUrl);
+    out.orderId = o2.id; out.url = o2.beamUrl; out.amount = rest;
+  }
+  out.booking = cView(b, store, now, true);
+  return out;
+}
+function cCheckoutDone(store, b, now) {
+  b.status = 'done'; b.paidDue = true; b.tip = b.co ? b.co.tip : 0; b.stars = b.co ? b.co.stars : 0; b.comment = b.co ? b.co.cmt : '';
+  (b.tix || []).forEach(function (id) { var k = lnFind(store.tickets(), id); if (k) { k.status = 'used'; k.usedAt = cStamp(now); store.saveTicket(k); } });
+  store.saveBooking(b); store.log(b.staffId || '', b.id, 'checkout', 'stars ' + b.stars + ' tip ' + b.tip);
+}
+
+/* ---------- buying ---------- */
+function cBuy(me, req, store, now) {
+  var p = lnFind(LANA.PROGRAMS, req.prog), n = { '1': 1, '5': 5, '11': 11 }[String(req.pack)];
+  if (!p || !n) throw new Error('BAD_FORM');
+  var amount = lnPack(p, n);
+  var o = cNewOrder(store, now, { memberId: me.id, kind: 'buy', amount: amount, prog: p.id, count: n, items: [{ th: p.name_th + ' × ' + n, en: p.name_en + ' × ' + n, amount: amount }], label: p.name_en + ' × ' + n }, req.returnUrl);
+  return { orderId: o.id, url: o.beamUrl, amount: amount };
+}
+function cClaim(me, req, store, now) {
+  var r = String(req.receipt || '').trim().toUpperCase(), pt = lnFind(LANA.PARTNERS, req.partner) || LANA.PARTNERS[0];
+  if (r.length < 4) throw new Error('BAD_RECEIPT');
+  if (store.claims().some(function (c) { return String(c.receipt).toUpperCase() === r && c.partner === pt.id; })) throw new Error('CLAIMED');
+  store.saveClaim({ id: 'C' + lnId(7), memberId: me.id, partner: pt.id, receipt: r, status: 'pending', createdAt: cStamp(now), name: me.name, phone: me.phone });
+  return cMe(me, store, now);
+}
+
+/* ---------- orders and Beam ---------- */
+function cNewOrder(store, now, o, returnUrl) {
+  o.id = 'O' + lnId(9); o.status = 'pending'; o.createdAt = cStamp(now); o.paidAt = '';
+  var link = store.beamCreate(o, returnUrl, now);
+  o.beamId = link.id; o.beamUrl = link.url;
+  store.saveOrder(o); store.log('', o.bookingId || '', 'order_' + o.kind, o.id + ' ' + o.amount);
+  return o;
+}
+/* the app polls this after Beam sends the customer back; also the minute trigger checks pending orders */
+function cOrderState(req, store, now) {
+  var o = lnFind(store.orders(), req.id); if (!o) throw new Error('NOT_FOUND');
+  if (o.status === 'pending') cCheckOrder(store, o, now);
+  var b = o.bookingId ? lnFind(store.bookings(), o.bookingId) : null;
+  return { id: o.id, kind: o.kind, status: o.status, amount: +o.amount, prog: o.prog || '', count: +o.count || 0, bookingId: o.bookingId || '', q: b ? b.q || '' : '', vkey: b && o.kind === 'walkin' ? b.vkey : '' };
+}
+function cCheckOrder(store, o, now) {
+  var st = '';
+  try { st = String(store.beamStatus(o.beamId) || '').toUpperCase(); } catch (e) { return; }
+  if (st === 'PAID') cFulfil(store, o, now);
+  else if (st === 'EXPIRED' || st === 'DISABLED') { o.status = 'expired'; store.saveOrder(o); var b = o.bookingId ? lnFind(store.bookings(), o.bookingId) : null; if (b && b.status === 'hold') cReleaseHold(store, b); }
+}
+function cFulfil(store, o, now) {
+  if (o.status === 'paid') return;
+  o.status = 'paid'; o.paidAt = cStamp(now); store.saveOrder(o);
+  var b = o.bookingId ? lnFind(store.bookings(), o.bookingId) : null, m = o.memberId ? lnFind(store.members(), o.memberId) : null;
+  if (o.kind === 'buy') {
+    for (var i = 0; i < +o.count; i++) store.saveTicket({ id: 'T' + lnId(8), memberId: o.memberId, prog: o.prog, status: 'active', src: +o.count === 1 ? 'single' : 'course', rule: '', expires: '', orderId: o.id, bookingId: '', createdAt: cStamp(now), usedAt: '' });
+  } else if (o.kind === 'upcourse') {
+    for (var j = 0; j < +o.count; j++) store.saveTicket({ id: 'T' + lnId(8), memberId: o.memberId, prog: o.prog, status: 'active', src: 'course', rule: '', expires: '', orderId: o.id, bookingId: '', createdAt: cStamp(now), usedAt: '' });
+    if (b) { b.thanked = true; store.saveBooking(b); }
+  } else if (o.kind === 'book' && b) {
+    b.paid = (+b.paid || 0) + +o.amount;
+    if (b.status === 'hold') { b.status = 'booked'; b.holdUntil = ''; }
+    else if (b.status === 'cancelled') { /* paid after the hold ran out: keep it if the seats are still free, otherwise refund by hand */
+      var al = lnAllocate(lnFind(store.branches(), b.branch), b.date, b.people[0].alloc[0].start, b.people.map(function (pe) { return pe.chain; }), cRows(store, b.date, b.id));
+      if (al && cRetake(store, b)) { b.people.forEach(function (pe, i) { pe.alloc = al[i]; }); b.status = 'booked'; } else store.log('', b.id, 'PAID_AFTER_HOLD_REFUND_NEEDED', o.id);
+    }
+    store.saveBooking(b); if (b.status === 'booked') cConfirmMail(store, b, m);
+  } else if (o.kind === 'walkin' && b) {
+    b.paid = (+b.paid || 0) + +o.amount;
+    if (b.status === 'hold') { b.status = 'checkedin'; b.q = cQueue(store, b); b.checkedAt = lnHM(now.min); b.holdUntil = ''; }
+    store.saveBooking(b);
+  } else if (o.kind === 'checkout' && b) cCheckoutDone(store, b, now);
+  if (o.memberId && m && m.email) store.mail(m.email, 'ใบเสร็จ Lana · Receipt ' + o.id, cReceiptHtml(o));
+  else if (b && b.email) store.mail(b.email, 'ใบเสร็จ Lana · Receipt ' + o.id, cReceiptHtml(o));
+  store.log('', o.bookingId || '', 'paid_' + o.kind, o.id + ' ' + o.amount);
+}
+function cRetake(store, b) {
+  var ok = (b.tix || []).every(function (id) { var k = lnFind(store.tickets(), id); return k && (k.status === 'active' || k.bookingId === b.id); });
+  if (!ok) return false;
+  (b.tix || []).forEach(function (id) { var k = lnFind(store.tickets(), id); k.status = 'booked'; k.bookingId = b.id; store.saveTicket(k); });
+  return true;
+}
+function cReleaseHold(store, b) {
+  b.status = 'cancelled';
+  (b.tix || []).forEach(function (id) { var k = lnFind(store.tickets(), id); if (k && k.bookingId === b.id && k.status === 'booked') { k.status = k.src === 'kiosk' ? 'void' : 'active'; k.bookingId = ''; store.saveTicket(k); } });
+  (b.vouchers || []).forEach(function (id) { var v = lnFind(store.vouchers(), id); if (v && v.bookingId === b.id) { v.status = 'active'; v.bookingId = ''; store.saveVoucher(v); } });
+  store.saveBooking(b); store.log('', b.id, 'hold_released', '');
+}
+function cMinOf(stamp) { var p = String(stamp || '').split(' '); return { date: p[0], min: p[1] ? +p[1].split(':')[0] * 60 + +p[1].split(':')[1] : 0 }; }
+/* tidy up: unpaid holds past their time, missed visits */
+function cSweep(store, now) {
+  store.bookings().forEach(function (b) {
+    if (b.status === 'hold' && b.holdUntil) { var h = cMinOf(b.holdUntil); if (now.date > h.date || (now.date === h.date && now.min > h.min)) cReleaseHold(store, b); }
+    if (b.status === 'booked' && (b.date < now.date || (b.date === now.date && now.min > b.people[0].alloc[0].start + 30))) cNoShow(store, b, now);
+  });
+}
+/* minute trigger: sweep, check unpaid orders (last 2 hours), 2-hour reminder emails */
+function custTick(store, now) {
+  cSweep(store, now);
+  var since = { date: now.date, min: now.min - 120 };
+  store.orders().filter(function (o) { if (o.status !== 'pending') return false; var c = cMinOf(o.createdAt); return c.date === now.date && c.min >= since.min; })
+    .forEach(function (o) { cCheckOrder(store, o, now); });
+  store.bookings().forEach(function (b) {
+    if (b.status !== 'booked' || b.date !== now.date || b.reminded || !b.email) return;
+    var st = b.people[0].alloc[0].start;
+    if (st - now.min <= 120 && st - now.min > 30) { store.mail(b.email, 'เตือนนัด Lana วันนี้ ' + lnHM(st) + ' · Reminder', cConfirmHtml(b, true)); b.reminded = true; store.saveBooking(b); }
+  });
+}
+
+/* ---------- emails ---------- */
+function cConfirmMail(store, b, m, moved) { var to = (m && m.email) || b.email; if (to) store.mail(to, (moved ? 'เลื่อนนัดแล้ว' : 'ยืนยันการจอง') + ' Lana ' + b.code + ' · ' + b.date + ' ' + lnHM(b.people[0].alloc[0].start), cConfirmHtml(b, false)); }
+function cEsc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function cConfirmHtml(b, reminder) {
+  var br = lnFind(LANA.BRANCHES, b.branch) || {}, p = lnFind(LANA.PROGRAMS, b.people[0].prog) || {};
+  return '<div style="font-family:sans-serif;color:#3c2219;max-width:480px">' + '<h2 style="font-weight:600">' + (reminder ? 'อีกไม่นานเจอกันที่ Lana' : 'จองแล้ว ขอบคุณค่ะ') + '</h2>' +
+    '<p><b>' + cEsc(p.name_th) + ' × ' + b.people.length + '</b><br>' + cEsc(br.name_th) + '<br>' + cEsc(b.date) + ' เวลา ' + lnHM(b.people[0].alloc[0].start) + '<br>รหัส ' + cEsc(b.code) + '</p>' +
+    '<p>ถึงร้านแล้วสแกน QR ที่เคาน์เตอร์เพื่อเช็กอิน (เช็กอินได้ก่อนเวลา 30 นาที) ถ้ามาช้ากว่า 30 นาที ตั๋วจะกลับเข้ากระเป๋าให้จองใหม่</p>' +
+    '<p style="color:#7b6352;font-size:13px">' + cEsc(p.name_en) + ' × ' + b.people.length + ' · ' + cEsc(br.name_en) + ' · ' + cEsc(b.date) + ' ' + lnHM(b.people[0].alloc[0].start) + '. Scan the counter QR when you arrive.</p></div>';
+}
+function cReceiptHtml(o) {
+  var items = cJSON(o.items, []);
+  return '<div style="font-family:sans-serif;color:#3c2219;max-width:480px"><h2 style="font-weight:600">ใบเสร็จ · Receipt</h2><p>เลขที่ ' + cEsc(o.id) + ' · ' + cEsc(o.paidAt) + '</p><table style="width:100%;border-collapse:collapse">' +
+    items.map(function (l) { return '<tr><td style="padding:4px 0">' + cEsc(l.th || l.en) + '<br><span style="color:#7b6352;font-size:12px">' + cEsc(l.en || '') + '</span></td><td style="text-align:right">฿' + (+l.amount).toLocaleString('en-US') + '</td></tr>'; }).join('') +
+    '<tr><td style="border-top:1px solid #e2d1b6;padding-top:6px"><b>รวม · Total</b></td><td style="border-top:1px solid #e2d1b6;text-align:right"><b>฿' + (+o.amount).toLocaleString('en-US') + '</b></td></tr></table><p style="font-size:12px;color:#7b6352">Lana Sleep Salon &amp; Massage</p></div>';
+}
+
+/* ---------- counter tablet (no LINE needed) ---------- */
+function cKioskAuth(req, store) { var k = store.kioskKey(); if (!k || String(req.kiosk || '') !== String(k)) throw new Error('KIOSK_KEY'); }
+function cKioskFindMember(store, req) {
+  var phone = req.phone ? lnNormPhone(req.phone, req.intl) : '', email = String(req.email || '').trim();
+  return (phone && cMemberBy(store, 'phone', phone)) || (email && cMemberBy(store, 'email', email)) || null;
+}
+function cKiosk(a, req, store, now) {
+  cSweep(store, now);
+  var br = lnFind(store.branches(), req.branch); if (!br || !lnTrue(br.active)) throw new Error('BAD_BRANCH');
+  if (a === 'kFind') {
+    var m = cKioskFindMember(store, req);
+    if (!m) return { member: null };
+    var today = store.bookings().filter(function (b) { return b.memberId === m.id && b.date === now.date && ['booked', 'checkedin', 'accepted', 'inservice', 'finished'].indexOf(b.status) >= 0; })
+      .sort(function (x, y) { return x.people[0].alloc[0].start - y.people[0].alloc[0].start; })[0];
+    var tix = store.tickets().filter(function (k) { return k.memberId === m.id && k.status === 'active' && cTicketOK(k, now.date, now.min); });
+    var check = null;
+    if (today && today.status === 'booked') {
+      var st = today.people[0].alloc[0].start, chains = today.people.map(function (pe) { return pe.chain; });
+      check = { late: now.min > st + 30, other: today.branch !== br.id, early: now.min < st - 30, opensAt: st - 30,
+        canNow: lnProgAt(lnFind(LANA.PROGRAMS, today.people[0].prog), br) && !!lnAllocate(br, now.date, Math.ceil(now.min / 5) * 5, chains, cRows(store, now.date, today.id)) };
+    }
+    return { member: { id: m.id, name: m.name }, booking: today ? cView(today, store, now, false) : null, check: check,
+      tickets: tix.map(function (k) { return { id: k.id, prog: k.prog }; }) };
+  }
+  if (a === 'kCheckin') {
+    var b = lnFind(store.bookings(), req.id); if (!b) throw new Error('NOT_FOUND');
+    var r = cDoCheckin(store, b, br.id, now, !!req.move);
+    if (r.result === 'checkedin') { if (!b.vkey) { b.vkey = lnId(12); store.saveBooking(b); } r.vkey = b.vkey; r.booking = cView(b, store, now, false); }
+    return r;
+  }
+  if (a === 'kStart') return cKioskStart(req, store, now, br);
+  if (a === 'kOut') return { list: store.bookings().filter(function (b) { return b.branch === br.id && b.date === now.date && b.status === 'finished'; }).map(function (b) { return { id: b.id, q: b.q || b.code, name: b.people[0].name, due: lnSum(b.due || []), view: cView(b, store, now, false) }; }) };
+  if (a === 'kBoard') return { board: apiBoard(br.id, store, now) };
+  throw new Error('UNKNOWN');
+}
+/* walk-in: pay now (or use a member ticket) and get a queue number, starting at the next free seat */
+function cKioskStart(req, store, now, br) {
+  if (now.min < LANA.OPEN || now.min >= LANA.CLOSE) throw new Error('CLOSED');
+  var prog = lnFind(LANA.PROGRAMS, req.prog); if (!prog || !lnProgAt(prog, br)) throw new Error('NOT_HERE');
+  var pe = cCleanPerson(prog, req.person, 0, null);
+  if (lnTrue(prog.hair) && !pe.hair) throw new Error('NEED_HAIR');
+  var chain = lnChain(prog, pe), start = Math.ceil(now.min / 5) * 5, al = null, rows = cRows(store, now.date, null);
+  for (; start + lnChainMin(chain) <= LANA.CLOSE && !(al = lnAllocate(br, now.date, start, [chain], rows)); start += 5);
+  if (!al) throw new Error('FULL');
+  var member = null, tix = null;
+  if (req.useTicket || req.memberChoice === 'buy') {
+    member = cKioskFindMember(store, req); if (!member) throw new Error('NOT_MEMBER');
+  } else if (!req.memberChoice) {
+    var match = cKioskFindMember(store, req);
+    if (match) return { match: { name: match.name, tickets: store.tickets().filter(function (k) { return k.memberId === match.id && k.status === 'active' && lnProgAt(lnFind(LANA.PROGRAMS, k.prog), br) && cTicketOK(k, now.date, start); }).length } };
+  }
+  var name = String(req.name || (member && member.name) || '').trim().slice(0, 40);
+  if (!name) throw new Error('NEED_NAME');
+  var phone = req.phone ? lnNormPhone(req.phone, req.intl) : '', email = String(req.email || '').trim();
+  if (req.phone && !cPhoneOK(phone)) throw new Error('BAD_PHONE');
+  if (email && !cEmailOK(email)) throw new Error('BAD_EMAIL');
+  if (req.useTicket) { tix = cPickTickets(store, member.id, prog.id, 1, now.date, start); if (!tix) throw new Error('NO_TICKET'); }
+  pe.name = name; pe.chain = chain; pe.alloc = al[0];
+  var extras = lnPersonLines(prog, pe, []), total = lnSum(extras) + (tix ? 0 : +prog.price);
+  var b = { id: lnId(8), code: 'LN' + lnId(5), q: '', branch: br.id, date: now.date, status: 'hold', people: [pe], ext: 0, due: [], live: [], kiosk: true, src: 'kiosk',
+    memberId: member ? member.id : '', guest: !member, tix: [], paid: 0, email: email || (member && member.email) || '', phone: phone || (member && member.phone) || '',
+    consent: !!req.consent, vkey: lnId(12), verifiedBy: req.useTicket ? (req.phone ? 'phone' : 'email') : '' };
+  var kt = null;
+  if (tix) { tix.forEach(function (k) { k.status = 'booked'; k.bookingId = b.id; store.saveTicket(k); }); b.tix = tix.map(function (k) { return k.id; }); }
+  else {
+    kt = { id: 'T' + lnId(8), memberId: b.memberId, prog: prog.id, status: 'booked', src: 'kiosk', rule: '', expires: '', orderId: '', bookingId: b.id, createdAt: cStamp(now), usedAt: '' };
+    b.tix = [kt.id];
+  }
+  var out = {};
+  if (total > 0) {
+    b.holdUntil = cStamp({ date: now.date, min: now.min + LN_C.HOLD_MIN });
+    var o = cNewOrder(store, now, { memberId: b.memberId, kind: 'walkin', amount: total, bookingId: b.id, items: (tix ? [] : [{ th: prog.name_th, en: prog.name_en, amount: +prog.price }]).concat(extras.filter(function (l) { return l.amount; })), label: prog.name_en }, req.returnUrl);
+    b.orderId = o.id; out.orderId = o.id; out.url = o.beamUrl; out.amount = total;
+    if (kt) kt.orderId = o.id;
+  } else { b.status = 'checkedin'; b.q = cQueue(store, b); b.checkedAt = lnHM(now.min); }
+  if (kt) store.saveTicket(kt);
+  store.saveBooking(b); store.log('', b.id, 'kiosk_' + (tix ? 'ticket' : 'walkin'), br.id + ' ' + lnHM(start));
+  out.bookingId = b.id; out.q = b.q; out.vkey = b.vkey; out.start = start; out.booking = cView(b, store, now, false);
+  return out;
+}
+/* ===== END CUSTOMER API ===== */
+
+/* ===== in-memory store for the demo (same interface as the Google Sheets store) ===== */
+function memStore() {
+  var db = { bookings: [], shifts: [], sessions: {}, log: [], members: [], tickets: [], orders: [], vouchers: [], claims: [], csessions: {}, beam: {}, mails: [] };
+  function upsert(list, o) { var i = list.indexOf(o); if (i < 0) { i = list.findIndex(function (x) { return x.id === o.id; }); if (i < 0) list.push(o); else list[i] = o; } }
+  return {
+    db: db,
+    bookings: function () { return db.bookings; },
+    saveBooking: function (b) { var i = db.bookings.findIndex(function (x) { return x.id === b.id; }); if (i < 0) db.bookings.push(b); else db.bookings[i] = b; },
+    staff: function () { return LANA.STAFF; },
+    branches: function () { return LANA.BRANCHES; },
+    shifts: function () { return db.shifts; },
+    addShift: function (r) { db.shifts.push(r); },
+    updateShift: function () {},
+    session: function (t) { return db.sessions[t] || null; },
+    newSession: function (sid) { var t = Math.random().toString(36).slice(2) + Date.now().toString(36); db.sessions[t] = sid; return t; },
+    log: function (s, b, a, d) { db.log.push({ s: s, b: b, a: a, d: d }); },
+    lock: function (fn) { return fn(); },
+    saveStaff: function () {},
+    /* demo: an ID token is just "demo:<LINE userId>" */
+    lineUser: function (t) { if (!/^demo:/.test(t || '')) throw new Error('BAD_ID_TOKEN'); return t.slice(5); },
+    push: function (msgs) { db.pushed = (db.pushed || []).concat(msgs); },
+    members: function () { return db.members; }, saveMember: function (o) { upsert(db.members, o); },
+    tickets: function () { return db.tickets; }, saveTicket: function (o) { upsert(db.tickets, o); },
+    orders: function () { return db.orders; }, saveOrder: function (o) { upsert(db.orders, o); },
+    vouchers: function () { return db.vouchers; }, saveVoucher: function (o) { upsert(db.vouchers, o); },
+    claims: function () { return db.claims; }, saveClaim: function (o) { upsert(db.claims, o); },
+    csession: function (t) { return db.csessions[t] || null; },
+    newCsession: function (uid) { var t = 'c' + Math.random().toString(36).slice(2) + Date.now().toString(36); db.csessions[t] = uid; return t; },
+    kioskKey: function () { return 'demo-kiosk'; },
+    /* demo Beam: the page shows a pretend checkout and marks the link PAID */
+    beamCreate: function (o) { var id = 'B' + o.id; db.beam[id] = 'ACTIVE'; return { id: id, url: 'demo-beam:' + o.id }; },
+    beamStatus: function (id) { return db.beam[id] || 'ACTIVE'; },
+    mail: function (to, subject, html) { db.mails.push({ to: to, subject: subject, html: html }); }
+  };
+}
+/* a checked-in visit for testing (walk-in) */
+function makeVisit(store, now, branchId, progId, name, person) {
+  var br = lnFind(store.branches(), branchId), prog = lnFind(LANA.PROGRAMS, progId), pe = Object.assign({ name: name, prog: progId, hair: 'short', style: 'normal', addons: [], pressure: 'medium', elbow: 'ok', focus: [], quiet: false }, person || {});
+  pe.chain = lnChain(prog, pe);
+  var rows = lnOccupied(store.bookings().filter(function (b) { return b.date === now.date; }), null), start = Math.ceil(now.min / 5) * 5, al = null;
+  for (; start < LANA.CLOSE && !(al = lnAllocate(br, now.date, start, [pe.chain], rows)); start += 5);
+  if (!al) return null;
+  pe.alloc = al[0];
+  var q = 'A' + (11 + store.bookings().length);
+  var b = { id: Math.random().toString(36).slice(2, 8).toUpperCase(), code: q, q: q, branch: branchId, date: now.date, status: 'checkedin', people: [pe], ext: 0, due: [], live: [] };
+  store.saveBooking(b); return b;
+}
+
+</script>
+<script>
+(function () {
+  var demo = !APP.API_URL, inLine = !demo && !!APP.LIFF_ID && !!window.liff;
+  var S = { token: '', me: null, feed: null, tab: 'work', pay: null, keys: '', stage: 'phone', phone: '', err: '', seenWaiting: {}, skew: 0 };
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function baht(n) { return '฿' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
+  var ERR = { BAD_LOGIN: 'เบอร์หรือ PIN ไม่ถูกต้อง', BAD_ID_TOKEN: 'ยืนยันตัวตน LINE ไม่ได้ ลองเปิดใหม่', NOT_LINKED: 'LINE นี้ยังไม่ได้ผูกกับพนักงาน', LOGIN: 'กรุณาเข้าสู่ระบบใหม่', NOT_ON_SHIFT: 'กด "เข้างาน" ก่อนรับงาน', HAS_JOB: 'ทำงานที่รับไว้ให้จบก่อน',
+    TAKEN: 'มีคนรับงานนี้ไปแล้ว', NOT_SKILLED: 'งานนี้ไม่อยู่ในโปรแกรมที่คุณทำได้', BAD_BED: 'QR นี้ไม่ใช่ของสาขานี้', WRONG_BED_TYPE: 'เตียงไม่ตรงกับงาน ดูประเภทเตียงอีกครั้ง',
+    BED_BUSY: 'เตียงนี้ยังไม่ว่าง ลองเตียงที่ระบบจองไว้', CLOSING: 'เกินเวลาปิดร้าน 21:00', NO_ROOM: 'ต่อเวลาไม่ได้ ที่นั่งมีคิวต่อ', TOO_EARLY: 'ยังไม่ครบเวลา กดจบไม่ได้',
+    NOT_YOURS: 'งานนี้ไม่ใช่ของคุณแล้ว', OTHER_BRANCH: 'รับงานได้เฉพาะสาขาของคุณ', SCAN_DESK: 'สแกน QR ที่เคาน์เตอร์สาขาของคุณเพื่อเข้างาน', NEED_GPS: 'เปิดตำแหน่ง (GPS) ให้แอปก่อน ถึงจะเข้างานได้', NOT_FOUND: 'ไม่พบงานนี้', NET: 'เชื่อมต่อไม่ได้ ลองใหม่' };
+  function errText(e) { var k = String(e && e.message || e); if (k.indexOf('TOO_FAR:') === 0) { var m = +k.split(':')[1]; return 'คุณอยู่ห่างร้าน ' + (m >= 1000 ? (m / 1000).toFixed(1) + ' กม.' : m + ' ม.') + ' ต้องอยู่ในระยะ 1 กม. ถึงจะเข้างานได้'; } return ERR[k] || k; }
+  try { S.token = localStorage.getItem('lana-staff-token') || ''; } catch (e) {}
+
+  /* ---------- API ---------- */
+  var DS = demo ? memStore() : null, DNOW = (function () { var p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date()), g = {}; p.forEach(function (x) { g[x.type] = x.value; }); return { date: g.year + '-' + g.month + '-' + g.day, min: 14 * 60 }; })();
+  if (demo) {
+    makeVisit(DS, DNOW, 'NIM', 'SPA45', 'Mai', { hair: 'blade', style: 'curl', addons: ['SCRUB'], pressure: 'light', focus: ['ขมับ'], quiet: true, note: 'แพ้น้ำมันลาเวนเดอร์', healthOk: true });
+    makeVisit(DS, DNOW, 'NIM', 'THAI120', 'Tom', { pressure: 'firm', elbow: 'no', focus: ['หลัง', 'เอว'] });
+    makeVisit(DS, DNOW, 'MCH', 'SPA90', 'Jane', { hair: 'mid', style: 'volume' });
+    LANA.STAFF.forEach(function (x) { x.lineUserId = 'U-demo-' + x.id; }); /* demo: everyone already linked to LINE */
+  }
+  function api(req) {
+    if (req.action !== 'login') req.token = S.token;
+    if (demo) return new Promise(function (res, rej) { setTimeout(function () { try { var out = staffApi(JSON.parse(JSON.stringify(req)), DS, DNOW); demoTick(); res(out); } catch (e) { rej(e); } }, 120); });
+    return fetch(APP.API_URL, { method: 'POST', body: JSON.stringify(req) })
+      .then(function (r) { return r.json(); }, function () { throw new Error('NET'); })
+      .then(function (j) { if (!j.ok) throw new Error(j.error); return j.data; });
+  }
+  /* demo: the minute trigger of the real backend, so the LINE chat panel shows what would be sent */
+  function demoTick() { var m = staffTick(DS, DNOW); if (m.length) { m.forEach(function (x) { x.at = DNOW.min; }); DS.push(m); } }
+  function nowMin() { if (demo) return DNOW.min; if (!S.feed) return 0; return S.feed.now.min + Math.floor((Date.now() - S.skew) / 60000); }
+
+  /* ---------- feedback: sound, vibration, banner ---------- */
+  /* quiet = vibrate only (used during a session so the guest is not woken) */
+  function alertNew(msg, quiet) {
+    $('alert').textContent = msg; $('alert').hidden = false; /* no sound at all: vibrate only, so guests are never woken */
+    try { navigator.vibrate && navigator.vibrate([250, 120, 250, 120, 400]); } catch (e) {}
+    clearTimeout(alertNew._t); alertNew._t = setTimeout(function () { $('alert').hidden = true; }, 6000);
+  }
+  function toast(m) { $('toast').textContent = m; $('toast').hidden = false; clearTimeout(toast._t); toast._t = setTimeout(function () { $('toast').hidden = true; }, 3000); }
+
+  /* ---------- data ---------- */
+  function loadFeed(quiet) {
+    if (!S.token) return;
+    return api({ action: 'feed' }).then(function (f) {
+      var fresh = f.waiting.filter(function (j) { return !S.seenWaiting[j.id]; });
+      if (S.feed && fresh.length && f.onShift && !f.mine) alertNew('มีลูกค้ารอ: ' + fresh[0].q + ' · ' + fresh[0].people[0].prog + ' — แตะเพื่อรับ');
+      f.waiting.forEach(function (j) { S.seenWaiting[j.id] = 1; });
+      S.feed = f; S.me = f.me; S.skew = Date.now(); render();
+    }).catch(function (e) { if (String(e.message) === 'LOGIN') { S.token = ''; if (inLine) lineAuth(); else logout(); } else if (!quiet) toast(errText(e)); });
+  }
+  function act(req, okMsg) {
+    return api(req).then(function (f) { S.feed = f; S.skew = Date.now(); if (okMsg) toast(okMsg); closeSheet(); render(); }).catch(function (e) { closeSheet(); toast(errText(e)); loadFeed(true); });
+  }
+  /* ---------- LINE (LIFF): open from the staff OA menu, no PIN after the first time ---------- */
+  function setLogin(r) {
+    S.token = r.token; S.me = r.staff; S.keys = ''; S.stage = 'phone'; S.needLink = false;
+    try { localStorage.setItem('lana-staff-token', r.token); } catch (x) {}
+    if (r.linked && inLine && !S.welcomed) { S.welcomed = 1; toast('ผูก LINE แล้ว ครั้งต่อไปเปิดจากเมนูได้เลย'); }
+    return loadFeed();
+  }
+  function lineAuth() {
+    S.booting = true; render();
+    return api({ action: 'lineLogin', idToken: S.idToken }).then(function (r) { S.booting = false; return setLogin(r); }).catch(function (e) {
+      S.booting = false;
+      if (String(e.message) === 'BAD_ID_TOKEN') { liff.logout(); liff.login({ redirectUri: location.href }); return; }
+      S.needLink = String(e.message) === 'NOT_LINKED'; if (!S.needLink) S.err = errText(e); render();
+    });
+  }
+  function lineStart() {
+    S.booting = true; render();
+    return liff.init({ liffId: APP.LIFF_ID }).then(function () {
+      if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
+      S.idToken = liff.getIDToken();
+      if (S.token) { S.booting = false; return loadFeed(); }
+      return lineAuth();
+    }).catch(function () { S.booting = false; inLine = false; render(); if (S.token) loadFeed(); });
+  }
+  function canLineScan() { try { return inLine && liff.isInClient() && liff.isApiAvailable('scanCodeV2'); } catch (e) { return false; } }
+  function lineScan(onCode, onFail) {
+    closeSheet();
+    liff.scanCodeV2().then(function (r) { if (r && r.value) onCode(r.value); else onFail('ยังไม่ได้สแกน'); }).catch(function () { onFail('เปิดกล้อง LINE ไม่ได้'); });
+  }
+  function logout() { S.token = ''; S.feed = null; try { localStorage.removeItem('lana-staff-token'); } catch (e) {} render(); }
+
+  /* ---------- render ---------- */
+  function render() {
+    renderDemo();
+    $('tabs').hidden = !S.token;
+    if (S.booting && !S.token) { $('view').innerHTML = '<p class="hint">กำลังเปิดจาก LINE…</p>'; return; }
+    if (!S.token) return renderLogin();
+    if (!S.feed) { $('view').innerHTML = '<p class="hint">กำลังโหลด…</p>'; return; }
+    document.querySelectorAll('.tabs button').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.tab === S.tab); });
+    var wc = S.feed.onShift && !S.feed.mine ? S.feed.waiting.length : 0;
+    $('tab-work').innerHTML = 'งาน' + (wc ? '<span class="badge">' + wc + '</span>' : '');
+    if (S.tab === 'work') renderWork(); else if (S.tab === 'board') renderBoard(); else renderPay();
+  }
+  function renderDemo() {
+    if (!demo) return;
+    renderChat();
+    $('demo').hidden = false;
+    $('demo').innerHTML = '<div class="row"><span>โหมดเดโม · เวลาจำลอง <b>' + lnHM(DNOW.min) + '</b></span><button class="btn small ghost" id="d-plus5">+5 นาที</button><button class="btn small ghost" id="d-plus">+15 นาที</button><button class="btn small" id="d-walk">ลูกค้าเช็กอินที่สาขาฉัน</button></div>' +
+      (S.token ? '' : '<span>ลองเข้าด้วย: แอน 081-111-1111 PIN 1111 (พาร์ทไทม์ นิมมาน) · นิด 082-222-2222 PIN 2222 (ฟูลไทม์ นิมมาน) · มุก 083-333-3333 PIN 3333 (แฮร์สปา มหาโชค)</span>');
+  }
+  /* demo: what the therapist would see in the "Lana Staff" LINE chat */
+  function renderChat() {
+    var box = $('lchat'); if (!demo || !S.token || !S.me) { box.hidden = true; return; }
+    var all = DS.db.pushed || [], mine = all.filter(function (m) { return m.staffId === S.me.id; }).slice(-4).reverse();
+    box.hidden = false;
+    box.innerHTML = '<div class="h"><span>แชท LINE "Lana Staff" ของ' + esc(S.me.name) + ' (จำลอง)</span><span>ร้านส่งไปแล้ว ' + all.length + ' ข้อความ (ทุกคน)</span></div>' +
+      (mine.length ? mine.map(function (m) { var l = m.text.split('\n');
+        return '<div class="m' + (m.kind === 'warn' ? ' warn' : '') + '"><small>' + (m.kind === 'job' ? 'งานใหม่' : 'ใกล้ครบเวลา') + ' · ' + lnHM(m.at) + '</small><p><b>' + esc(l[0]) + '</b></p><p class="t">' + esc(l[1] || '') + '</p><button data-open="1">' + (m.kind === 'job' ? 'เปิดดูงาน' : 'เปิดงานของฉัน') + '</button></div>'; }).join('')
+        : '<div class="t">ยังไม่มีข้อความ · เข้างานแล้วกด "ลูกค้าเช็กอินที่สาขาฉัน" ข้อความจะเด้งที่นี่</div>');
+  }
+  function renderLogin() {
+    var phoneStage = S.stage === 'phone', v = S.keys;
+    var shown = !v ? '<span class="hint">' + (phoneStage ? '08x-xxx-xxxx' : 'PIN 4 หลัก') + '</span>' : phoneStage ? esc(v.replace(/(\d{3})(\d{3})(\d{0,4})/, '$1-$2-$3')) : v.replace(/./g, '•');
+    $('view').innerHTML = '<div class="login"><div><h1>Lana Staff</h1><p class="hint">' + (phoneStage ? (inLine ? 'ครั้งแรกใน LINE: ใส่เบอร์และ PIN ครั้งเดียว ครั้งต่อไปเปิดจากเมนูได้เลย' : 'ใส่เบอร์โทรที่ร้านลงทะเบียนไว้') : 'ใส่ PIN ของคุณ · ' + esc(S.phone)) + '</p></div>' +
+      '<div class="disp">' + shown + '</div>' + (S.err ? '<p class="err">' + esc(S.err) + '</p>' : '') +
+      '<div class="keys">' + ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'DEL', '0', 'OK'].map(function (k) { return '<button class="key' + (k === 'OK' ? ' ok' : '') + '" data-key="' + k + '">' + (k === 'DEL' ? 'ลบ' : k === 'OK' ? (phoneStage ? 'ถัดไป' : 'เข้าสู่ระบบ') : k) + '</button>'; }).join('') + '</div>' +
+      (phoneStage ? '' : '<button class="btn ghost" id="l-back">เปลี่ยนเบอร์</button>') + '<p class="hint">ลืม PIN ให้เจ้าของร้านตั้งใหม่ในชีต Staff</p></div>';
+  }
+  function prefTags(p) {
+    var pr = { light: 'มือเบา', medium: 'มือกลาง', firm: 'มือหนัก' }[p.pressure] || '';
+    var t = ['<span class="tag' + (p.pressure === 'firm' || p.pressure === 'light' ? ' strong' : '') + '">' + pr + '</span>'];
+    if (p.elbow === 'no') t.push('<span class="tag strong">ห้ามใช้ศอก</span>');
+    if (p.quiet) t.push('<span class="tag olive">ขอเงียบ ไม่ชวนคุย</span>');
+    if (p.focus.length) t.push('<span class="tag">เน้น ' + esc(p.focus.join(', ')) + '</span>');
+    if (p.hair) t.push('<span class="tag">ผม: ' + esc(p.hair) + '</span>');
+    if (p.style) t.push('<span class="tag">ทรง: ' + esc(p.style) + '</span>');
+    p.addons.forEach(function (a) { t.push('<span class="tag">+ ' + esc(a) + '</span>'); });
+    return '<div class="prefs">' + t.join('') + '</div>' + (p.note ? '<div class="note">หมายเหตุ: ' + esc(p.note) + '</div>' : '');
+  }
+  function jobBody(j) {
+    return j.people.map(function (p) { return '<div class="job"><div class="head"><b>' + esc(p.name) + ' · ' + esc(p.prog) + '</b><span>' + p.minutes + ' นาที</span></div>' + prefTags(p) + '</div>'; }).join('');
+  }
+  function renderWork() {
+    var f = S.feed, h = '<div class="top"><div class="who"><b>' + esc(f.me.name) + '</b><span>' + (f.me.type === 'FT' ? 'ฟูลไทม์' : 'พาร์ทไทม์') + ' · ' + esc(lnFind(LANA.BRANCHES, f.me.branch).name_th) + '</span></div>' +
+      '<button class="shift' + (f.onShift ? ' on' : '') + '" id="shift">' + (f.onShift ? 'เข้างานแล้ว ' + f.shiftIn + ' · ออกงาน' : 'เข้างาน') + '</button></div>';
+    var j = f.mine;
+    if (j && j.status === 'accepted') {
+      h += '<div class="hero"><span class="eyebrow">งานของคุณ · รอเริ่ม</span><div class="q">' + esc(j.q) + '</div>' + jobBody(j).replace(/class="tag"/g, 'class="tag"') +
+        '<p class="hint">ไปที่ <b>' + esc(LANA.RES[j.seat.res][0] + ' ' + j.seat.unit) + '</b> แล้วสแกน QR หัวเตียงเพื่อเริ่มจับเวลา</p>' +
+        '<button class="btn block" id="scan">สแกน QR หัวเตียง</button></div>';
+    } else if (j && j.status === 'inservice') {
+      var now = nowMin(), left = j.end - now, tot = j.end - j.svcStart, pct = Math.max(0, Math.min(100, (now - j.svcStart) / tot * 100));
+      S.warned = S.warned || {};
+      if (left <= 10 && left > 0 && !S.warned[j.id + ':10:' + j.end]) { S.warned[j.id + ':10:' + j.end] = 1; setTimeout(function () { alertNew('อีก ' + left + ' นาทีครบเวลา ' + j.q + ' · ถามลูกค้าว่าอยากต่อไหม', true); }, 0); }
+      if (left < 0 && !S.warned[j.id + ':over:' + j.end]) { S.warned[j.id + ':over:' + j.end] = 1; setTimeout(function () { alertNew('เลยเวลาแล้ว ' + (-left) + ' นาที · กดจบงาน หรือต่อเวลาในระบบ', true); }, 0); }
+      if (left < 0) h += '<div class="card" style="border-color:var(--warn)"><p class="err">เลยเวลาจบมา ' + (-left) + ' นาที ร้านเห็นในหน้าสรุป ถ้าลูกค้าอยากนวดต่อ กดต่อเวลาในระบบ</p></div>';
+      h += '<div class="hero"><span class="eyebrow">กำลังทำ · ' + esc(j.q) + '</span><div class="big">' + Math.max(0, left) + ' <span style="font-size:18px">นาที</span></div>' +
+        '<div class="bar"><i style="width:' + pct + '%"></i></div><p class="hint">เริ่ม ' + lnHM(j.svcStart) + ' · จบ ' + lnHM(j.end) + (j.ext ? ' · ต่อแล้ว ' + j.ext * 30 + ' นาที' : '') + '</p>' +
+        '<div class="seats">' + j.seats.map(function (s) { return '<div class="' + (now >= s.start && now < s.end ? 'now' : '') + '"><span>' + esc(s.label) + '</span><span>' + lnHM(s.start) + '–' + lnHM(s.end) + '</span></div>'; }).join('') + '</div>' +
+        jobBody(j) + (j.upgrade && j.upgrade.state === 'pending' ? '<p class="hint">ส่งลิงก์อัปเกรดผมยาวให้ลูกค้าแล้ว ลูกค้าตัดสินใจในมือถือเอง</p>' : '') +
+        (left <= 10 && left > 0 ? '<p class="hint" style="opacity:1;font-weight:700">อีก ' + left + ' นาทีครบเวลา ถามลูกค้าว่าอยากต่อไหม</p>' : '') +
+        '<button class="btn block olive" id="ext"' + (j.canExtend ? '' : ' disabled') + '>' + (j.canExtend ? 'ลูกค้าตกลงต่อ 30 นาที (+' + baht(LANA.EXT_PRICE) + ' จ่ายตอนจบ)' : 'ต่อเวลาไม่ได้: ' + esc(j.extBlock)) + '</button>' +
+        (j.extMoves ? '<p class="hint">ถ้าต่อ ระบบจะย้ายคิว ' + esc(j.extMoves) + ' ไปที่นั่งอื่นให้เอง</p>' : '') +
+        '<button class="btn block" id="finish"' + (left > 0 && !j.earlyReq ? ' disabled' : '') + '>' + (left > 0 && !j.earlyReq ? 'จบงานได้เมื่อครบเวลา ' + lnHM(j.end) : j.earlyReq && left > 0 ? 'ลูกค้าขอจบก่อน · จบงาน' : 'จบงาน') + '</button></div>';
+    } else if (!f.onShift) {
+      h += '<div class="card"><h2>ยังไม่ได้เข้างาน</h2><p class="hint">กด "เข้างาน" แล้วงานที่ลูกค้าเช็กอินจะส่งเป็นข้อความ LINE ถึงคุณ (สั่นตามที่ตั้งไว้ในมือถือ)</p><button class="btn block olive" id="shift2">เข้างาน</button>' +
+        (f.waitingCount ? '<p class="hint">ตอนนี้มีลูกค้ารอ ' + f.waitingCount + ' คน</p>' : '') + '</div>';
+    } else {
+      h += '<h2 style="font-size:16px">ลูกค้ารอหมอนวด · ' + f.waiting.length + '</h2>';
+      if (!f.waiting.length) h += '<div class="card"><p class="hint">ยังไม่มีลูกค้ารอ งานใหม่จะส่งเป็นข้อความ LINE ปิดแอปได้ ไม่ต้องเปิดค้าง</p></div>';
+      f.waiting.forEach(function (w) {
+        h += '<div class="card"><div class="job"><div class="head"><b>' + esc(w.q) + '</b><span>' + (w.start <= nowMin() ? 'รอตั้งแต่ ' : 'เริ่มได้ ') + lnHM(w.start) + ' · ' + esc(LANA.RES[w.seat.res][0] + ' ' + w.seat.unit) + '</span></div></div>' + jobBody(w) +
+          '<button class="btn block olive" data-accept="' + esc(w.id) + '">รับงาน</button></div>';
+      });
+      h += '<p class="hint">วันนี้ทำไปแล้ว ' + f.doneToday + ' งาน · ใครกดรับก่อนได้ก่อน ถือได้ทีละ 1 งาน</p>';
+    }
+    $('view').innerHTML = h;
+  }
+  function renderBoard() {
+    var now = nowMin(), h = '<h2 style="font-size:16px">สถานะเตียง · ' + esc(lnFind(LANA.BRANCHES, S.feed.me.branch).name_th) + ' · ' + lnHM(now) + '</h2><div class="board">';
+    S.feed.board.forEach(function (s) {
+      h += '<div class="seat' + (s.busyUntil ? ' busy' : '') + '"><b>' + esc(s.label) + '</b><span>' + (s.busyUntil ? 'ใช้อยู่ ถึง ' + lnHM(s.busyUntil) : 'ว่าง') + '</span><span>' + (s.next ? 'คิวถัดไป ' + lnHM(s.next) : '') + '</span><span style="opacity:.7">' + esc(s.code) + '</span></div>';
+    });
+    $('view').innerHTML = h + '</div>';
+  }
+  function renderPay() {
+    if (!S.pay) { $('view').innerHTML = '<p class="hint">กำลังโหลด…</p>'; api({ action: 'pay' }).then(function (p) { S.pay = p; render(); }).catch(function (e) { toast(errText(e)); }); return; }
+    var p = S.pay, h = '<div class="card"><span class="hint">ค่ามือวันนี้ (รวมทิป)</span><div class="total-big">' + baht(p.today) + '</div><span class="hint">' + (S.feed.me.type === 'FT' ? 'ฟูลไทม์: 10% ของยอดขายงานที่คุณทำ' : 'พาร์ทไทม์: คิดตามเวลาของแต่ละงาน') + ' · ต่อเวลานับเมื่อลูกค้าจ่ายแล้ว</span></div>';
+    if (!p.jobs.length) h += '<div class="card"><p class="hint">ยังไม่มีงานที่จบ</p></div>';
+    else h += '<div class="card">' + p.jobs.map(function (j) {
+      return '<div class="payrow"><div class="kv total"><span>' + esc(j.q) + ' · ' + esc(j.prog) + '</span><span>' + baht(j.total) + '</span></div>' + j.lines.map(function (l) { return '<div class="kv"' + (l.pending ? ' style="opacity:.7"' : '') + '><span>' + esc(l.label) + '</span><span>' + (l.pending ? '–' : baht(l.amount)) + '</span></div>'; }).join('') +
+        (j.held ? '<span class="tag strong">รอเจ้าของตรวจ</span>' : '') + '<span class="hint">' + esc(j.date) + '</span></div>';
+    }).join('') + '</div>';
+    $('view').innerHTML = h + (inLine ? '<button class="btn ghost block" id="unlink">เลิกผูก LINE นี้ (ให้คนอื่นใช้เครื่องนี้)</button>' : '<button class="btn ghost block" id="logout">ออกจากระบบ</button>');
+  }
+
+  /* ---------- bed scan + hair check ---------- */
+  var stream = null;
+  function closeSheet() { $('sheet').hidden = true; if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; } }
+  function openScan(mode) {
+    if (mode === 'desk') {
+      $('panel').innerHTML = '<h2>สแกน QR ที่เคาน์เตอร์เพื่อเข้างาน</h2><p class="hint">เข้างานได้เฉพาะที่ ' + esc(lnFind(LANA.BRANCHES, S.feed.me.branch).name_th) + '</p><video id="cam" playsinline muted hidden></video><p class="hint" id="camnote"></p><div class="choices" id="manual"></div><button class="btn ghost" id="cancel">ยกเลิก</button>';
+      $('sheet').hidden = false;
+      var deskManual = function (why) { $('camnote').textContent = why; $('manual').innerHTML = LANA.BRANCHES.filter(function (x) { return x.active === 'TRUE'; }).map(function (x) { return '<button class="choice" data-desk="' + x.id + '-DESK">QR เคาน์เตอร์ ' + esc(x.name_th) + '<small>' + x.id + '-DESK</small></button>'; }).join(''); };
+      var clockIn = function (code) { closeSheet(); act({ action: 'clock', on: true, desk: code, lat: S.pos && S.pos.lat, lng: S.pos && S.pos.lng, acc: S.pos && S.pos.acc }, 'เข้างานแล้ว รองานได้เลย'); };
+      if (canLineScan()) return lineScan(clockIn, function (why) { toast(why); });
+      if (demo || !navigator.mediaDevices || !('BarcodeDetector' in window)) { deskManual(demo ? 'เดโม: เลือก QR แทนการสแกน (ลองเลือกสาขาอื่นดูได้)' : 'เครื่องนี้สแกนในแอปไม่ได้ ใช้กล้องมือถือสแกน QR ที่เคาน์เตอร์แทน'); return; }
+      return startCam(function (code) { closeSheet(); act({ action: 'clock', on: true, desk: code, lat: S.pos && S.pos.lat, lng: S.pos && S.pos.lng, acc: S.pos && S.pos.acc }, 'เข้างานแล้ว รองานได้เลย'); }, deskManual);
+    }
+    var j = S.feed.mine, list = S.feed.board.filter(function (s) { return s.code.split('-')[1].charAt(0) === LANA.RES[j.seat.res][2]; });
+    $('panel').innerHTML = '<h2>สแกน QR หัวเตียง</h2><p class="hint">งานนี้ใช้ ' + esc(LANA.RES[j.seat.res][0]) + ' ระบบจองไว้ที่ ' + esc(j.seat.code) + '</p>' +
+      '<video id="cam" playsinline muted hidden></video><p class="hint" id="camnote"></p>' +
+      '<div class="choices" id="manual"></div><button class="btn ghost" id="cancel">ยกเลิก</button>';
+    $('sheet').hidden = false;
+    var manual = function (why) {
+      $('camnote').textContent = why;
+      $('manual').innerHTML = list.map(function (s) { return '<button class="choice" data-bed="' + esc(s.code) + '">' + esc(s.label) + ' <small>' + esc(s.code) + (s.code === j.seat.code ? ' · เตียงที่ระบบจองไว้' : s.busyUntil ? ' · ยังไม่ว่าง' : '') + '</small></button>'; }).join('');
+    };
+    if (canLineScan()) return lineScan(afterBed, function (why) { toast(why); });
+    if (demo || !navigator.mediaDevices || !('BarcodeDetector' in window)) { manual(demo ? 'เดโม: เลือกเตียงแทนการสแกน (มือถือจริงจะเปิดกล้อง)' : 'เครื่องนี้สแกนในแอปไม่ได้ เลือกเตียงที่คุณยืนอยู่ ระบบบันทึกว่าเลือกเอง'); return; }
+    startCam(function (code) { closeSheet(); afterBed(code); }, function () { manual('เปิดกล้องไม่ได้ เลือกเตียงที่คุณยืนอยู่แทน'); });
+  }
+  /* phone location for clock-in; the demo lets you pretend where you are */
+  var DEMO_SPOT = null;
+  function getSpot() {
+    if (demo) {
+      $('panel').innerHTML = '<h2>เดโม: ตอนนี้คุณอยู่ที่ไหน</h2><p class="hint">มือถือจริงจะอ่าน GPS เอง ในเดโมให้เลือกแทน แล้วกดเข้างานอีกครั้ง</p><div class="choices">' +
+        '<button class="choice" data-spot="shop">ที่ร้าน<small>ห่างหมุด ~0 ม.</small></button><button class="choice" data-spot="near">ร้านกาแฟใกล้ร้าน<small>ห่างหมุด ~500 ม.</small></button><button class="choice" data-spot="far">ที่บ้าน<small>ห่างหมุด ~4 กม.</small></button></div>';
+      $('sheet').hidden = false;
+      return new Promise(function () {});
+    }
+    return new Promise(function (res, rej) {
+      if (!navigator.geolocation) return rej(new Error('NEED_GPS'));
+      navigator.geolocation.getCurrentPosition(function (p) { res({ lat: p.coords.latitude, lng: p.coords.longitude, acc: Math.round(p.coords.accuracy) }); },
+        function () { rej(new Error('NEED_GPS')); }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+    });
+  }
+  function startCam(onCode, onFail) {
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function (s) {
+      stream = s; var v = $('cam'); v.hidden = false; v.srcObject = s; v.play();
+      var det = new BarcodeDetector({ formats: ['qr_code'] });
+      (function loop() { if (!stream) return; det.detect(v).then(function (codes) { if (codes.length) onCode(codes[0].rawValue); else requestAnimationFrame(loop); }).catch(function () { requestAnimationFrame(loop); }); })();
+    }).catch(function () { onFail('เปิดกล้องไม่ได้'); });
+  }
+  function afterBed(code) {
+    var j = S.feed.mine, p = j.people[0], prog = lnFind(LANA.PROGRAMS, p.progId);
+    if (prog && String(prog.hair).toUpperCase() === 'TRUE') {
+      $('panel').innerHTML = '<h2>ความยาวผมตรงกับที่ลูกค้าเลือกไหม?</h2><p class="hint">ลูกค้าเลือก: <b>' + esc(p.hair || 'ไม่เกินสะบัก') + '</b></p><div class="choices">' +
+        '<button class="choice" data-hair="ok" data-code="' + esc(code) + '">ตรงตามที่เลือก</button>' +
+        LANA.HAIR.filter(function (h) { return LANA.HAIR.indexOf(h) > LANA.HAIR.map(function (x) { return x.id; }).indexOf(p.hairId || 'short'); }).map(function (h) {
+          return '<button class="choice" data-hair="' + h.id + '" data-code="' + esc(code) + '">ยาวกว่า: ' + esc(h.name_th) + '<small>ระบบส่งลิงก์อัปเกรดให้ลูกค้าตัดสินใจเอง คุณไม่ต้องคุยเรื่องเงิน</small></button>'; }).join('') + '</div>';
+      $('sheet').hidden = false; return;
+    }
+    act({ action: 'start', id: j.id, bed: code, hair: 'ok' }, 'เริ่มจับเวลาแล้ว');
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    var d = b.dataset;
+    if (d.key) {
+      S.err = '';
+      if (d.key === 'DEL') S.keys = S.keys.slice(0, -1);
+      else if (d.key !== 'OK') { if (S.keys.length < (S.stage === 'phone' ? 10 : 4)) S.keys += d.key; }
+      else if (S.stage === 'phone') { if (S.keys.length < 9) S.err = 'ใส่เบอร์ให้ครบ'; else { S.phone = S.keys; S.keys = ''; S.stage = 'pin'; } }
+      else {
+        api({ action: 'login', phone: S.phone, pin: S.keys, idToken: inLine ? S.idToken : undefined }).then(setLogin)
+          .catch(function (x) { S.err = errText(x); S.keys = ''; render(); });
+        return;
+      }
+      return render();
+    }
+    if (b.id === 'l-back') { S.stage = 'phone'; S.keys = ''; return render(); }
+    if (d.tab) { S.tab = d.tab; if (d.tab === 'pay') S.pay = null; return render(); }
+    if (b.id === 'shift' || b.id === 'shift2') {
+      if (S.feed.onShift) return api({ action: 'clock', on: false }).then(function (f) { S.feed = f; S.skew = Date.now(); render(); toast('ออกงานแล้ว · วันนี้ ' + f.summary.jobs + ' งาน · ค่ามือ ' + baht(f.summary.pay)); }).catch(function (e) { toast(errText(e)); });
+      return getSpot().then(function (pos) { S.pos = pos; openScan('desk'); }).catch(function (e) { toast(errText(e)); });
+    }
+    if (d.desk) { closeSheet(); return act({ action: 'clock', on: true, desk: d.desk, lat: S.pos && S.pos.lat, lng: S.pos && S.pos.lng, acc: S.pos && S.pos.acc }, 'เข้างานแล้ว รองานได้เลย'); }
+    if (d.spot) { closeSheet(); var sp = { shop: [0, 0], near: [0.004, 0.003], far: [0.03, 0.02] }[d.spot], bb = lnFind(LANA.BRANCHES, S.feed.me.branch); S.pos = { lat: bb.lat + sp[0], lng: bb.lng + sp[1], acc: 25 }; return openScan('desk'); }
+    if (d.accept) return act({ action: 'accept', id: d.accept }, 'รับงานแล้ว');
+    if (b.id === 'scan') return openScan();
+    if (d.bed) { closeSheet(); return afterBed(d.bed); }
+    if (d.hair) return act({ action: 'start', id: S.feed.mine.id, bed: d.code, hair: d.hair }, d.hair === 'ok' ? 'เริ่มจับเวลาแล้ว' : 'เริ่มแล้ว · ส่งลิงก์อัปเกรดผมให้ลูกค้า');
+    if (b.id === 'ext') return act({ action: 'extend', id: S.feed.mine.id }, 'ต่อเวลาแล้ว 30 นาที');
+    if (b.id === 'finish') return act({ action: 'finish', id: S.feed.mine.id }, 'จบงานแล้ว ลูกค้าจ่ายและให้ดาวในมือถือหรือที่เคาน์เตอร์');
+    if (b.id === 'cancel') return closeSheet();
+    if (b.id === 'logout') return logout();
+    if (d.open) { S.tab = 'work'; window.scrollTo(0, 0); return render(); }
+    if (b.id === 'unlink') { if (!confirm('เลิกผูก LINE นี้กับชื่อ ' + S.me.name + '?')) return; return api({ action: 'unlink' }).then(function () { logout(); }).catch(function (e) { toast(errText(e)); }); }
+    if (b.id === 'd-plus') { DNOW.min += 15; return loadFeed(true); }
+    if (b.id === 'd-plus5') { DNOW.min += 5; return loadFeed(true); }
+    if (b.id === 'd-walk') {
+      var br = S.feed ? S.feed.me.branch : 'NIM', progs = br === 'MCH' ? ['SPA45', 'SPA90'] : ['SPA45', 'THAI120', 'FOOT90', 'NECK60', 'COMBO120'], names = ['Sophie', 'คุณบอส', 'Kenji', 'คุณแพร', 'Anna'];
+      var v = makeVisit(DS, DNOW, br, progs[Math.floor(Math.random() * progs.length)], names[Math.floor(Math.random() * names.length)], { hair: ['short', 'blade', 'mid'][Math.floor(Math.random() * 3)], pressure: ['light', 'medium', 'firm'][Math.floor(Math.random() * 3)], focus: [] });
+      if (!v) toast('วันนี้ไม่มีที่ว่างแล้ว'); return loadFeed(true);
+    }
+  });
+  $('alert').onclick = function () { $('alert').hidden = true; S.tab = 'work'; render(); };
+  $('sheet').addEventListener('click', function (e) { if (e.target === $('sheet')) closeSheet(); });
+
+  /* ---------- start ---------- */
+  render();
+  if (inLine) lineStart(); else if (S.token) loadFeed();
+  if (!demo) setInterval(function () { if (S.token && document.visibilityState === 'visible') loadFeed(true); }, 10000);
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && S.token && !demo) loadFeed(true); });
+})();
+</script>
+
+</body>
+</html>
