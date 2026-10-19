@@ -317,7 +317,7 @@ body.real, body { background: var(--paper); }
   var ERR = { NET: ['เชื่อมต่อไม่ได้ ลองใหม่', 'Connection problem, try again'], KIOSK_KEY: ['รหัสแท็บเล็ตไม่ถูกต้อง', 'Wrong tablet password'], FULL: ['วันนี้เต็มแล้ว', 'Fully booked today'],
     CLOSED: ['ร้านปิดแล้ว เปิด 10:00–21:00', 'We are closed. Open 10:00–21:00'], NEED_NAME: ['ใส่ชื่อ', 'Enter your name'], BAD_PHONE: ['เบอร์ไม่ครบ หรือเว้นว่างไว้ก็ได้', 'Phone looks incomplete; you can leave it empty'],
     BAD_EMAIL: ['อีเมลไม่ถูกต้อง หรือเว้นว่างไว้ก็ได้', 'Email looks wrong; you can leave it empty'], NEED_HAIR: ['เลือกความยาวผมก่อน', 'Choose hair length first'], NO_TICKET: ['ตั๋วใช้เวลานี้ไม่ได้', 'No ticket usable now'],
-    NOT_HERE: ['สาขานี้ไม่มีโปรแกรมนี้', 'Not available here'], NEED_STARS: ['ให้ดาวก่อน', 'Please rate first'], PAY_SETUP: ['ระบบจ่ายเงินยังไม่ได้ตั้งค่า', 'Payments are not set up yet'], PAY_FAILED: ['เปิดหน้าจ่ายเงินไม่ได้ ลองใหม่', 'Could not open payment, try again'], NOT_FOUND: ['ไม่พบรายการ', 'Not found'], BAD_BRANCH: ['สาขานี้ยังไม่เปิด', 'This branch is not open'] };
+    NOT_HERE: ['สาขานี้ไม่มีโปรแกรมนี้', 'Not available here'], NEED_STARS: ['ให้ดาวก่อน', 'Please rate first'], PAY_SETUP: ['ระบบจ่ายเงินยังไม่ได้ตั้งค่า', 'Payments are not set up yet'], PAY_FAILED: ['เปิดหน้าจ่ายเงินไม่ได้ ลองใหม่', 'Could not open payment, try again'], NOT_FOUND: ['ไม่พบรายการ', 'Not found'], NEED_CONTACT: ['ซื้อคอร์สต้องใส่เบอร์หรืออีเมล', 'Courses need a phone or email'], BAD_BRANCH: ['สาขานี้ยังไม่เปิด', 'This branch is not open'] };
   function errT(e) { var k = String(e && e.message || e), x = ERR[k]; return x ? t(x[0], x[1]) : k; }
   function t(th, en) { return S.lang === 'en' ? en : th; }
   function nm(o) { return o ? (S.lang === 'en' ? (o.name_en || o.name_th) : o.name_th) : ''; }
@@ -339,9 +339,9 @@ body.real, body { background: var(--paper); }
   var PRESSURE = [['light', 'เบา', 'Light'], ['medium', 'กลาง', 'Medium'], ['firm', 'หนัก', 'Firm']];
   function bodyWork(p) { return p.segs.some(function (s) { return s.res === 'thai' || s.res === 'chair'; }); }
   function newPerson() { return { hair: null, addons: [], style: 'normal', pressure: 'medium', elbow: 'ok', focus: [], quiet: false }; }
-  function lines(p, pe, useT, tf, tn) {
-    var out = [], h = hairT(pe.hair), st = styleT(pe.style);
-    if (!useT) out.push({ label: nm(p), amount: p.price });
+  function lines(p, pe, useT, tf, tn, pack) {
+    var out = [], h = hairT(pe.hair), st = styleT(pe.style), n = { '5': 5, '11': 11 }[pack] || 1;
+    if (!useT) out.push({ label: nm(p) + (n > 1 ? t(' · คอร์ส ', ' · ') + (n === 11 ? t('10 แถม 1', '10 + 1') : n + t(' ครั้ง', ' sessions')) : ''), amount: n === 5 ? p.pack5 : n === 11 ? p.pack11 : p.price });
     if (p.hair && h && h.price) out.push({ label: t('ผมยาว', 'Long hair') + ' (' + nm(h) + ')', amount: h.price });
     if (p.hair && st.price) out.push({ label: nm(st), amount: st.price });
     pe.addons.forEach(function (id) { var a = find(S.cfg.addons, id), f = (tf || []).indexOf(id) >= 0; if (a) out.push({ label: nm(a) + (f ? ' · ' + t('ฟรีสิทธิ์ ', 'free · ') + tn : ''), amount: f ? 0 : a.price }); });
@@ -430,7 +430,10 @@ body.real, body { background: var(--paper); }
     h += '<div class="prefs"><div class="prow"><span>' + t('น้ำหนักมือ', 'Pressure') + '</span><div class="chips">' + PRESSURE.map(function (x) { return chip('data-kpref="pressure|' + x[0] + '"', pe.pressure === x[0], S.lang === 'en' ? x[2] : x[1]); }).join('') + '</div></div>' +
       (bodyWork(p) ? '<div class="prow"><span>' + t('ใช้ศอกรีด', 'Elbows') + '</span><div class="chips">' + chip('data-kpref="elbow|ok"', pe.elbow === 'ok', t('ใช้ได้', 'OK')) + chip('data-kpref="elbow|no"', pe.elbow === 'no', t('ไม่ใช้ศอก', 'No elbows')) + '</div></div>' : '') +
       '<div class="prow"><span>' + t('ระหว่างนวด', 'During') + '</span><div class="chips">' + chip('data-kpref="quiet|0"', !pe.quiet, t('คุยได้', 'Happy to chat')) + chip('data-kpref="quiet|1"', !!pe.quiet, t('ขอพักเงียบๆ', 'Quiet, please')) + '</div></div></div>';
-    var tier = k.tier || null, ls = lines(p, pe, useT, tier ? tier.free : [], tier ? nm(tier) : ''), total = ls.reduce(function (s, l) { return s + l.amount; }, 0);
+    if (!useT) h += '<span class="hint">' + t('ซื้อกี่ครั้ง', 'How many sessions') + '</span><div class="grid3">' + [['1', t('ครั้งเดียว', 'Today only'), p.price], ['5', t('คอร์ส 5 ครั้ง', '5 sessions'), p.pack5], ['11', t('10 แถม 1', '10 + 1 free'), p.pack11]].map(function (x) {
+      return '<button class="opt" data-kpack="' + x[0] + '" aria-pressed="' + ((k.pack || '1') === x[0]) + '"><span class="t">' + x[1] + '</span><span class="s">' + baht(x[2]) + '</span></button>'; }).join('') + '</div>' +
+      ((k.pack || '1') !== '1' ? '<span class="hint">' + t('ใช้วันนี้ 1 ครั้ง ที่เหลือเก็บไว้ใช้ครั้งหน้า ดูได้ใน LINE ของร้าน (MY LANA) ต้องใส่เบอร์หรืออีเมล', 'One is used today; the rest are saved for next time (see MY LANA in our LINE). Phone or email needed.') + '</span>' : '');
+    var tier = k.tier || null, ls = lines(p, pe, useT, tier ? tier.free : [], tier ? nm(tier) : '', k.pack), total = ls.reduce(function (s, l) { return s + l.amount; }, 0);
     h += '<div class="ticket">' + ls.map(function (l) { return kv(l.label, baht(l.amount)); }).join('') + (useT ? kv(t('ใช้ตั๋ว', 'Ticket'), '1') : '') + kv(t('รวม', 'Total'), baht(total), 'total') + '</div>';
     if (!useT && !k.memberChoice) h += '<label class="f">' + t('ชื่อ', 'Name') + '<input id="k-name" value="' + esc(k.name || '') + '"></label><span class="hint">' + t('เบอร์หรืออีเมลไม่บังคับ ไม่ใส่ก็ได้ รับ QR ไปเก็บในมือถือแทน', 'Phone and email are optional. Skip them and scan a QR to keep your visit on your phone.') + '</span>' +
       '<label class="f">' + t('เบอร์โทร (ไม่บังคับ)', 'Phone (optional)') + '<input id="k-phone" type="tel" inputmode="tel" placeholder="08x xxx xxxx / +44…" value="' + esc(k.phoneRaw || '') + '"></label>' +
@@ -444,6 +447,8 @@ body.real, body { background: var(--paper); }
     h += '<button class="btn block kb" data-kpay' + (ready ? '' : ' disabled') + '>' + (total ? t('จ่าย ', 'Pay ') + baht(total) + t(' และรับคิว', ' & get queue number') : t('รับคิว', 'Get queue number')) + '</button>' + (ready ? '' : '<span class="hint">' + t('เลือกความยาวผมก่อน', 'Choose hair length first') + '</span>') + '</div></div>';
     return h;
   }
+  /* keep typed name/phone/email when the screen redraws */
+  function saveForm() { var k = S.k; if ($('k-name')) { k.name = $('k-name').value.trim(); k.phoneRaw = $('k-phone').value.trim(); k.email = $('k-email').value.trim(); k.consent = $('k-consent').checked; } }
   function qrSvg(text) {
     try { var q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); } catch (e) { return '<span class="hint">' + esc(text) + '</span>'; }
   }
@@ -499,12 +504,13 @@ body.real, body { background: var(--paper); }
     }).catch(function (e) { toast(errT(e)); });
   }
   function kpay() {
-    var k = S.k, p = prog(k.prog), req = { prog: k.prog, person: k.person, returnUrl: returnUrl() };
+    var k = S.k, p = prog(k.prog), req = { prog: k.prog, person: k.person, pack: k.useT ? '1' : (k.pack || '1'), returnUrl: returnUrl() };
     if (k.useT) Object.assign(req, k.who, { useTicket: true });
     else if (k.memberChoice) Object.assign(req, k.who, { memberChoice: 'buy' });
     else {
       k.name = $('k-name').value.trim(); k.phoneRaw = $('k-phone').value.trim(); k.email = $('k-email').value.trim(); k.consent = $('k-consent').checked;
       if (!k.name) { k.err = errT('NEED_NAME'); return render(); }
+      if ((k.pack || '1') !== '1' && !k.phoneRaw && !k.email) { k.err = t('ซื้อคอร์สต้องใส่เบอร์หรืออีเมล เพื่อเก็บตั๋วที่เหลือ', 'Courses need a phone or email to keep the remaining sessions'); return render(); }
       Object.assign(req, { name: k.name, phone: k.phoneRaw, email: k.email, consent: k.consent, memberChoice: k.choice || undefined });
     }
     api('kStart', req).then(function (r) {
@@ -536,9 +542,10 @@ body.real, body { background: var(--paper); }
     if (d.kuse !== undefined) return go('walkin', { useT: true, tickets: k.found.tickets, who: k.who, tier: k.found.member.tier });
     if (d.kbuy !== undefined) return go('walkin', k.who && k.found ? { memberChoice: 'buy', who: k.who, tier: k.found.member.tier } : {});
     if (d.kprog) { k.prog = d.kprog; k.person = newPerson(); return render(); }
-    if (d.khair) { k.person.hair = d.khair; return render(); }
-    if (d.kstyle) { k.person.style = d.kstyle; return render(); }
-    if (d.kpref) { var pp = d.kpref.split('|'); k.person[pp[0]] = pp[0] === 'quiet' ? pp[1] === '1' : pp[1]; return render(); }
+    if (d.kpack) { saveForm(); k.pack = d.kpack; return render(); }
+    if (d.khair) { saveForm(); k.person.hair = d.khair; return render(); }
+    if (d.kstyle) { saveForm(); k.person.style = d.kstyle; return render(); }
+    if (d.kpref) { saveForm(); var pp = d.kpref.split('|'); k.person[pp[0]] = pp[0] === 'quiet' ? pp[1] === '1' : pp[1]; return render(); }
     if (d.kmember) {
       if (d.kmember === 'edit') { k.match = null; k.phoneRaw = ''; k.email = ''; return render(); }
       if (d.kmember === 'tickets') return api('kFind', k.who).then(function (r) { go('walkin', { useT: true, tickets: r.tickets, who: k.who }); });
@@ -555,7 +562,7 @@ body.real, body { background: var(--paper); }
   });
   document.addEventListener('change', function (e) {
     var el = e.target, k = S.k;
-    if (el.dataset.kaddon) { var i = k.person.addons.indexOf(el.dataset.kaddon); if (el.checked && i < 0) k.person.addons.push(el.dataset.kaddon); if (!el.checked && i >= 0) k.person.addons.splice(i, 1); render(); }
+    if (el.dataset.kaddon) { saveForm(); var i = k.person.addons.indexOf(el.dataset.kaddon); if (el.checked && i < 0) k.person.addons.push(el.dataset.kaddon); if (!el.checked && i >= 0) k.person.addons.splice(i, 1); render(); }
     if (el.id === 'k-phone' || el.id === 'k-email') { k.match = null; k.choice = null; }
   });
   $('tback').onclick = function () { go('home'); };

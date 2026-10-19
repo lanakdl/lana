@@ -749,6 +749,13 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     }).join('') : '<div class="empty">' + t('ยังไม่มีวอเชอร์', 'No vouchers') + '</div>') +
       S.d.claims.map(function (c) { var pt = find(S.cfg.partners, c.partner); return '<div class="wrow"><div><div class="t">' + t('เคลมจาก ', 'Claim from ') + esc(nm(pt)) + '</div><div class="s">' + t('ใบเสร็จ ', 'Receipt ') + esc(c.receipt) + '</div></div><span class="badge' + (c.status === 'issued' ? ' olive' : '') + '">' + (c.status === 'issued' ? t('ได้ตั๋วแล้ว', 'Added') : c.status === 'rejected' ? t('ไม่ผ่าน', 'Declined') : t('รอพาร์ทเนอร์อนุมัติ', 'Waiting')) + '</span></div>'; }).join('') +
       (S.cfg.partners.length ? '<button class="btn ghost" data-go="claim">' + t('เคลมวอเชอร์จากพาร์ทเนอร์', 'Claim a partner voucher') + '</button>' : '') + '</div></div>';
+    var hist = S.d.history || [];
+    if (hist.length) h += '<div class="sec"><h3>' + t('ประวัติล่าสุด', 'Recent history') + '</h3><div class="wallet">' + hist.map(function (x) {
+      var p = prog(x.prog), title = x.type === 'buy' ? t('ซื้อ ', 'Bought ') + nm(p) + ' × ' + x.count : nm(p) + (x.n > 1 ? ' × ' + x.n : '');
+      var sub = longD(x.date) + (x.type !== 'buy' && x.start != null ? ' ' + hm(x.start) : '') + (x.branch ? ' · ' + nm(branch(x.branch)) : '') + (x.kiosk ? ' · ' + t('หน้าร้าน', 'at the counter') : '');
+      var right = x.type === 'noshow' ? '<span class="badge">' + t('ไม่ได้มา', 'Missed') + '</span>' : (x.stars ? '<span class="hint">' + '★'.repeat(x.stars) + '</span> ' : '') + (x.amount ? '<b class="price">' + baht(x.amount) + '</b>' : '');
+      return '<div class="wrow"><div><div class="t">' + esc(title) + '</div><div class="s">' + esc(sub) + '</div></div><div style="text-align:right;white-space:nowrap">' + right + '</div></div>';
+    }).join('') + '</div></div>';
     var m = S.d.member;
     h += '<div class="sec"><div class="wrow"><div><div class="t">' + esc(m.name) + '</div><div class="s">' + esc(fmtPhone(m.phone)) + ' · ' + esc(m.email) + '</div></div><button class="btn small ghost" data-go="profile">' + t('แก้ไข', 'Edit') + '</button></div></div>';
     return { title: 'MY LANA', body: h };
@@ -950,17 +957,21 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
   }
   function start() {
     S.busy = true; render();
-    return api('config').then(function (cfg) {
-      S.cfg = cfg;
-      if (S.vkey) return loadGuest().then(function () { S.busy = false; home('guest'); var o = Q.get('order'); if (o) waitOrder(o); });
-      return login().then(function (h) {
-        S.token = h.token; S.busy = false;
-        var after = function () { var o = Q.get('order') || (function () { try { return sessionStorage.getItem('lana-order'); } catch (e) { return ''; } })(); route(); if (o && Q.get('order')) waitOrder(o); };
-        if (h.member) return api('me').then(function (d) { setD(d); after(); });
-        S.d = { member: null, tickets: [], vouchers: [], claims: [], bookings: [], now: null }; after();
-      });
-    }).catch(function (e) { S.busy = false; $('lbody').innerHTML = '<div class="loading"><p class="err">' + esc(errT(e)) + '</p><button class="btn" onclick="location.reload()">' + t('ลองใหม่', 'Try again') + '</button></div>'; });
+    /* menu and prices from the last visit show at once; fresh ones load at the same time as the LINE sign-in */
+    var cached = null; try { cached = JSON.parse(localStorage.getItem('lana-cfg') || 'null'); } catch (e) {}
+    if (cached && cached.programs) S.cfg = cached;
+    var cfgP = api('config').then(function (cfg) { S.cfg = cfg; try { localStorage.setItem('lana-cfg', JSON.stringify(cfg)); } catch (e) {} if (S.screen && !S.busy) render(); });
+    var first = S.cfg ? Promise.resolve() : cfgP;
+    if (S.vkey) return first.then(function () { return loadGuest(); }).then(function () { S.busy = false; home('guest'); var o = Q.get('order'); if (o) waitOrder(o); }).catch(fail);
+    return Promise.all([first, login()]).then(function (r) {
+      var h = r[1];
+      S.token = h.token; S.busy = false;
+      var after = function () { var o = Q.get('order') || (function () { try { return sessionStorage.getItem('lana-order'); } catch (e) { return ''; } })(); route(); if (o && Q.get('order')) waitOrder(o); };
+      if (h.member) { if (h.me) { setD(h.me); return after(); } return api('me').then(function (d) { setD(d); after(); }); }
+      S.d = { member: null, tickets: [], vouchers: [], claims: [], bookings: [], now: null }; after();
+    }).catch(fail);
   }
+  function fail(e) { S.busy = false; $('lbody').innerHTML = '<div class="loading"><p class="err">' + esc(errT(e)) + '</p><button class="btn" onclick="location.reload()">' + t('ลองใหม่', 'Try again') + '</button></div>'; }
   function login() {
     if (demo) return api('hello', { idToken: 'demo:' + (window.__demoUser || 'U-guest') });
     if (!APP.LIFF_ID || !window.liff) return Promise.reject(new Error('LOGIN'));
