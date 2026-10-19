@@ -1,5 +1,5 @@
 window.LANA_CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbwbNdnS1gt8SgHhwM877h1x8BmpV6-5m4naYcBh93zm8pm_7Dqx-GNK0h1bABMIu1ke5g/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbz81SqibAGn_UdyLfI-9oSkB0vttLcgBhIhrI7t5ZUir6MCc_OG43chmD7D4doNBnJM1A/exec',
   CUST_LIFF_ID: '2012086553-yraRWUof',
   STAFF_LIFF_ID: ''
 };
