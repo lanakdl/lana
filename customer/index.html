@@ -453,10 +453,21 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
       '<label><input type="radio" name="pm" checked> ' + t('บัตรเครดิต / เดบิต', 'Credit / debit card') + '</label><label><input type="radio" name="pm"> PromptPay</label>' +
       '<button class="pay" id="paygo">' + t('จ่าย ', 'Pay ') + baht(res.amount) + '</button><button class="linkbtn" id="paycancel" style="justify-self:center">' + t('ยกเลิก', 'Cancel') + '</button>';
     $('beam').hidden = false;
-    $('paycancel').onclick = function () { $('beam').hidden = true; refresh(); };
+    $('paycancel').onclick = function () { $('beam').hidden = true; payCancel(res.orderId); };
     $('paygo').onclick = function () { DS.db.beam['B' + res.orderId] = 'PAID'; $('beam').hidden = true; waitOrder(res.orderId); };
   }
   /* after Beam: ask the server until the payment is confirmed (up to ~2 minutes) */
+  /* back from Beam with "cancel", or cancel pressed in the app: give the seat and ticket back right away */
+  function payCancel(id) {
+    S.busy = true; render();
+    return api('payCancel', { id: id }).then(function (o) {
+      try { sessionStorage.removeItem('lana-order'); } catch (e) {}
+      S.busy = false;
+      if (o.status === 'paid') return waitOrder(id);
+      toast(t('ยกเลิกแล้ว ตั๋วคืนเข้ากระเป๋า', 'Cancelled, your ticket is back in your wallet'));
+      return S.vkey ? loadGuest() : refresh();
+    }).catch(function (e) { S.busy = false; toast(errT(e)); render(); });
+  }
   function waitOrder(id) {
     S.busy = true; S.busyText = t('กำลังยืนยันการชำระเงินกับ Beam…', 'Confirming your payment with Beam…'); render();
     var tries = 0;
@@ -473,6 +484,7 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
             else { home('my'); toast(o.kind === 'upcourse' ? t('ได้ตั๋วเพิ่มแล้ว', 'Tickets added') : t('ขอบคุณค่ะ ส่งใบเสร็จทางอีเมลแล้ว', 'Thank you! Receipt emailed.')); }
           });
         }
+        if (o.status === 'cancelled') { S.busy = false; toast(t('ยกเลิกการจ่ายแล้ว', 'Payment cancelled')); return S.vkey ? loadGuest() : refresh(); }
         if (o.status !== 'pending' || ++tries > 40) { S.busy = false; toast(o.status === 'pending' ? t('ยังไม่ได้รับเงิน ถ้าจ่ายแล้วระบบจะอัปเดตเองในไม่กี่นาที', 'Payment not confirmed yet. If you paid, it will update in a few minutes.') : t('ยกเลิกการจ่ายเงินแล้ว', 'Payment was not completed')); return refresh().then(render); }
         setTimeout(poll, 3000);
       }).catch(function (e) { S.busy = false; toast(errT(e)); render(); });
@@ -789,7 +801,7 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     return { title: 'MY LANA', body: h };
   }
   function upRow(b) {
-    return '<div class="wrow"><div><div class="t">' + longD(b.date) + ' ' + hm(b.start) + (b.status === 'hold' ? ' · ' + t('รอจ่าย', 'awaiting payment') : '') + '</div><div class="s">' + esc(nm(prog(b.people[0].prog))) + ' × ' + b.people.length + ' · ' + esc(nm(branch(b.branch))) + '</div></div>' + (b.status === 'booked' ? '<button class="btn small ghost" data-resched="' + b.id + '">' + t('เลื่อน', 'Move') + '</button>' : '') + '</div>';
+    return '<div class="wrow"><div><div class="t">' + longD(b.date) + ' ' + hm(b.start) + (b.status === 'hold' ? ' · ' + t('รอจ่าย', 'awaiting payment') : '') + '</div><div class="s">' + esc(nm(prog(b.people[0].prog))) + ' × ' + b.people.length + ' · ' + esc(nm(branch(b.branch))) + '</div></div>' + (b.status === 'booked' ? '<button class="btn small ghost" data-resched="' + b.id + '">' + t('เลื่อน', 'Move') + '</button>' : b.status === 'hold' && b.orderId ? '<button class="btn small ghost" data-paycancel="' + esc(b.orderId) + '">' + t('ยกเลิก', 'Cancel') + '</button>' : '') + '</div>';
   }
   function currentBooking() {
     var list = S.vkey ? (S.guest ? [S.guest] : []) : (S.d ? S.d.bookings : []);
@@ -806,6 +818,7 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     var br = nm(branch(bk.branch)), h = '', staff = bk.staffName || t('หมอนวด', 'Your therapist');
     if (bk.status === 'hold') {
       h = '<span class="eyebrow">' + t('รอชำระเงิน', 'Awaiting payment') + '</span><h3>' + longD(bk.date) + ' · ' + hm(bk.start) + '</h3><p>' + t('ถ้ายังไม่ได้จ่าย ที่นั่งจะถูกปล่อยเองภายใน 20 นาที ถ้าจ่ายแล้วรอสักครู่ระบบอัปเดตเอง', 'Unpaid seats are released within 20 minutes. If you have paid, this updates shortly.') + '</p>';
+      if (bk.orderId && !S.vkey) h += '<div class="row2"><button class="btn ghost" data-paycancel="' + esc(bk.orderId) + '">' + t('ไม่จ่ายแล้ว ยกเลิกการจองนี้', 'Cancel this booking') + '</button></div>';
     } else if (bk.status === 'booked') {
       h = '<span class="eyebrow">' + t('นัดถัดไป', 'Next visit') + '</span><h3>' + longD(bk.date) + ' · ' + hm(bk.start) + '</h3><p>' + esc(nm(prog(bk.people[0].prog))) + ' × ' + bk.people.length + ' · ' + esc(br) + '</p>' +
         '<p>' + t('ถึงร้านแล้วสแกน QR ที่เคาน์เตอร์เพื่อเช็กอิน', 'Scan the QR at the counter when you arrive') + '</p>' + (S.vkey ? '' : '<div class="row2"><button class="btn ghost" data-resched="' + bk.id + '">' + t('เลื่อนนัด', 'Reschedule') + '</button></div>');
@@ -929,6 +942,7 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
       if (d.focus) { var fi = who.focus.indexOf(parts[1]); if (fi >= 0) who.focus.splice(fi, 1); else who.focus.push(parts[1]); }
       return render();
     }
+    if (d.paycancel) { if (!confirm(t('ยกเลิกการจองที่ยังไม่ได้จ่ายนี้ใช่ไหม? ตั๋วจะคืนเข้ากระเป๋า', 'Cancel this unpaid booking? Your ticket goes back to your wallet.'))) return; return payCancel(d.paycancel); }
     if (d.resched) { var rb = find(S.d.bookings, d.resched); return open('book', { resched: rb.id, branch: rb.branch, date: rb.date, time: null, people: [], n: rb.people.length }); }
     if (d.map) { if (inLine) liff.openWindow({ url: d.map, external: true }); else window.open(d.map, '_blank', 'noopener'); return; }
     if (d.earlier) { var ep = d.earlier.split('|'); return run(api('earlier', { id: ep[0], time: +ep[1] }), t('เลื่อนมาเป็น ', 'Moved to ') + hm(+ep[1]) + t(' แล้ว', '')).then(function (dd) { setD(dd); render(); }).catch(function () { refresh(); }); }
@@ -983,11 +997,11 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     if (cached && cached.programs) S.cfg = cached;
     var cfgP = api('config').then(function (cfg) { S.cfg = cfg; try { localStorage.setItem('lana-cfg', JSON.stringify(cfg)); } catch (e) {} if (S.screen && !S.busy) render(); });
     var first = S.cfg ? Promise.resolve() : cfgP;
-    if (S.vkey) return first.then(function () { return loadGuest(); }).then(function () { S.busy = false; home('guest'); var o = Q.get('order'); if (o) waitOrder(o); }).catch(fail);
+    if (S.vkey) return first.then(function () { return loadGuest(); }).then(function () { S.busy = false; home('guest'); var o = Q.get('order'); if (o) (Q.get('cancel') ? payCancel(o) : waitOrder(o)); }).catch(fail);
     return Promise.all([first, login()]).then(function (r) {
       var h = r[1];
       S.token = h.token; S.busy = false;
-      var after = function () { var o = Q.get('order') || (function () { try { return sessionStorage.getItem('lana-order'); } catch (e) { return ''; } })(); route(); if (o && Q.get('order')) waitOrder(o); };
+      var after = function () { var o = Q.get('order') || (function () { try { return sessionStorage.getItem('lana-order'); } catch (e) { return ''; } })(); route(); if (o && Q.get('order')) (Q.get('cancel') ? payCancel(o) : waitOrder(o)); };
       if (h.member) { if (h.me) { setD(h.me); return after(); } return api('me').then(function (d) { setD(d); after(); }); }
       S.d = { member: null, tickets: [], vouchers: [], claims: [], bookings: [], now: null }; after();
     }).catch(fail);

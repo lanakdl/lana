@@ -1388,6 +1388,7 @@ function custApi(req, store, now) {
   if (a === 'config') return cConfig(store);
   if (a === 'hello') return cHello(req, store, now);
   if (a === 'order') return store.lock(function () { return cOrderState(req, store, now); });
+  if (a === 'payCancel') return store.lock(function () { return cPayCancel(req, store, now); });
   if (a === 'visit') return store.lock(function () { cSweep(store, now); var b = cByVkey(store, req.vkey); return { booking: cView(b, store, now, true) }; });
   if (a === 'slots') return store.lock(function () { return cSlots(req, store, now, req.token ? cMeOrNull(req, store) : null); });
   if (/^(extend|early|upgrade|checkout|thanked|upcourse|seen)$/.test(a) && (req.vkey || req.kiosk)) {
@@ -1929,6 +1930,18 @@ function cOrderState(req, store, now) {
   var shown = o.status === 'pending' && b && b.status === 'cancelled' && (o.kind === 'walkin' || o.kind === 'book') ? 'expired' : o.status;
   return { id: o.id, kind: o.kind, status: shown, amount: +o.amount, prog: o.prog || '', count: +o.count || 0, bookingId: o.bookingId || '', q: b ? b.q || '' : '', vkey: b && o.kind === 'walkin' ? b.vkey : '' };
 }
+/* the guest pressed cancel on Beam's page (or "cancel" in the app): close the link and give the seats and tickets back now, not after the 20-minute hold */
+function cPayCancel(req, store, now) {
+  var o = lnFind(store.orders(), req.id); if (!o) throw new Error('NOT_FOUND');
+  if (o.status === 'pending' || o.status === 'replaced') cCheckOrder(store, o, now);   /* paid after all? then it is kept */
+  if (o.status === 'pending' || o.status === 'replaced') {
+    try { if (store.beamDisable) store.beamDisable(o.beamId); } catch (e) {}
+    o.status = 'cancelled'; store.saveOrder(o); store.log('', o.bookingId || '', 'pay_cancelled', o.id);
+    var b = o.bookingId ? lnFind(store.bookings(), o.bookingId) : null;
+    if (b && b.status === 'hold' && (o.kind === 'book' || o.kind === 'walkin') && b.orderId === o.id) cReleaseHold(store, b);
+  }
+  return cOrderState({ id: o.id }, store, now);
+}
 function cCheckOrder(store, o, now) {
   var st = '';
   try { st = String(store.beamStatus(o.beamId) || '').toUpperCase(); } catch (e) { return; }
@@ -2014,7 +2027,7 @@ function cSweep(store, now) {
 function custTick(store, now) {
   cSweep(store, now);
   var since = { date: now.date, min: now.min - 120 };
-  store.orders().filter(function (o) { if (o.status !== 'pending' && o.status !== 'replaced') return false; var c = cMinOf(o.createdAt); return c.date === now.date && c.min >= since.min; })
+  store.orders().filter(function (o) { if (o.status !== 'pending' && o.status !== 'replaced' && o.status !== 'cancelled') return false;   /* cancelled: in case the link was paid before it closed */ var c = cMinOf(o.createdAt); return c.date === now.date && c.min >= since.min; })
     .forEach(function (o) { cCheckOrder(store, o, now); });
   store.bookings().forEach(function (b) {
     if (b.status !== 'booked' || b.date !== now.date || b.reminded || !b.email) return;
@@ -2165,6 +2178,7 @@ function memStore() {
     /* demo Beam: the page shows a pretend checkout and marks the link PAID */
     beamCreate: function (o) { var id = 'B' + o.id; db.beam[id] = 'ACTIVE'; return { id: id, url: 'demo-beam:' + o.id }; },
     beamStatus: function (id) { return db.beam[id] || 'ACTIVE'; },
+    beamDisable: function (id) { if (db.beam[id] !== 'PAID') db.beam[id] = 'DISABLED'; },
     mail: function (to, subject, html) { db.mails.push({ to: to, subject: subject, html: html }); }
   };
 }
