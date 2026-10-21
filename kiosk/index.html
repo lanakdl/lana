@@ -312,6 +312,9 @@ button.mcard:active { transform: scale(.99); }
 .mmin { font-size: 13px; color: var(--ink-2); }
 .mprice { font-family: var(--f-display); font-size: 26px; font-variant-numeric: tabular-nums; }
 .mpack { font-size: 12.5px; color: var(--ink-2); margin-top: -6px; }
+.mvars { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.mvars span { display: flex; justify-content: space-between; gap: 8px; font-size: 13.5px; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; background: var(--card); }
+.vpick { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
 .mgo { justify-self: end; font-weight: 600; color: var(--olive); font-size: 14px; }
 @media (prefers-reduced-motion: reduce) { button.mcard { transition: none; } button.mcard:hover { transform: none; } }
 @media (max-width: 760px) { .ksplit, .kbtns { grid-template-columns: 1fr; } }
@@ -341,7 +344,8 @@ button.mcard:active { transform: scale(.99); }
   if (demo) {
     var p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date()), g = {};
     p.forEach(function (x) { g[x.type] = x.value; });
-    DNOW = { date: g.year + '-' + g.month + '-' + g.day, min: 14 * 60 }; DS = memStore(); S.key = 'demo-kiosk'; S.branch = S.branch || 'NIM';
+    var shared = (function () { try { return window.parent !== window && window.parent.__LANA_SHARED || null; } catch (e) { return null; } })();
+    DNOW = shared ? shared.now : { date: g.year + '-' + g.month + '-' + g.day, min: 14 * 60 }; DS = shared ? shared.store : memStore(); S.key = 'demo-kiosk'; S.branch = S.branch || 'NIM';
     window.__DEMO = { store: DS, now: DNOW };
   }
   function api(action, data) {
@@ -373,12 +377,12 @@ button.mcard:active { transform: scale(.99); }
   function phoneOK(e) { return /^\+66\d{9}$/.test(e) || (/^\+\d{8,15}$/.test(e) && e.indexOf('+66') !== 0); }
   function hairSvg(id) { var len = { short: 24, blade: 34, mid: 43, waist: 51 }[id] || 30; return '<svg viewBox="0 0 46 52" aria-hidden="true"><path d="M8 ' + len + ' C8 6, 38 6, 38 ' + len + '" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" opacity=".55"/><circle cx="23" cy="20" r="10" fill="currentColor" opacity=".9"/><path d="M12 52 C12 38, 34 38, 34 52" fill="currentColor" opacity=".35"/></svg>'; }
   var PRESSURE = [['light', 'เบา', 'Light'], ['medium', 'กลาง', 'Medium'], ['firm', 'หนัก', 'Firm']];
-  function bodyWork(p) { return p.segs.some(function (s) { return s.res === 'thai' || s.res === 'chair'; }); }
-  function newPerson() { return { hair: null, addons: [], style: 'normal', pressure: 'medium', elbow: 'ok', focus: [], quiet: false }; }
+  function bodyWork(p) { return p.segs.some(function (s) { return /thai|chair|oil/.test(s.res); }); }
+  function newPerson() { return { hair: null, addons: [], style: 'normal', pressure: 'medium', elbow: 'ok', stretch: 'ok', focus: [], quiet: false, alerts: [], healthOk: false }; }
   function lines(p, pe, useT, tf, tn, pack) {
-    var out = [], h = hairT(pe.hair), st = styleT(pe.style), n = { '5': 5, '11': 11 }[pack] || 1;
-    if (!useT) out.push({ label: nm(p) + (n > 1 ? t(' · คอร์ส ', ' · ') + (n === 11 ? t('10 แถม 1', '10 + 1') : n + t(' ครั้ง', ' sessions')) : ''), amount: n === 5 ? p.pack5 : n === 11 ? p.pack11 : p.price });
-    if (p.hair && h && h.price) out.push({ label: t('ผมยาว', 'Long hair') + ' (' + nm(h) + ')', amount: h.price });
+    var out = [], h = hairT(pe.hair), st = styleT(pe.style), n = { '3': 3, '5': 5, '11': 11 }[pack] || 1;
+    if (!useT) out.push({ label: nm(p) + (n > 1 ? t(' · คอร์ส ', ' · ') + (n === 11 ? t('10 แถม 1', '10 + 1') : n + t(' ครั้ง', ' sessions')) : ''), amount: n === 3 ? p.pack3 : n === 5 ? p.pack5 : n === 11 ? p.pack11 : p.price });
+    if (p.hair && !p.hairFree && h && h.price) out.push({ label: t('ผมยาว', 'Long hair') + ' (' + nm(h) + ')', amount: h.price });
     if (p.hair && st.price) out.push({ label: nm(st), amount: st.price });
     pe.addons.forEach(function (id) { var a = find(S.cfg.addons, id), f = (tf || []).indexOf(id) >= 0; if (a) out.push({ label: nm(a) + (f ? ' · ' + t('ฟรีสิทธิ์ ', 'free · ') + tn : ''), amount: f ? 0 : a.price }); });
     return out;
@@ -428,8 +432,8 @@ button.mcard:active { transform: scale(.99); }
     if (k.screen === 'walkin') return walkin();
     if (k.screen === 'queue') {
       var url = (APP.CUST_URL || (demo ? 'https://example.com/customer/' : '')) + '?v=' + encodeURIComponent(k.vkey || '');
-      return '<div class="khome"><span class="eyebrow">' + t('เช็กอินแล้ว', 'Checked in') + '</span><div class="qno">' + esc(k.q) + '</div><h2>' + t('หมอนวดจะมารับที่นี่', 'Your therapist will come to you') + '</h2>' +
-        '<p class="hint">' + esc(k.label || '') + '</p>' + (k.vkey && (APP.CUST_URL || demo) ? '<div class="qrbox"><div class="qr">' + qrSvg(url) + '</div><div><b>' + t('สแกนเก็บไว้ในมือถือ', 'Scan to keep it on your phone') + '</b><span class="hint">' + t('เปิดในเบราว์เซอร์ได้เลย ไม่ต้องมี LINE ดูนาฬิกา ต่อเวลา และจ่ายตอนจบได้จากมือถือ', 'Opens in your browser, no LINE needed: see your timer, extend, and pay at the end.') + '</span><span class="hint">' + t('ไม่สแกนก็ได้ จบแล้วกลับมาที่แท็บเล็ต แตะ "จ่ายและให้ดาวก่อนกลับ"', 'Or come back here and tap "Pay & rate before you leave".') + '</span></div></div>' : '') +
+      return '<div class="khome"><span class="eyebrow">' + t('เช็กอินแล้ว', 'Checked in') + '</span><div class="qno">' + esc(k.q) + '</div><h2>' + t('รอเรียกคิวสักครู่นะคะ', 'We will call your number shortly') + '</h2>' +
+        '<p class="hint">' + esc(k.label || '') + '</p>' + '<p class="hint" style="font-size:16px">' + t('นั่งรอได้เลย เดี๋ยวพนักงานเรียกคิว', 'Please take a seat, we will call your number.') + '</p><p class="hint">' + t('เสร็จแล้วกลับมาที่แท็บเล็ตนี้ แตะ "จ่ายและให้ดาวก่อนกลับ"', 'When you finish, come back here and tap "Pay & rate before you leave".') + '</p>' +
         '<button class="btn kb" data-k="home">' + t('เสร็จ', 'Done') + '</button></div>';
     }
     if (k.screen === 'out') {
@@ -450,46 +454,74 @@ button.mcard:active { transform: scale(.99); }
     return '';
   }
   /* the treatment menu shown to walk-in guests: what each one is, how long, what happens, and the price */
+  var SHOW_PHOTOS = false;   /* menu without photos (easier to read with many treatments); true = show photos from the img folder / Drive */
   function stepsOf(p) { return (p.steps || []).map(function (s) { return { name: S.lang === 'en' ? s[1] : s[0], min: +s[2] || 0 }; }).filter(function (s) { return s.min; }); }
   function progCard(x, useT, owned, asButton) {
     var st = stepsOf(x), tot = st.reduce(function (s, a) { return s + a.min; }, 0) || totalMin(x);
     var src = x.img || (demo ? '' : '../img/' + x.id + '.jpg');
-    var pic = src ? '<span class="mpic"><img src="' + esc(src) + '" alt="" loading="lazy" onerror="this.parentNode.remove()"></span>'
+    var pic = !SHOW_PHOTOS ? '' : src ? '<span class="mpic"><img src="' + esc(src) + '" alt="" loading="lazy" onerror="this.parentNode.remove()"></span>'
       : demo ? '<span class="mpic demo ' + (x.hair ? 'h' : 'm') + '" data-kpic="' + x.id + '"><span>' + t('แตะตรงนี้เพื่อลองใส่รูปจากเครื่อง', 'Tap to try a photo from this device') + '</span></span>' : '';
     var inner = pic + '<span class="mhead"><span class="mname">' + esc(nm(x)) + '</span>' + (S.lang === 'th' && x.name_en ? '<span class="men">' + esc(x.name_en) + '</span>' : '') + '</span>' +
       '<span class="mdesc">' + esc(S.lang === 'en' ? x.desc_en : x.desc_th) + '</span>' +
       (st.length ? '<span class="mbar" aria-hidden="true">' + st.map(function (s, i) { return '<i style="flex:' + s.min + '" class="b' + (i % 4) + '"></i>'; }).join('') + '</span>' +
         '<span class="msteps">' + st.map(function (s, i) { return '<span><i class="b' + (i % 4) + '"></i>' + esc(s.name) + ' <small>' + s.min + ' ' + t('นาที', 'min') + '</small></span>'; }).join('') + '</span>' : '') +
       '<span class="mfoot"><span class="mmin">' + totalMin(x) + ' ' + t('นาที', 'min') + '</span>' + (useT ? '<span class="mprice">' + t('มีตั๋ว ', 'You have ') + owned[x.id] + t(' ใบ', ' left') + '</span>' : '<span class="mprice">' + baht(x.price) + '</span>') + '</span>' +
-      (useT ? '' : '<span class="mpack">' + t('คอร์ส 5 ครั้ง ', '5 sessions ') + baht(x.pack5) + ' · ' + t('10 แถม 1 ', '10 + 1 free ') + baht(x.pack11) + '</span>');
+      (useT ? '' : '<span class="mpack">' + (x.pack3 ? t('คอร์ส 3 ครั้ง ', '3 sessions ') + baht(x.pack3) + ' · ' : '') + t('คอร์ส 5 ครั้ง ', '5 sessions ') + baht(x.pack5) + ' · ' + t('10 แถม 1 ', '10 + 1 free ') + baht(x.pack11) + '</span>');
     return asButton ? '<button class="mcard" data-kprog="' + x.id + '">' + inner + '<span class="mgo">' + t('เลือก', 'Choose') + ' ›</span></button>' : '<div class="mcard sel">' + inner + '</div>';
   }
+  /* programs that are the same treatment in different lengths (or with a choice of second part) show as one card */
+  function gname(g) { return S.lang === 'en' ? g.en : g.th; }
+  function bundle(list) {
+    var out = [], at = {};
+    list.forEach(function (p) { var k = p.group ? 'g:' + p.group.th : p.id; if (at[k] === undefined) { at[k] = out.length; out.push([]); } out[at[k]].push(p); });
+    return out;
+  }
+  function siblings(p, list) { return p.group ? list.filter(function (x) { return x.group && x.group.th === p.group.th; }) : [p]; }
+  function groupCard(items, useT, owned) {
+    if (items.length === 1) return progCard(items[0], useT, owned, true);
+    var x = items[0], src = items.map(function (i) { return i.img; }).filter(Boolean)[0] || (demo ? '' : '../img/' + x.id + '.jpg');
+    var low = Math.min.apply(null, items.map(function (i) { return i.price; }));
+    var pic = SHOW_PHOTOS && src ? '<span class="mpic"><img src="' + esc(src) + '" alt="" loading="lazy" onerror="this.parentNode.remove()"></span>' : '';
+    return '<button class="mcard" data-kprog="' + x.id + '">' + pic + '<span class="mhead"><span class="mname">' + esc(gname(x.group)) + '</span>' + (S.lang === 'th' && x.group.en ? '<span class="men">' + esc(x.group.en) + '</span>' : '') + '</span>' +
+      '<span class="mdesc">' + esc(S.lang === 'en' ? x.desc_en : x.desc_th) + '</span>' +
+      '<span class="mvars">' + items.map(function (i) { return '<span>' + esc(i.vlabel ? (S.lang === 'en' ? i.vlabel.en : i.vlabel.th) : nm(i)) + ' <b>' + (useT ? t('มีตั๋ว ', '') + (owned[i.id] || 0) + t(' ใบ', ' left') : baht(i.price)) + '</b></span>'; }).join('') + '</span>' +
+      '<span class="mfoot"><span class="mmin">' + items.length + t(' แบบให้เลือก', ' options') + '</span><span class="mprice">' + (useT ? '' : t('เริ่ม ', 'from ') + baht(low)) + '</span></span>' +
+      '<span class="mgo">' + t('เลือก', 'Choose') + ' ›</span></button>';
+  }
   function menu(list, useT, owned) {
-    var groups = [[t('แฮร์สปา', 'Hair spa'), t('นวดศีรษะ สระ และเป่าผม จบในที่เดียว', 'Head massage, wash and blow-dry'), list.filter(function (p) { return p.hair; })],
-      [t('นวด', 'Massage'), t('ผ่อนคลายร่างกาย ไม่ต้องสระผม', 'For the body, no hair wash'), list.filter(function (p) { return !p.hair; })]].filter(function (g) { return g[2].length; });
+    var cat = function (p) { return p.cat || (p.hair ? 'hair' : 'massage'); };
+    var groups = [[t('สปาศีรษะ สระไดร์', 'Head spa'), t('นวดศีรษะ สระ และไดร์ผม จบในที่เดียว', 'Head massage, wash and blow-dry'), list.filter(function (p) { return cat(p) === 'hair'; })],
+      [t('เซ็ตคุ้ม', 'Sets'), t('นวด + สปาศีรษะ ในรอบเดียว', 'Massage and head spa in one visit'), list.filter(function (p) { return cat(p) === 'set'; })],
+      [t('นวด', 'Massage'), t('ผ่อนคลายร่างกาย ไม่ต้องสระผม เลือกเวลาได้', 'For the body, no hair wash, choose your time'), list.filter(function (p) { return cat(p) === 'massage'; })]].filter(function (g) { return g[2].length; });
     return '<div class="kmenu"><div class="mtitle"><h2>' + (useT ? t('เลือกโปรแกรมที่จะใช้ตั๋ว', 'Choose a treatment for your ticket') : t('เมนูวันนี้', 'Today\'s menu')) + '</h2><span class="hint">' + t('แตะโปรแกรมที่สนใจ แล้วเลือกรายละเอียดต่อได้', 'Tap a treatment to choose the details') + '</span></div>' +
-      groups.map(function (g) { return '<section class="mgroup"><div class="mglabel"><b>' + g[0] + '</b><span>' + g[1] + '</span></div><div class="mgrid">' + g[2].map(function (x) { return progCard(x, useT, owned, true); }).join('') + '</div></section>'; }).join('') + '</div>';
+      groups.map(function (g) { return '<section class="mgroup"><div class="mglabel"><b>' + g[0] + '</b><span>' + g[1] + '</span></div><div class="mgrid">' + bundle(g[2]).map(function (items) { return groupCard(items, useT, owned); }).join('') + '</div></section>'; }).join('') + '</div>';
   }
   function walkin() {
     var k = S.k, br = branch(S.branch), useT = !!k.useT, owned = {};
     (k.tickets || []).forEach(function (x) { owned[x.prog] = (owned[x.prog] || 0) + 1; });
-    var list = S.cfg.programs.filter(function (p) { return p.at.indexOf(br.id) >= 0 && (!useT || owned[p.id]); });
+    var list = S.cfg.programs.filter(function (p) { return p.at.indexOf(br.id) >= 0 && (useT ? owned[p.id] : !p.hidden); });
     if (!list.length) return '<div class="khome"><h2>' + t('ตั๋วของคุณใช้ที่สาขานี้ไม่ได้', 'Your tickets cannot be used at this branch') + '</h2><div class="row2"><button class="btn kb" data-kbuy>' + t('ซื้อโปรแกรมที่มีที่นี่', 'Buy a treatment here') + '</button><button class="btn ghost kb" data-k="home">' + t('กลับหน้าแรก', 'Home') + '</button></div></div>';
     if (k.prog && !list.some(function (p) { return p.id === k.prog; })) k.prog = '';
-    if (!k.prog && list.length === 1) k.prog = list[0].id;
+    if (!k.prog && bundle(list).length === 1) k.prog = list[0].id;
     if (!k.prog) return menu(list, useT, owned);
     if (!k.person) k.person = newPerson();
     var p = prog(k.prog), pe = k.person;
-    var h = '<div class="ksplit"><div class="kleft"><span class="eyebrow">' + (useT ? t('ใช้ตั๋ว', 'Using a ticket') : t('โปรแกรมที่เลือก', 'Your treatment')) + '</span>' + progCard(p, useT, owned, false) +
-      (list.length > 1 ? '<button class="btn ghost kb" data-kmenu>‹ ' + t('ดูเมนูทั้งหมด / เปลี่ยนโปรแกรม', 'Back to the menu') + '</button>' : '') + '</div><div class="kright">';
-    if (p.hair) h += '<span class="hint">' + t('ผมยาวแค่ไหน', 'Hair length') + '</span><div class="hair">' + S.cfg.hair.map(function (x) { return '<button class="opt" data-khair="' + x.id + '" aria-pressed="' + (pe.hair === x.id) + '">' + hairSvg(x.id) + '<span class="t" style="font-size:13px">' + esc(nm(x)) + '</span><span class="s">' + (x.price ? '+' + baht(x.price) : t('ไม่เพิ่ม', 'no extra')) + '</span></button>'; }).join('') + '</div>';
+    var sib = siblings(p, list);
+    var h = '<div class="ksplit"><div class="kleft"><span class="eyebrow">' + (useT ? t('ใช้ตั๋ว', 'Using a ticket') : t('โปรแกรมที่เลือก', 'Your treatment')) + '</span>' +
+      (sib.length > 1 ? '<span class="hint">' + esc(gname(p.group)) + '</span><div class="vpick">' + sib.map(function (x) { return '<button class="opt" data-kvar="' + x.id + '" aria-pressed="' + (x.id === p.id) + '"><span class="t">' + esc(x.vlabel ? (S.lang === 'en' ? x.vlabel.en : x.vlabel.th) : nm(x)) + '</span><span class="s">' + (useT ? t('มีตั๋ว ', '') + (owned[x.id] || 0) + t(' ใบ', ' left') : baht(x.price)) + '</span></button>'; }).join('') + '</div>' : '') +
+      progCard(p, useT, owned, false) +
+      (bundle(list).length > 1 ? '<button class="btn ghost kb" data-kmenu>‹ ' + t('ดูเมนูทั้งหมด / เปลี่ยนโปรแกรม', 'Back to the menu') + '</button>' : '') + '</div><div class="kright">';
+    if (p.hair) h += '<span class="hint">' + t('ผมยาวแค่ไหน', 'Hair length') + '</span><div class="hair">' + S.cfg.hair.map(function (x) { return '<button class="opt" data-khair="' + x.id + '" aria-pressed="' + (pe.hair === x.id) + '">' + hairSvg(x.id) + '<span class="t" style="font-size:13px">' + esc(nm(x)) + '</span><span class="s">' + (x.price && !p.hairFree ? '+' + baht(x.price) : t('ไม่เพิ่ม', 'no extra')) + '</span></button>'; }).join('') + '</div>';
     h += S.cfg.addons.filter(function (a) { return a.for.indexOf(p.id) >= 0; }).map(function (a) {
       return '<label class="addon"><input type="checkbox" data-kaddon="' + a.id + '"' + (pe.addons.indexOf(a.id) >= 0 ? ' checked' : '') + '><span><span class="t">' + esc(nm(a)) + '</span>' + (a.rec ? ' <span class="badge">' + t('ลูกค้าส่วนใหญ่เลือก', 'Most popular') + '</span>' : '') + '<br><span class="s">' + esc(S.lang === 'en' ? a.desc_en : a.desc_th) + '</span></span><span class="p">+' + baht(a.price) + '</span></label>'; }).join('');
     if (p.hair) h += '<span class="hint">' + t('ทรงผมตอนเป่า', 'Blow-dry style') + '</span><div class="chips">' + S.cfg.styles.map(function (x) { return chip('data-kstyle="' + x.id + '"', pe.style === x.id, esc(nm(x)) + ' <small>' + (x.price ? '+' + baht(x.price) : t('รวมแล้ว', 'included')) + '</small>'); }).join('') + '</div>';
     h += '<div class="prefs"><div class="prow"><span>' + t('น้ำหนักมือ', 'Pressure') + '</span><div class="chips">' + PRESSURE.map(function (x) { return chip('data-kpref="pressure|' + x[0] + '"', pe.pressure === x[0], S.lang === 'en' ? x[2] : x[1]); }).join('') + '</div></div>' +
       (bodyWork(p) ? '<div class="prow"><span>' + t('ใช้ศอกรีด', 'Elbows') + '</span><div class="chips">' + chip('data-kpref="elbow|ok"', pe.elbow === 'ok', t('ใช้ได้', 'OK')) + chip('data-kpref="elbow|no"', pe.elbow === 'no', t('ไม่ใช้ศอก', 'No elbows')) + '</div></div>' : '') +
-      '<div class="prow"><span>' + t('ระหว่างนวด', 'During') + '</span><div class="chips">' + chip('data-kpref="quiet|0"', !pe.quiet, t('คุยได้', 'Happy to chat')) + chip('data-kpref="quiet|1"', !!pe.quiet, t('ขอพักเงียบๆ', 'Quiet, please')) + '</div></div></div>';
-    if (!useT) h += '<span class="hint">' + t('ซื้อกี่ครั้ง', 'How many sessions') + '</span><div class="grid3">' + [['1', t('ครั้งเดียว', 'Today only'), p.price], ['5', t('คอร์ส 5 ครั้ง', '5 sessions'), p.pack5], ['11', t('10 แถม 1', '10 + 1 free'), p.pack11]].map(function (x) {
+    (p.stretch ? '<div class="prow"><span>' + t('ปลุก บิดตัว ดัดตัว', 'Waking &amp; stretching') + '</span><div class="chips">' + chip('data-kpref="stretch|ok"', pe.stretch !== 'no', t('บิด/ดัดตัวได้', 'Yes, stretch me')) + chip('data-kpref="stretch|no"', pe.stretch === 'no', t('ไม่ต้องปลุก ไม่บิด ไม่ดัดตัว (ปล่อยหลับ)', 'Let me sleep, no stretching')) + '</div></div>' : '') +
+      '<div class="prow"><span>' + t('ระหว่างนวด', 'During') + '</span><div class="chips">' + chip('data-kpref="quiet|0"', !pe.quiet, t('คุยได้', 'Happy to chat')) + chip('data-kpref="quiet|1"', !!pe.quiet, t('ขอพักเงียบๆ', 'Quiet, please')) + '</div></div>' +
+      '<div class="prow"><span>' + t('แจ้งหมอนวด (ถ้ามี)', 'Tell your therapist (if any)') + '</span><div class="chips">' + (S.cfg.alerts || []).map(function (x) { return chip('data-kalert="' + x.id + '"', (pe.alerts || []).indexOf(x.id) >= 0, esc(nm(x))); }).join('') + '</div></div>' +
+      ((pe.alerts || []).length ? '<label class="check"><input type="checkbox" id="k-health"' + (pe.healthOk ? ' checked' : '') + '><span>' + t('ยินยอมให้ Lana เก็บข้อมูลนี้ และให้หมอนวดที่ดูแลเห็นเท่านั้น', 'I agree Lana keeps this and only my therapist sees it') + '</span></label>' : '') + '</div>';
+    if (!useT) h += '<span class="hint">' + t('ซื้อกี่ครั้ง', 'How many sessions') + '</span><div class="grid3">' + [['1', t('ครั้งเดียว', 'Today only'), p.price], ['3', t('คอร์ส 3 ครั้ง', '3 sessions'), p.pack3], ['5', t('คอร์ส 5 ครั้ง', '5 sessions'), p.pack5], ['11', t('10 แถม 1', '10 + 1 free'), p.pack11]].filter(function (x) { return x[2]; }).map(function (x) {
       return '<button class="opt" data-kpack="' + x[0] + '" aria-pressed="' + ((k.pack || '1') === x[0]) + '"><span class="t">' + x[1] + '</span><span class="s">' + baht(x[2]) + '</span></button>'; }).join('') + '</div>' +
       ((k.pack || '1') !== '1' ? '<span class="hint">' + t('ใช้วันนี้ 1 ครั้ง ที่เหลือเก็บไว้ใช้ครั้งหน้า ดูได้ใน LINE ของร้าน (MY LANA) ต้องใส่เบอร์หรืออีเมล', 'One is used today; the rest are saved for next time (see MY LANA in our LINE). Phone or email needed.') + '</span>' : '');
     var tier = k.tier || null, ls = lines(p, pe, useT, tier ? tier.free : [], tier ? nm(tier) : '', k.pack), total = ls.reduce(function (s, l) { return s + l.amount; }, 0);
@@ -502,7 +534,7 @@ button.mcard:active { transform: scale(.99); }
       '<span style="font-size:13px">' + (k.match.tickets ? t('บัญชีนี้มีตั๋วที่ใช้ที่สาขานี้ได้ ', 'This account has tickets usable here: ') + k.match.tickets + t(' ใบ ใช้แทนการจ่ายได้', '. Use one instead of paying.') : t('ซื้อครั้งนี้เข้าบัญชีเดิมได้ ตั๋ว ประวัติ และของขวัญอยู่ที่เดียวกัน', 'Add this purchase to the same account so tickets, history and gifts stay together.')) + '</span>' +
       '<div class="row2">' + (k.match.tickets ? '<button class="btn small" data-kmember="tickets">' + t('ใช้ตั๋วที่มี', 'Use my ticket') + '</button>' : '') + '<button class="btn small' + (k.match.tickets ? ' ghost' : '') + '" data-kmember="buy">' + t('ซื้อใหม่ เข้าบัญชีเดิม', 'Buy, add to my account') + '</button><button class="btn small ghost" data-kmember="edit">' + t('ไม่ใช่ฉัน แก้เบอร์', 'Not me, edit') + '</button></div></div>';
     if (k.err) h += '<p class="err">' + esc(k.err) + '</p>';
-    var ready = !p.hair || pe.hair;
+    var ready = (!p.hair || pe.hair) && (!(pe.alerts || []).length || pe.healthOk);
     h += '<button class="btn block kb" data-kpay' + (ready ? '' : ' disabled') + '>' + (total ? t('จ่าย ', 'Pay ') + baht(total) + t(' และรับคิว', ' & get queue number') : t('รับคิว', 'Get queue number')) + '</button>' + (ready ? '' : '<span class="hint">' + t('เลือกความยาวผมก่อน', 'Choose hair length first') + '</span>') + '</div></div>';
     return h;
   }
@@ -613,10 +645,12 @@ button.mcard:active { transform: scale(.99); }
     if (d.kuse !== undefined) return go('walkin', { useT: true, tickets: k.found.tickets, who: k.who, tier: k.found.member.tier });
     if (d.kbuy !== undefined) return go('walkin', k.who && k.found ? { memberChoice: 'buy', who: k.who, tier: k.found.member.tier } : {});
     if (d.kprog) { k.prog = d.kprog; k.person = newPerson(); render(); var tb = $('tbody'); if (tb) tb.scrollTop = 0; return; }
+    if (d.kvar) { saveForm(); k.prog = d.kvar; if (k.person) k.person.addons = k.person.addons.filter(function (id) { var a = find(S.cfg.addons, id); return a && a.for.indexOf(d.kvar) >= 0; }); if (!(prog(d.kvar) || {}).pack3 && k.pack === '3') k.pack = '1'; return render(); }
     if (d.kmenu !== undefined) { k.prog = ''; k.person = null; render(); var tb2 = $('tbody'); if (tb2) tb2.scrollTop = 0; return; }
     if (d.kpack) { saveForm(); k.pack = d.kpack; return render(); }
     if (d.khair) { saveForm(); k.person.hair = d.khair; return render(); }
     if (d.kstyle) { saveForm(); k.person.style = d.kstyle; return render(); }
+    if (d.kalert) { saveForm(); var pa = k.person; pa.alerts = pa.alerts || []; var ix = pa.alerts.indexOf(d.kalert); if (ix >= 0) pa.alerts.splice(ix, 1); else pa.alerts.push(d.kalert); return render(); }
     if (d.kpref) { saveForm(); var pp = d.kpref.split('|'); k.person[pp[0]] = pp[0] === 'quiet' ? pp[1] === '1' : pp[1]; return render(); }
     if (d.kmember) {
       if (d.kmember === 'edit') { k.match = null; k.phoneRaw = ''; k.email = ''; return render(); }
@@ -636,6 +670,7 @@ button.mcard:active { transform: scale(.99); }
     var el = e.target, k = S.k;
     if (el.dataset.kaddon) { saveForm(); var i = k.person.addons.indexOf(el.dataset.kaddon); if (el.checked && i < 0) k.person.addons.push(el.dataset.kaddon); if (!el.checked && i >= 0) k.person.addons.splice(i, 1); render(); }
     if (el.id === 'k-phone' || el.id === 'k-email') { k.match = null; k.choice = null; }
+    if (el.id === 'k-health') { saveForm(); k.person.healthOk = el.checked; return render(); }
   });
   $('tback').onclick = function () { go('home'); };
   /* back to the welcome screen after 90 s without a touch */

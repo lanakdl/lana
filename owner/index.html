@@ -455,7 +455,8 @@ tr.click:hover td { background: color-mix(in srgb, var(--sand) 18%, var(--card))
       '<div class="row"><span>ค่ามือ + ทิป ที่ต้องจ่าย</span><span>−' + baht(d.total.payroll) + '</span></div><div class="row tot"><span>คงเหลือ</span><span>' + baht(d.total.sales + d.total.tips - d.total.payroll) + '</span></div>' +
       '<div class="row"><span>ลูกค้าที่ทำเสร็จ</span><span>' + d.guests + ' คน</span></div></div>' +
       '<div class="box"><h3>ค่ามือวันนี้</h3>' + (d.staff.length ? d.staff.map(function (p) { return '<div class="row"><span>' + esc(p.name) + ' · ' + p.jobs + ' งาน</span><span>' + baht(p.total) + '</span></div>'; }).join('') +
-      '<div class="row tot"><span>รวมต้องจ่าย</span><span>' + baht(d.total.payroll) + '</span></div>' : '<div class="empty" style="padding:12px">ยังไม่มีงาน</div>') + '</div></div>';
+      '<div class="row tot"><span>รวมต้องจ่าย</span><span>' + baht(d.total.payroll) + '</span></div>' : '<div class="empty" style="padding:12px">ยังไม่มีงาน</div>') +
+      '<h3 style="margin-top:16px">ใครมาทำงาน</h3>' + ((d.att || []).length ? d.att.map(function (a) { return '<div class="row"><span>' + esc(a.name) + ' · ' + esc(a.inAt) + '–' + (a.open ? 'ยังอยู่' : esc(a.outAt) + (a.auto ? ' (ระบบออกให้)' : '')) + '</span><span>' + a.hours + ' ชม.</span></div>'; }).join('') : '<div class="empty" style="padding:12px">ไม่มีใครกดเข้างาน</div>') + '</div></div>';
     h += '</section>' + (S.err ? '<p class="err">' + esc(S.err) + '</p>' : '') + '<div class="foot"><span>ยอดนับตามวันที่ลูกค้าจ่ายเงิน · ข้อมูลจากระบบจริง</span>' + (demo ? '' : '<button id="logout">ออกจากระบบ</button>') + '</div></div>';
     app.innerHTML = h;
     $('br').value = S.branch;
@@ -512,14 +513,14 @@ tr.click:hover td { background: color-mix(in srgb, var(--sand) 18%, var(--card))
   function demoNow() { var p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date()), g = {}; p.forEach(function (x) { g[x.type] = x.value; }); return { date: g.year + '-' + g.month + '-' + g.day, min: 17 * 60 }; }
   function seedDemo(st, now) {
     var seed = 7, rnd = function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }, pick = function (a) { return a[Math.floor(rnd() * a.length)]; };
-    var names = ['คุณแพร', 'Sophie', 'คุณบอส', 'Kenji', 'คุณมิ้นท์', 'Anna', 'คุณต้น', 'Lucas', 'คุณฝน', 'Mei'], progs = ['SPA45', 'SPA90', 'THAI120', 'FOOT90', 'NECK60', 'COMBO120'];
+    var names = ['คุณแพร', 'Sophie', 'คุณบอส', 'Kenji', 'คุณมิ้นท์', 'Anna', 'คุณต้น', 'Lucas', 'คุณฝน', 'Mei'], progs = ['HEAD60', 'COCO120', 'THAI120', 'FOOT90', 'NECK60', 'COMBO120'];
     var staff = st.staff();
     staff.push({ id: 'S8', name: 'ฝน', type: 'PT', branch: 'NIM', skills: 'ALL', active: 'TRUE' }, { id: 'S9', name: 'จอย', type: 'PT', branch: 'MCH', skills: 'ALL', active: 'TRUE' });
     for (var back = 45; back >= 0; back--) {
       var d = new Date(now.date + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - back); var date = d.toISOString().slice(0, 10);
       var count = 4 + Math.floor(rnd() * 9);
       for (var i = 0; i < count; i++) {
-        var br = rnd() < 0.65 ? 'NIM' : 'MCH', pid = br === 'MCH' ? pick(['SPA45', 'SPA90']) : pick(progs), prog = lnFind(LANA.PROGRAMS, pid), t = 600 + Math.floor(rnd() * 600);
+        var br = rnd() < 0.65 ? 'NIM' : 'MCH', pid = br === 'MCH' ? pick(['HEAD60', 'COCO120']) : pick(progs), prog = lnFind(LANA.PROGRAMS, pid), t = 600 + Math.floor(rnd() * 600);
         if (back === 0 && t > now.min - 60) continue;
         var sm = staff.filter(function (s) { return s.branch === br; }); var s = pick(sm.length ? sm : staff);
         var pe = { name: pick(names), prog: pid, hair: 'short', style: 'normal', addons: [], chain: lnChain(prog, { hair: 'short', style: 'normal', addons: [] }) };
@@ -534,6 +535,7 @@ tr.click:hover td { background: color-mix(in srgb, var(--sand) 18%, var(--card))
         if (walk) st.saveOrder({ id: 'OW' + b.id, kind: 'walkin', amount: prog.price, status: 'paid', prog: pid, count: 1, bookingId: b.id, items: [], paidAt: stamp(t - 5) });
         if (ext || tip) st.saveOrder({ id: 'OC' + b.id, kind: 'checkout', amount: (ext ? LANA.EXT_PRICE : 0) + tip, status: 'paid', bookingId: b.id, items: (ext ? [{ th: 'ต่อเวลา 30 นาที', en: 'Extra 30 min', amount: LANA.EXT_PRICE }] : []).concat(tip ? [{ th: 'ทิป', en: 'Tip', amount: tip }] : []), paidAt: stamp(m0 + 3) });
       }
+      staff.forEach(function (sf) { if (sf.id === 'S8' && rnd() < 0.3) return; st.addShift({ staffId: sf.id, date: date, branch: sf.branch, in: '0' + (9 + Math.floor(rnd() * 1)) + ':' + (40 + Math.floor(rnd() * 19)), out: back === 0 ? '' : '21:' + (10 + Math.floor(rnd() * 40)) }); });
       if (rnd() < 0.3) { var cp = lnFind(LANA.PROGRAMS, pick(progs)), mid = 'MD' + back; st.saveMember({ id: mid, name: pick(names) }); st.saveOrder({ id: 'OB' + date, memberId: mid, kind: 'buy', amount: lnPack(cp, 5), status: 'paid', prog: cp.id, count: 5, items: [], paidAt: date + ' 12:10' }); }
     }
   }

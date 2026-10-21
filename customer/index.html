@@ -385,7 +385,7 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
   function tierName() { return S.d && S.d.tier ? nm(S.d.tier) : ''; }
   function personLines(p, pe, free) {
     var out = [], h = hairT(pe.hair), st = styleT(pe.style);
-    if (p.hair && h && h.price) out.push({ label: t('ผมยาว', 'Long hair') + ' (' + nm(h) + ')', amount: h.price });
+    if (p.hair && !p.hairFree && h && h.price) out.push({ label: t('ผมยาว', 'Long hair') + ' (' + nm(h) + ')', amount: h.price });
     if (p.hair && st.price) out.push({ label: nm(st), amount: st.price });
     (pe.addons || []).forEach(function (id) { var a = addon(id), tf = free && tierFree().indexOf(id) >= 0, f = !tf && free && free.indexOf(id) >= 0; if (!a) return; out.push({ label: nm(a) + (tf ? ' · ' + t('ฟรีสิทธิ์ ', 'free · ') + tierName() : f ? ' · ' + t('ฟรีด้วยวอเชอร์', 'free with voucher') : ''), amount: tf || f ? 0 : a.price }); });
     return out;
@@ -396,11 +396,11 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
   function focusAreas(p) {
     if (p.id === 'FOOT90') return [['ฝ่าเท้า', 'Soles'], ['น่อง', 'Calves'], ['คอ บ่า', 'Neck & shoulders']];
     if (p.id === 'NECK60') return [['คอ', 'Neck'], ['บ่า', 'Shoulders'], ['สะบัก', 'Shoulder blades'], ['ศีรษะ', 'Head']];
-    if (p.segs.some(function (s) { return s.res === 'thai'; })) return [['คอ บ่า', 'Neck & shoulders'], ['หลัง', 'Back'], ['เอว', 'Lower back'], ['ขา', 'Legs'], ['เท้า', 'Feet']];
+    if (p.segs.some(function (s) { return /thai|oil/.test(s.res); })) return [['คอ บ่า', 'Neck & shoulders'], ['หลัง', 'Back'], ['เอว', 'Lower back'], ['ขา', 'Legs'], ['เท้า', 'Feet']];
     return [['ขมับ', 'Temples'], ['ท้ายทอย', 'Base of skull'], ['คอ บ่า', 'Neck & shoulders']];
   }
-  function bodyWork(p) { return p.segs.some(function (s) { return s.res === 'thai' || s.res === 'chair'; }); }
-  function newPerson(name, lp) { lp = lp || {}; return { name: name || '', hair: lp.hair || null, addons: (lp.addons || []).slice(), style: lp.style || 'normal', pressure: lp.pressure || 'medium', elbow: lp.elbow || 'ok', focus: (lp.focus || []).slice(), quiet: !!lp.quiet, note: '', healthOk: false }; }
+  function bodyWork(p) { return p.segs.some(function (s) { return /thai|chair|oil/.test(s.res); }); }
+  function newPerson(name, lp) { lp = lp || {}; return { name: name || '', hair: lp.hair || null, addons: (lp.addons || []).slice(), style: lp.style || 'normal', pressure: lp.pressure || 'medium', elbow: lp.elbow || 'ok', stretch: lp.stretch || 'ok', focus: (lp.focus || []).slice(), quiet: !!lp.quiet, note: '', alerts: [], healthOk: false }; }
   function hairSvg(id) {
     var len = { short: 24, blade: 34, mid: 43, waist: 51 }[id] || 30;
     return '<svg viewBox="0 0 46 52" aria-hidden="true"><path d="M8 ' + len + ' C8 6, 38 6, 38 ' + len + '" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" opacity=".55"/><circle cx="23" cy="20" r="10" fill="currentColor" opacity=".9"/><path d="M12 52 C12 38, 34 38, 34 52" fill="currentColor" opacity=".35"/></svg>';
@@ -502,33 +502,47 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     if (b.status === 'finished') return t('จบแล้ว จ่ายและให้ดาว', 'Done, pay & rate');
     return '';
   }
+  /* the same treatment in several lengths (or with a choice of second part) is one card / one choice */
+  function onSale() { return S.cfg.programs.filter(function (p) { return !p.hidden; }); }
+  function vl(p) { return p.vlabel ? (S.lang === 'en' ? p.vlabel.en : p.vlabel.th) : nm(p); }
+  function gnm(p) { return p.group ? (S.lang === 'en' ? p.group.en : p.group.th) : nm(p); }
+  function bundles(list) { var out = [], at = {}; list.forEach(function (p) { var k = p.group ? 'g:' + p.group.th : p.id; if (at[k] === undefined) { at[k] = out.length; out.push([]); } out[at[k]].push(p); }); return out; }
+  function sibs(p) { return p.group ? onSale().filter(function (x) { return x.group && x.group.th === p.group.th; }) : [p]; }
+  function packList(p) {
+    return [['1', t('1 ครั้ง', 'Single'), p.price, 1, ''], ['3', t('3 ครั้ง', '3 sessions'), p.pack3, 3, t('ประหยัด ', 'Save ') + baht(p.price * 3 - p.pack3)],
+      ['5', t('5 ครั้ง', '5 sessions'), p.pack5, 5, t('ประหยัด ', 'Save ') + baht(p.price * 5 - p.pack5)], ['11', t('10 แถม 1', '10 + 1 free'), p.pack11, 11, t('ฟรี 1 ครั้ง', '1 free')],
+      ['pass', t('บุฟเฟ่ต์ 30 วัน', '30-day buffet'), p.pass30, t('บุฟเฟ่ต์', 'buffet'), t('วันละ 1 ครั้ง', 'once a day')]].filter(function (k) { return k[2]; });
+  }
   function scrMenu() {
     var h = '<p class="hint" style="padding-top:12px">' + t('ทุกโปรแกรมบอกเวลาของแต่ละช่วงไว้ชัดๆ คุณจะรู้ว่าได้นวดกี่นาที', 'Every treatment shows the minutes for each part, so you know exactly how long your massage is.') + '</p>';
-    h += '<div style="display:grid;gap:12px;padding-top:12px">' + S.cfg.programs.map(function (p) {
-      return '<div class="pcard"><div class="top"><h3>' + esc(nm(p)) + '</h3><span class="dur">' + totalMin(p) + ' <small>' + t('นาที', 'min') + '</small></span></div>' +
-        '<p>' + esc(S.lang === 'en' ? p.desc_en : p.desc_th) + '</p>' + stepBar(p) +
-        '<div class="packs"><div><span>' + t('1 ครั้ง', 'Single') + '</span><b class="price">' + baht(p.price) + '</b></div>' +
-        '<div><span>' + t('คอร์ส 5 ครั้ง', '5 sessions') + '</span><span class="price">' + baht(p.pack5) + ' · ' + t('ครั้งละ ', '') + baht(Math.round(p.pack5 / 5)) + t('', ' each') + '</span></div>' +
-        '<div><span>' + t('คอร์ส 10 แถม 1', '10 + 1 free') + '</span><span class="price">' + baht(p.pack11) + ' · ' + t('ครั้งละ ', '') + baht(Math.round(p.pack11 / 11)) + t('', ' each') + '</span></div></div>' +
+    h += '<div style="display:grid;gap:12px;padding-top:12px">' + bundles(onSale()).map(function (items) {
+      var p = items[0], many = items.length > 1;
+      return '<div class="pcard"><div class="top"><h3>' + esc(gnm(p)) + '</h3>' + (many ? '' : '<span class="dur">' + totalMin(p) + ' <small>' + t('นาที', 'min') + '</small></span>') + '</div>' +
+        '<p>' + esc(S.lang === 'en' ? p.desc_en : p.desc_th) + '</p>' + (many ? '' : stepBar(p)) +
+        (many ? '<div class="packs">' + items.map(function (x) { return '<div><span>' + esc(vl(x)) + '</span><span style="display:flex;gap:10px;align-items:center"><b class="price">' + baht(x.price) + '</b><button class="btn small" data-buy="' + x.id + '">' + t('ซื้อ', 'Buy') + '</button></span></div>'; }).join('') + '</div>'
+          : '<div class="packs">' + packList(p).map(function (k) { return '<div><span>' + k[1] + '</span><span class="price">' + baht(k[2]) + (typeof k[3] === 'number' && k[3] > 1 ? ' · ' + t('ครั้งละ ', '') + baht(Math.round(k[2] / k[3])) + t('', ' each') : k[0] === 'pass' ? ' · ' + k[4] : '') + '</span></div>'; }).join('') + '</div>') +
         (p.hair ? '<p class="hint">' + t('ผมยาวจ่ายเพิ่มตามความยาว เพื่อเพิ่มเวลาเป่า เวลานวดของคุณไม่ถูกตัด', 'Long hair adds blow-dry time for a small fee, so your massage time is never cut.') + '</p>' : '') +
-        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="hint">' + esc(where(p)) + '</span><button class="btn small" data-buy="' + p.id + '">' + t('ซื้อ', 'Buy') + '</button></div></div>';
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="hint">' + esc(where(p)) + '</span>' + (many ? '' : '<button class="btn small" data-buy="' + p.id + '">' + t('ซื้อ', 'Buy') + '</button>') + '</div></div>';
     }).join('') + '</div>';
     return { title: t('เมนู', 'Menu'), body: h };
   }
   function scrBuy() {
-    var u = S.ui; if (!u.prog || !prog(u.prog)) u.prog = S.cfg.programs[0].id; if (!u.pack) u.pack = '1';
+    var u = S.ui; if (!u.prog || !prog(u.prog) || prog(u.prog).hidden) u.prog = onSale()[0].id; if (!u.pack) u.pack = '1';
     var p = prog(u.prog), have = tickets().length, h = '';
     if (have) h += '<div class="sec"><div class="wrow"><div><div class="t">' + t('คุณมีตั๋ว ', 'You have ') + have + t(' ใบ', ' tickets') + '</div><div class="s">' + t('ใช้ลงเวลาได้เลย ไม่ต้องซื้อใหม่', 'Book a time with them now') + '</div></div><button class="btn small" data-go="book">' + t('จองเวลา', 'Book') + '</button></div></div>';
-    h += '<div class="sec"><h3><span class="n">1</span>' + t('เลือกโปรแกรม', 'Choose a treatment') + '</h3><div class="opts">' + S.cfg.programs.map(function (x) {
-      return '<button class="opt" data-pick-prog="' + x.id + '" aria-pressed="' + (x.id === u.prog) + '"><span class="t">' + esc(nm(x)) + ' · ' + totalMin(x) + ' ' + t('นาที', 'min') + '</span><span class="s">' + baht(x.price) + ' · ' + esc(where(x)) + '</span></button>';
-    }).join('') + '</div></div>';
-    var packs = [['1', t('1 ครั้ง', 'Single'), p.price, 1, ''], ['5', t('5 ครั้ง', '5 sessions'), p.pack5, 5, t('ประหยัด ', 'Save ') + baht(p.price * 5 - p.pack5)], ['11', t('10 แถม 1', '10 + 1 free'), p.pack11, 11, t('ฟรี 1 ครั้ง', '1 free')]];
+    h += '<div class="sec"><h3><span class="n">1</span>' + t('เลือกโปรแกรม', 'Choose a treatment') + '</h3><div class="opts">' + bundles(onSale()).map(function (items) {
+      var x = items[0], on = items.some(function (i) { return i.id === u.prog; }), low = Math.min.apply(null, items.map(function (i) { return i.price; }));
+      return '<button class="opt" data-pick-prog="' + (on ? u.prog : x.id) + '" aria-pressed="' + on + '"><span class="t">' + esc(gnm(x)) + (items.length > 1 ? '' : ' · ' + totalMin(x) + ' ' + t('นาที', 'min')) + '</span><span class="s">' + (items.length > 1 ? t('เริ่ม ', 'from ') : '') + baht(low) + ' · ' + esc(where(x)) + '</span></button>';
+    }).join('') + '</div>' +
+      (sibs(p).length > 1 ? '<div class="grid3" style="margin-top:10px">' + sibs(p).map(function (x) { return '<button class="opt" data-pick-prog="' + x.id + '" aria-pressed="' + (x.id === u.prog) + '"><span class="t">' + esc(vl(x)) + '</span><span class="s price">' + baht(x.price) + '</span></button>'; }).join('') + '</div>' : '') + '</div>';
+    var packs = packList(p); if (!packs.some(function (k) { return k[0] === u.pack; })) u.pack = '1';
     h += '<div class="sec"><h3><span class="n">2</span>' + t('ซื้อกี่ครั้ง', 'How many sessions') + '</h3><div class="grid3">' + packs.map(function (k) {
       return '<button class="opt" data-pack="' + k[0] + '" aria-pressed="' + (u.pack === k[0]) + '"><span class="t">' + k[1] + '</span><span class="s price">' + baht(k[2]) + '</span>' + (k[4] ? '<span class="badge olive">' + k[4] + '</span>' : '<span class="s">&nbsp;</span>') + '</button>';
-    }).join('') + '</div><p class="hint">' + t('ตั๋วไม่มีวันหมดอายุ แชร์ให้แฟนหรือเพื่อนใช้ได้ ใช้ได้กับโปรแกรมนี้เท่านั้น ไม่รับคืนเงิน', 'Tickets never expire and can be shared with a partner or friend, for this treatment only. No refunds.') + '</p></div>';
+    }).join('') + '</div><p class="hint">' + (u.pack === 'pass' ? t('บุฟเฟ่ต์ใช้ได้ 30 วันนับจากวันที่จ่าย วันละ 1 ครั้ง เฉพาะเจ้าของบัญชี จองเวลาได้ทีละนัด ไม่รับคืนเงิน', 'The buffet runs 30 days from payment, once a day, for the account holder only, one booking at a time. No refunds.')
+      : t('ตั๋วไม่มีวันหมดอายุ แชร์ให้แฟนหรือเพื่อนใช้ได้ ใช้ได้กับโปรแกรมนี้เท่านั้น ไม่รับคืนเงิน', 'Tickets never expire and can be shared with a partner or friend, for this treatment only. No refunds.')) + '</p></div>';
     var pk = packs.filter(function (k) { return k[0] === u.pack; })[0];
     return { title: t('ซื้อและจอง', 'Buy & Book'), body: h,
-      foot: '<div class="sum">' + esc(nm(p)) + ' × ' + pk[3] + '<b class="price">' + baht(pk[2]) + '</b></div><button class="btn" id="buygo">' + t('ชำระเงิน', 'Pay') + '</button>' };
+      foot: '<div class="sum">' + esc(nm(p)) + (u.pack === 'pass' ? ' · ' : ' × ') + pk[3] + '<b class="price">' + baht(pk[2]) + '</b></div><button class="btn" id="buygo">' + t('ชำระเงิน', 'Pay') + '</button>' };
   }
   function scrSignup() {
     var u = S.ui;
@@ -603,7 +617,7 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
         h += '<div class="person"><b>' + (i === 0 ? t('คุณ', 'You') : t('คนที่ ', 'Guest ') + (i + 1)) + '</b>';
         if (i > 0) h += '<input data-pn="' + i + '" placeholder="' + t('ชื่อ', 'Name') + '" value="' + esc(pe.name) + '">';
         if (p.hair) h += '<span class="hint">' + t('ผมยาวแค่ไหน', 'How long is the hair?') + '</span><div class="hair">' + S.cfg.hair.map(function (x) {
-          return '<button class="opt" data-hair="' + i + ':' + x.id + '" aria-pressed="' + (pe.hair === x.id) + '">' + hairSvg(x.id) + '<span class="t" style="font-size:13px">' + esc(nm(x)) + '</span><span class="s">' + (x.price ? '+' + baht(x.price) : t('ไม่เพิ่ม', 'no extra')) + '</span></button>'; }).join('') + '</div>';
+          return '<button class="opt" data-hair="' + i + ':' + x.id + '" aria-pressed="' + (pe.hair === x.id) + '">' + hairSvg(x.id) + '<span class="t" style="font-size:13px">' + esc(nm(x)) + '</span><span class="s">' + (x.price && !p.hairFree ? '+' + baht(x.price) : t('ไม่เพิ่ม', 'no extra')) + '</span></button>'; }).join('') + '</div>';
         h += opts.map(function (a) {
           var tf = i === 0 && tierFree().indexOf(a.id) >= 0, v = tf || (i === 0 && free.indexOf(a.id) >= 0), on = pe.addons.indexOf(a.id) >= 0;
           return '<label class="addon"><input type="checkbox" data-addon="' + i + ':' + a.id + '"' + (on ? ' checked' : '') + '><span><span class="t">' + esc(nm(a)) + '</span>' + (a.rec ? ' <span class="badge">' + t('ลูกค้าส่วนใหญ่เลือก', 'Most popular') + '</span>' : '') +
@@ -654,7 +668,7 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     var due = 0;
     if (!resch) { var fr = freeAddons(); u.people.forEach(function (pe, pi) { personLines(p2, pe, pi === 0 ? fr : []).forEach(function (l) { due += l.amount; }); }); }
     u.due = due;
-    var ready = u.branch && u.date && u.time != null && !hairMissing && u.people.every(function (pe) { return !pe.note || pe.healthOk; });
+    var ready = u.branch && u.date && u.time != null && !hairMissing && u.people.every(function (pe) { return !(pe.note || (pe.alerts || []).length) || pe.healthOk; });
     var foot = '<div class="sum">' + (u.time != null && u.branch ? esc(nm(branch(u.branch))) + ' · ' + longD(u.date) + ' ' + hm(u.time) : t('เลือกสาขาและเวลา', 'Pick branch & time')) + '<b class="price">' + (due ? t('จ่ายเพิ่ม ', 'Pay ') + baht(due) : resch ? '' : t('ใช้ตั๋ว ไม่ต้องจ่ายเพิ่ม', 'Ticket covers it')) + '</b></div><button class="btn" id="bkgo"' + (ready ? '' : ' disabled') + '>' + (resch ? t('ยืนยันเวลาใหม่', 'Confirm new time') : due ? t('จ่ายและยืนยัน', 'Pay & confirm') : t('ยืนยันจอง', 'Confirm')) + '</button>';
     return { title: resch ? t('เลื่อนนัด', 'Reschedule') : t('จองเวลา', 'Book a time'), body: h, foot: foot, after: function () { var sel = document.querySelector('.date[aria-pressed="true"]'); if (sel) sel.scrollIntoView({ block: 'nearest', inline: 'center' }); } };
   }
@@ -664,10 +678,12 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     h += '<div class="prefs"><span class="hint">' + t('ความชอบของคุณ (ไม่มีค่าใช้จ่าย หมอนวดเห็นในใบงาน)', 'Your preferences (free, shown to your therapist)') + '</span>' +
       '<div class="prow"><span>' + t('น้ำหนักมือ', 'Pressure') + '</span><div class="chips">' + PRESSURE.map(function (x) { return chip('data-pref="' + key + '|pressure|' + x[0] + '"', pe.pressure === x[0], S.lang === 'en' ? x[2] : x[1]); }).join('') + '</div></div>';
     if (bodyWork(p)) h += '<div class="prow"><span>' + t('ใช้ศอกรีด', 'Elbows') + '</span><div class="chips">' + chip('data-pref="' + key + '|elbow|ok"', pe.elbow === 'ok', t('ใช้ได้', 'OK')) + chip('data-pref="' + key + '|elbow|no"', pe.elbow === 'no', t('ไม่ใช้ศอก', 'No elbows')) + '</div></div>';
+    if (p.stretch) h += '<div class="prow"><span>' + t('ปลุก บิดตัว ดัดตัว', 'Waking &amp; stretching') + '</span><div class="chips">' + chip('data-pref="' + key + '|stretch|ok"', pe.stretch !== 'no', t('บิด/ดัดตัวได้', 'Yes, stretch me')) + chip('data-pref="' + key + '|stretch|no"', pe.stretch === 'no', t('ไม่ต้องปลุก ไม่บิด ไม่ดัดตัว (ปล่อยหลับ)', 'Let me sleep, no stretching')) + '</div></div>';
     h += '<div class="prow"><span>' + t('อยากให้เน้น', 'Focus on') + '</span><div class="chips">' + focusAreas(p).map(function (a) { return chip('data-focus="' + key + '|' + a[0] + '"', pe.focus.indexOf(a[0]) >= 0, S.lang === 'en' ? a[1] : a[0]); }).join('') + '</div></div>' +
       '<div class="prow"><span>' + t('ระหว่างนวด', 'During') + '</span><div class="chips">' + chip('data-pref="' + key + '|quiet|0"', !pe.quiet, t('คุยได้', 'Happy to chat')) + chip('data-pref="' + key + '|quiet|1"', !!pe.quiet, t('ขอพักเงียบๆ', 'Quiet, please')) + '</div></div>' +
-      '<label class="f">' + t('แจ้งหมอนวด เช่น แพ้น้ำมันหรือจุดที่เจ็บ (ไม่บังคับ)', 'Tell your therapist, e.g. oil allergy or a sore spot (optional)') + '<input data-note="' + key + '" maxlength="200" value="' + esc(pe.note || '') + '"></label>' +
-      (pe.note ? '<label class="check"><input type="checkbox" data-health="' + key + '"' + (pe.healthOk ? ' checked' : '') + '><span>' + t('ยินยอมให้ Lana เก็บข้อมูลนี้ และให้หมอนวดที่ดูแลเห็นเท่านั้น', 'I agree Lana keeps this note and only my therapist sees it') + '</span></label>' : '') + '</div>';
+      '<div class="prow"><span>' + t('แจ้งหมอนวด (ถ้ามี)', 'Tell your therapist (if any)') + '</span><div class="chips">' + (S.cfg.alerts || []).map(function (x) { return chip('data-alert="' + key + '|' + x.id + '"', (pe.alerts || []).indexOf(x.id) >= 0, esc(nm(x))); }).join('') + '</div></div>' +
+      '<label class="f">' + t('อื่นๆ พิมพ์เพิ่มได้ (ไม่บังคับ)', 'Anything else (optional, Thai or English)') + '<input data-note="' + key + '" maxlength="200" value="' + esc(pe.note || '') + '"></label>' +
+      (pe.note || (pe.alerts || []).length ? '<label class="check"><input type="checkbox" data-health="' + key + '"' + (pe.healthOk ? ' checked' : '') + '><span>' + t('ยินยอมให้ Lana เก็บข้อมูลนี้ และให้หมอนวดที่ดูแลเห็นเท่านั้น', 'I agree Lana keeps this note and only my therapist sees it') + '</span></label>' : '') + '</div>';
     return h;
   }
   function slotKey() {
@@ -691,7 +707,7 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
   }
   function scrLoc() {
     var h = '<div style="display:grid;gap:12px;padding-top:14px">' + S.cfg.branches.map(function (b) {
-      var progs = S.cfg.programs.filter(function (p) { return progAt(p, b); }).map(nm).join(', ');
+      var progs = bundles(onSale().filter(function (p) { return progAt(p, b); })).map(function (it) { return gnm(it[0]); }).join(', ');
       var map = b.map || (b.addr ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('Lana ' + b.addr) : '');
       return '<div class="pcard"><div class="top"><h3>' + esc(nm(b)) + '</h3>' + (b.soon ? '<span class="badge">Coming soon</span>' : '<span class="hint">' + hm(S.cfg.open) + '–' + hm(S.cfg.close) + '</span>') + '</div>' +
         (b.soon ? '<p class="hint">' + t('เปิดเร็วๆ นี้ ติดตามได้ใน LINE', 'Opening soon. Follow us on LINE.') + '</p>' :
@@ -747,11 +763,12 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     if (up.length) h += '<div class="sec"><h3>' + t('นัดที่จะถึง', 'Upcoming') + '</h3>' + up.map(upRow).join('') + '</div>';
     var groups = {}; tickets().forEach(function (k) { (groups[k.prog] = groups[k.prog] || []).push(k); });
     h += '<div class="sec"><h3>' + t('ตั๋วของฉัน', 'My tickets') + '</h3><div class="wallet">';
+    (S.d.passes || []).forEach(function (ps) { h += '<div class="wrow"><div><div class="t">' + esc(nm(prog(ps.prog))) + ' · ' + t('บุฟเฟ่ต์', 'Buffet') + '</div><div class="s">' + t('ใช้ได้ถึง ', 'Valid until ') + longD(ps.expires) + t(' วันละ 1 ครั้ง ตั๋วของวันนี้อยู่ด้านล่าง', ' · once a day, today\'s ticket is below') + '</div></div><span class="badge olive">' + t('บุฟเฟ่ต์', 'Buffet') + '</span></div>'; });
     var gk = Object.keys(groups).filter(function (id) { return prog(id); });
     if (!gk.length) h += '<div class="empty">' + t('ยังไม่มีตั๋ว', 'No tickets yet') + '</div>';
     gk.forEach(function (id) {
       var ks = groups[id], pt = ks.filter(function (k) { return k.rule === 'quiet'; });
-      h += '<div class="wrow"><div><div class="t">' + esc(nm(prog(id))) + '</div><div class="s">' + (pt.length ? t('จากพาร์ทเนอร์ ', 'Partner ') + pt.length + t(' ใบ ใช้ได้ถึง ', ', use by ') + longD(pt[0].expires) : t('ไม่มีวันหมดอายุ', 'Never expires')) + '</div></div><div style="display:flex;gap:10px;align-items:center"><span class="cnt">' + ks.length + '</span><button class="btn small" data-go-book="' + id + '">' + t('จอง', 'Book') + '</button></div></div>';
+      h += '<div class="wrow"><div><div class="t">' + esc(nm(prog(id))) + '</div><div class="s">' + (pt.length ? t('จากพาร์ทเนอร์ ', 'Partner ') + pt.length + t(' ใบ ใช้ได้ถึง ', ', use by ') + longD(pt[0].expires) : ks.some(function (k) { return k.src === 'pass'; }) ? t('จากบุฟเฟ่ต์ ใช้ได้ถึง ', 'From your buffet, use by ') + longD(ks[0].expires) : t('ไม่มีวันหมดอายุ', 'Never expires')) + '</div></div><div style="display:flex;gap:10px;align-items:center"><span class="cnt">' + ks.length + '</span><button class="btn small" data-go-book="' + id + '">' + t('จอง', 'Book') + '</button></div></div>';
     });
     h += '<button class="btn ghost" data-go="buy">' + t('ซื้อเพิ่ม', 'Buy more') + '</button></div></div>';
     var vs = S.d.vouchers;
@@ -793,20 +810,15 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
       h = '<span class="eyebrow">' + t('นัดถัดไป', 'Next visit') + '</span><h3>' + longD(bk.date) + ' · ' + hm(bk.start) + '</h3><p>' + esc(nm(prog(bk.people[0].prog))) + ' × ' + bk.people.length + ' · ' + esc(br) + '</p>' +
         '<p>' + t('ถึงร้านแล้วสแกน QR ที่เคาน์เตอร์เพื่อเช็กอิน', 'Scan the QR at the counter when you arrive') + '</p>' + (S.vkey ? '' : '<div class="row2"><button class="btn ghost" data-resched="' + bk.id + '">' + t('เลื่อนนัด', 'Reschedule') + '</button></div>');
       if (bk.earlier && bk.earlier.length && !S.vkey) h += '<div class="upcard"><b>' + t('วันนี้มีที่ว่างเร็วกว่านี้ อยากมาก่อนไหม?', 'There is space earlier today. Come sooner?') + '</b><span style="font-size:13px">' + t('เลื่อนมาได้ฟรี ตัวเลือกเสริมและความชอบย้ายตามมาหมด', 'Move for free; your extras and preferences come with you.') + '</span><div class="chips">' + bk.earlier.map(function (m) { return '<button class="chip" data-earlier="' + bk.id + '|' + m + '">' + hm(m) + '</button>'; }).join('') + '</div></div>';
-    } else if (bk.status === 'checkedin') {
-      h = '<span class="eyebrow">' + t('เช็กอินแล้ว', 'Checked in') + (bk.q ? ' · ' + esc(bk.q) : '') + '</span><h3>' + t('กำลังหาหมอนวดที่ว่างให้คุณ', 'Finding your therapist') + '</h3><p>' + t('ปกติไม่เกิน 3 นาที', 'Usually under 3 minutes') + '</p>';
-    } else if (bk.status === 'accepted') {
-      h = '<span class="eyebrow">' + t('พร้อมแล้ว', 'Ready') + '</span><h3>' + esc(staff) + t(' จะดูแลคุณวันนี้', ' will look after you today') + '</h3><p>' + t('เดินตามไปที่เตียงได้เลย นาฬิกาเริ่มเมื่อหมอนวดสแกนเตียง', 'Follow to your seat. The clock starts when your therapist scans the bed.') + '</p>';
-    } else if (bk.status === 'inservice') {
-      var end = bk.liveEnd, tot = Math.max(1, end - bk.svcStart), left = Math.max(0, end - nowMin()), pct = Math.min(100, (nowMin() - bk.svcStart) / tot * 100);
-      h = '<span class="eyebrow">' + t('กำลังรับบริการ', 'In session') + ' · ' + esc(staff) + '</span><div class="big">' + left + ' <span style="font-size:16px">' + t('นาทีที่เหลือ', 'min left') + '</span></div>' +
-        '<div class="bar"><i style="width:' + pct + '%"></i></div><p>' + t('เริ่ม ', 'Started ') + hm(bk.svcStart) + ' · ' + t('จบ ', 'Ends ') + hm(end) + (bk.ext ? ' · ' + t('ต่อเวลาแล้ว ', 'Extended ') + bk.ext * 30 + t(' นาที', ' min') : '') + '</p>';
+    } else if (bk.status === 'checkedin' || bk.status === 'accepted' || bk.status === 'inservice') {
+      /* during the visit we show no timer or steps: just a calm note (the shop runs the time) */
+      h = '<span class="eyebrow">' + t('วันนี้ที่ Lana', 'Today at Lana') + (bk.q ? ' · ' + t('คิว ', 'queue ') + esc(bk.q) : '') + '</span><h3>' + (bk.status === 'checkedin' ? t('เช็กอินแล้ว รอเรียกคิวสักครู่นะคะ', 'You are checked in. We will call your number shortly.') : t('ขอให้ผ่อนคลายนะคะ', 'Relax and enjoy.')) + '</h3>' +
+        '<p>' + esc(nm(prog(bk.people[0].prog))) + (bk.people.length > 1 ? ' × ' + bk.people.length : '') + '</p><p style="font-size:13px">' + t('เสร็จแล้วชำระส่วนเพิ่ม (ถ้ามี) และให้ดาวได้ที่หน้าร้าน หรือในหน้านี้', 'Afterwards, settle any extras and rate us at the counter or here.') + '</p>';
       if (bk.upgrade && bk.upgrade.state === 'pending') {
         var hu = hairT(bk.upgrade.to), hf = hairT(bk.upgrade.from) || S.cfg.hair[0];
         h += '<div class="upcard"><b>' + t('หมอนวดแจ้งว่าผมยาวระดับ "', 'Your therapist noted hair length "') + esc(nm(hu)) + '"</b><span style="font-size:13px">' + t('อัปเกรด ', 'Upgrade ') + baht(hu.price - hf.price) + t(' ได้เวลาเป่าเพิ่ม ', ' for ') + (hu.min - hf.min) + t(' นาที เวลานวดไม่ถูกตัด (จ่ายตอนจบ)', ' more blow-dry minutes, massage untouched (pay at the end)') + '</span>' +
           '<div class="row2"><button class="btn small" data-up="yes">' + t('อัปเกรด', 'Upgrade') + '</button><button class="btn small ghost" data-up="no">' + t('ไม่อัปเกรด ใช้เวลานวด', 'No, use massage time') + '</button></div></div>';
       }
-      h += '<p style="font-size:13px">' + (bk.canExtend ? t('อยากต่อเวลา 30 นาที (+', 'Want 30 more minutes (+') + baht(S.cfg.extPrice) + t(') บอกหมอนวดได้เลย', ')? Just tell your therapist.') : t('รอบนี้ต่อเวลาไม่ได้ ', 'Extending is not available this time') + (bk.extBlock === 'close' ? t('(ร้านใกล้ปิด)', ' (we close soon)') : t('(มีคิวต่อ)', ' (next guest booked)'))) + '</p>';
     }
     return '<div class="status">' + h + '</div>';
   }
@@ -862,7 +874,7 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
   function buyGo() {
     var u = S.ui; if (!needMember('buy', { prog: u.prog, pack: u.pack })) return;
     var p = prog(u.prog);
-    run(api('buy', { prog: u.prog, pack: u.pack, returnUrl: returnUrl() })).then(function (r) { goPay(r, nm(p) + ' × ' + ({ '1': 1, '5': 5, '11': 11 })[u.pack]); render(); }).catch(function () {});
+    run(api('buy', { prog: u.prog, pack: u.pack, returnUrl: returnUrl() })).then(function (r) { goPay(r, nm(p) + (u.pack === 'pass' ? ' · ' + t('บุฟเฟ่ต์ 30 วัน', '30-day buffet') : ' × ' + ({ '1': 1, '3': 3, '5': 5, '11': 11 })[u.pack])); render(); }).catch(function () {});
   }
   function signupGo() {
     var u = S.ui; u.name = $('su-name').value.trim(); u.phone = $('su-phone').value.trim(); u.email = $('su-email').value.trim(); u.consent = $('su-consent').checked; u.privacy = $('su-privacy').checked; u.bm = $('su-bm').value;
@@ -877,7 +889,7 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
   function bookGo() {
     var u = S.ui;
     if (u.resched) return run(api('resched', { id: u.resched, branch: u.branch, date: u.date, time: u.time }), t('เลื่อนนัดแล้ว ส่งอีเมลยืนยันใหม่ให้แล้ว', 'Moved. New confirmation emailed.')).then(function (d) { setD(d); S.slots = {}; home('my'); }).catch(function () { S.slots = {}; render(); });
-    var people = u.people.map(function (pe, i) { return { name: i === 0 ? S.d.member.name : pe.name, hair: pe.hair, addons: pe.addons, style: pe.style, pressure: pe.pressure, elbow: pe.elbow, focus: pe.focus, quiet: pe.quiet, note: pe.note, healthOk: pe.healthOk }; });
+    var people = u.people.map(function (pe, i) { return { name: i === 0 ? S.d.member.name : pe.name, hair: pe.hair, addons: pe.addons, style: pe.style, pressure: pe.pressure, elbow: pe.elbow, stretch: pe.stretch, focus: pe.focus, quiet: pe.quiet, note: pe.note, alerts: pe.alerts || [], healthOk: pe.healthOk }; });
     run(api('book', { prog: u.prog, branch: u.branch, date: u.date, time: u.time, people: people, returnUrl: returnUrl() })).then(function (r) {
       S.slots = {};
       if (r.url) { goPay(r, t('ส่วนเพิ่มของการจอง', 'Booking extras')); return; }
@@ -909,6 +921,7 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     if (d.bkBr) { u.branch = d.bkBr; u.time = null; return render(); }
     if (d.bkDate) { u.date = d.bkDate; u.time = null; return render(); }
     if (d.bkTime) { u.time = +d.bkTime; return render(); }
+    if (d.alert) { var ap = d.alert.split('|'), wa = u.people[+ap[0]]; wa.alerts = wa.alerts || []; var ai = wa.alerts.indexOf(ap[1]); if (ai >= 0) wa.alerts.splice(ai, 1); else wa.alerts.push(ap[1]); return render(); }
     if (d.style || d.pref || d.focus) {
       var parts = (d.style || d.pref || d.focus).split('|'), who = u.people[+parts[0]];
       if (d.style) { who.style = parts[1]; u.time = null; }

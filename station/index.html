@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lana รับงาน</title>
+<meta name="theme-color" content="#3c2219">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600&family=Gilda+Display&family=Noto+Serif+Thai:wght@500;600&display=swap">
+<style>
+
+/* Layout: a phone showing the shop's LINE OA, with a "shop side" control panel beside it (above it on phones) */
+:root {
+  --paper: #f7eedf; --card: #fffaf1; --ink: #3c2219; --ink-2: #7b6352; --olive: #6c7454; --olive-ink: #fffaf1;
+  --sand: #ead6b6; --line: #e2d1b6; --mute: #b9a993; --ok: #5e7a45; --warn: #a3542f; --chat: #e9e2d4; --bubble: #ffffff; --me: #d9e2c4;
+  --stage: #efe6d6;
+  --f-display: 'Gilda Display', 'Noto Serif Thai', Georgia, serif;
+  --f-thai: 'Noto Serif Thai', 'Gilda Display', Georgia, serif;
+  --f-body: 'Anuphan', 'Noto Sans Thai', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #1d1612; --card: #29201a; --ink: #f2e4cf; --ink-2: #bba58c; --olive: #a7b287; --olive-ink: #1d1612;
+  --sand: #4a3a2a; --line: #3b2f25; --mute: #6c5d4d; --ok: #9cbf7c; --warn: #e39a72; --chat: #231b16; --bubble: #2f2520; --me: #3c4430; --stage: #141009; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #1d1612; --card: #29201a; --ink: #f2e4cf; --ink-2: #bba58c; --olive: #a7b287; --olive-ink: #1d1612;
+  --sand: #4a3a2a; --line: #3b2f25; --mute: #6c5d4d; --ok: #9cbf7c; --warn: #e39a72; --chat: #231b16; --bubble: #2f2520; --me: #3c4430; --stage: #141009; color-scheme: dark }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--stage); color: var(--ink); font-family: var(--f-body); font-size: 14.5px; line-height: 1.5; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--olive); outline-offset: 2px; }
+input, select, textarea { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%; }
+h1, h2, h3 { margin: 0; font-weight: 400; text-wrap: balance; }
+:lang(th) h2, :lang(th) h3 { font-family: var(--f-thai); font-weight: 600; }
+
+.stage { min-height: 100%; display: flex; gap: 28px; justify-content: center; align-items: flex-start; padding-block: 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.sim { width: 300px; flex: 0 0 auto; display: grid; gap: 12px; position: sticky; top: 24px; }
+.sim .intro { display: grid; gap: 6px; }
+.sim h1 { font-family: var(--f-display); font-size: 26px; line-height: 1.15; }
+.sim p { margin: 0; color: var(--ink-2); font-size: 13px; }
+.clock { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-variant-numeric: tabular-nums; }
+.clock b { font-size: 18px; }
+.simbtns { display: grid; gap: 8px; }
+.simbtns .lbl { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); }
+.sbtn { text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; font-size: 13.5px; }
+.sbtn:hover:not(:disabled) { border-color: var(--olive); }
+.sbtn:disabled { opacity: .45; }
+.sbtn small { display: block; color: var(--ink-2); font-size: 12px; }
+.linkbtn { background: none; border: 0; color: var(--ink-2); text-decoration: underline; padding: 0; font-size: 12.5px; justify-self: start; }
+
+.phone { width: 390px; max-width: 100%; height: min(820px, calc(100dvh - 48px)); min-height: 600px; flex: 0 0 auto; background: var(--chat); border-radius: 34px; border: 8px solid var(--ink); position: relative; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgb(40 20 10 / .18); }
+.chead { background: var(--card); border-bottom: 1px solid var(--line); padding: 14px 16px 10px; display: flex; align-items: center; gap: 10px; }
+.avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--olive); color: var(--olive-ink); display: grid; place-items: center; font-family: var(--f-display); font-size: 18px; }
+.chead b { display: block; font-size: 14px; }
+.chead span { font-size: 11.5px; color: var(--ink-2); }
+.chat { flex: 1; overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 10px; }
+.msg { max-width: 82%; background: var(--bubble); border-radius: 16px 16px 16px 4px; padding: 9px 12px; font-size: 14px; white-space: pre-line; }
+.msg.me { align-self: flex-end; background: var(--me); border-radius: 16px 16px 4px 16px; }
+.msg .meta { display: block; font-size: 10.5px; color: var(--ink-2); margin-top: 3px; }
+.sysnote { align-self: center; font-size: 11.5px; color: var(--ink-2); background: var(--card); border-radius: 999px; padding: 3px 10px; }
+
+.rmbar { background: var(--card); border-top: 1px solid var(--line); text-align: center; font-size: 12.5px; padding: 6px; border-left: 0; border-right: 0; border-bottom: 0; width: 100%; }
+.rm { position: relative; line-height: 0; }
+.rm img { width: 100%; display: block; }
+.rm .hit { position: absolute; background: transparent; border: 0; padding: 0; }
+.rm .hit:hover, .rm .hit:focus-visible { background: rgb(255 255 255 / .12); outline: 2px solid var(--olive); outline-offset: -2px; }
+.rm .dot { position: absolute; top: 8px; right: 10px; width: 12px; height: 12px; border-radius: 50%; background: var(--warn); border: 2px solid var(--card); }
+
+.liff { position: absolute; inset: 0; background: var(--paper); display: flex; flex-direction: column; z-index: 5; }
+.lhead { display: flex; align-items: center; gap: 10px; padding: 14px 14px 10px; border-bottom: 1px solid var(--line); background: var(--paper); }
+.lhead h2 { flex: 1; font-family: var(--f-display); font-size: 20px; }
+.x { background: none; border: 0; font-size: 22px; line-height: 1; padding: 4px 8px; color: var(--ink-2); }
+.lang { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.lang button { background: none; border: 0; padding: 3px 10px; font-size: 12px; color: var(--ink-2); }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.lbody { flex: 1; overflow-y: auto; padding: 4px 16px 24px; }
+.lfoot { border-top: 1px solid var(--line); background: var(--card); padding: 10px 14px 14px; display: flex; gap: 10px; align-items: center; }
+.lfoot .sum { flex: 1; min-width: 0; font-size: 12.5px; color: var(--ink-2); }
+.lfoot .sum b { display: block; color: var(--ink); font-size: 16px; }
+
+.sec { padding-block: 16px; border-bottom: 1px dashed var(--line); display: grid; gap: 10px; }
+.sec:last-child { border-bottom: 0; }
+.sec h3 { font-size: 16px; display: flex; gap: 8px; align-items: baseline; }
+.sec h3 .n { font-family: var(--f-body); font-size: 11.5px; font-weight: 600; color: var(--olive); }
+.hint { margin: 0; color: var(--ink-2); font-size: 13px; }
+.btn { background: var(--ink); color: var(--paper); border: 0; border-radius: 999px; padding: 11px 20px; font-weight: 600; white-space: nowrap; }
+.btn:disabled { opacity: .35; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn.small { padding: 7px 14px; font-size: 13px; }
+.btn.block { width: 100%; }
+.row2 { display: flex; gap: 8px; flex-wrap: wrap; }
+.row2 .btn { flex: 1; }
+
+.opt { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; text-align: left; display: grid; gap: 3px; width: 100%; }
+.opt[aria-pressed="true"] { border-color: var(--olive); box-shadow: inset 0 0 0 1px var(--olive); }
+.opt:disabled { opacity: .5; }
+.opt .t { font-weight: 600; }
+.opt .s { font-size: 12.5px; color: var(--ink-2); }
+.opts { display: grid; gap: 8px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.badge { justify-self: start; font-size: 10.5px; font-weight: 600; letter-spacing: .04em; border-radius: 999px; padding: 1px 8px; background: var(--sand); color: var(--ink); }
+.badge.olive { background: var(--olive); color: var(--olive-ink); }
+.price { font-variant-numeric: tabular-nums; }
+.strike { text-decoration: line-through; color: var(--mute); }
+
+.pcard { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: grid; gap: 8px; }
+.pcard h3 { font-size: 17px; }
+.pcard .top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.pcard .dur { font-family: var(--f-display); font-size: 22px; white-space: nowrap; }
+.pcard .dur small { font-family: var(--f-body); font-size: 11px; color: var(--ink-2); }
+.pcard p { margin: 0; font-size: 13.5px; }
+.steps { display: flex; height: 8px; border-radius: 999px; overflow: hidden; gap: 2px; }
+.steps span { display: block; height: 100%; }
+.stepl { display: grid; gap: 2px; font-size: 12.5px; color: var(--ink-2); }
+.stepl div { display: flex; gap: 8px; align-items: center; }
+.stepl i { width: 9px; height: 9px; border-radius: 3px; flex: 0 0 auto; }
+.c0 { background: var(--olive); } .c1 { background: #c79a6b; } .c2 { background: #d9c3a1; } .c3 { background: #8b5a3c; }
+.packs { display: grid; gap: 6px; font-size: 13px; }
+.packs div { display: flex; justify-content: space-between; gap: 8px; }
+
+.hair { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.hair .opt .t { font-size: 12px !important; line-height: 1.25; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 13px; }
+.chip small { color: var(--ink-2); font-size: 11.5px; }
+.chip[aria-pressed="true"] { background: var(--olive); color: var(--olive-ink); border-color: var(--olive); }
+.chip[aria-pressed="true"] small { color: var(--olive-ink); }
+.prefs { display: grid; gap: 8px; border-top: 1px dashed var(--line); padding-top: 10px; }
+.prow { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 8px; align-items: center; font-size: 13px; }
+.prow > span { color: var(--ink-2); }
+.hair .opt { justify-items: center; text-align: center; padding: 10px 6px; }
+.hair svg { width: 46px; height: 52px; }
+.addon { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: start; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 11px 12px; cursor: pointer; }
+.addon input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--olive); }
+.addon .t { font-weight: 600; font-size: 14px; }
+.addon .s { font-size: 12.5px; color: var(--ink-2); }
+.addon .p { font-weight: 600; white-space: nowrap; text-align: right; font-size: 13.5px; }
+.person { background: transparent; border: 1px solid var(--line); border-radius: 16px; padding: 12px; display: grid; gap: 10px; }
+.person > b { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+
+.dates { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.date { flex: 0 0 auto; width: 58px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 7px 0; text-align: center; display: grid; }
+.date .w, .date .m { font-size: 11px; color: var(--ink-2); }
+.date .d { font-family: var(--f-display); font-size: 21px; line-height: 1.1; }
+.date[aria-pressed="true"] { background: var(--olive); color: var(--olive-ink); border-color: var(--olive); }
+.date[aria-pressed="true"] .w, .date[aria-pressed="true"] .m { color: var(--olive-ink); }
+.date:disabled { opacity: .4; }
+.slots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+.slot { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.slot:disabled { background: transparent; border-style: dashed; color: var(--mute); text-decoration: line-through; font-weight: 400; }
+.slot[aria-pressed="true"] { background: var(--olive); color: var(--olive-ink); border-color: var(--olive); }
+
+.ticket { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: grid; gap: 6px; }
+.kv { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; }
+.kv span:first-child { color: var(--ink-2); }
+.kv span:last-child { text-align: right; font-weight: 500; }
+.kv.total { border-top: 1px solid var(--line); padding-top: 6px; font-size: 15px; }
+.kv.total span:last-child { font-weight: 700; }
+
+.status { background: var(--ink); color: var(--paper); border-radius: 18px; padding: 16px; display: grid; gap: 10px; }
+.status .eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; opacity: .75; }
+.status h3 { font-family: var(--f-display); font-size: 24px; line-height: 1.2; }
+:lang(th) .status h3 { font-family: var(--f-thai); font-size: 20px; }
+.status p { margin: 0; font-size: 13.5px; opacity: .9; }
+.status .btn { background: var(--paper); color: var(--ink); }
+.status .btn.ghost { background: transparent; color: var(--paper); border-color: rgb(255 255 255 / .35); }
+.bar { height: 8px; background: rgb(255 255 255 / .2); border-radius: 999px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--sand); }
+.big { font-family: var(--f-display); font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; }
+.upcard { background: var(--paper); color: var(--ink); border-radius: 14px; padding: 12px; display: grid; gap: 8px; }
+.upcard .btn { background: var(--ink); color: var(--paper); }
+.upcard .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.stars { display: flex; gap: 6px; }
+.stars button { background: none; border: 0; font-size: 30px; line-height: 1; padding: 0; color: var(--mute); }
+.stars button[aria-pressed="true"] { color: #d9a441; }
+.tips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.tips button { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 0; font-weight: 600; }
+.tips button[aria-pressed="true"] { background: var(--olive); color: var(--olive-ink); border-color: var(--olive); }
+
+.wallet { display: grid; gap: 8px; }
+.wrow { display: flex; justify-content: space-between; gap: 10px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 11px 12px; }
+.wrow .t { font-weight: 600; font-size: 14px; }
+.wrow .s { font-size: 12px; color: var(--ink-2); }
+.wrow .cnt { font-family: var(--f-display); font-size: 26px; line-height: 1; }
+.empty { border: 1px dashed var(--line); border-radius: 14px; padding: 14px; color: var(--ink-2); font-size: 13px; text-align: center; }
+label.f { display: grid; gap: 4px; font-size: 12.5px; color: var(--ink-2); }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; }
+.check input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--olive); flex: 0 0 auto; }
+.err { color: var(--warn); font-size: 13px; margin: 0; }
+
+.beam { position: absolute; inset: 0; background: rgb(20 12 8 / .55); display: flex; align-items: flex-end; z-index: 9; }
+.beam .panel { width: 100%; background: #ffffff; color: #1d1d1f; border-radius: 22px 22px 0 0; padding: 18px 18px 22px; display: grid; gap: 12px; font-family: system-ui, sans-serif; }
+.beam .note { font-size: 11.5px; color: #6b6b70; }
+.beam .amt { font-size: 30px; font-weight: 700; }
+.beam label { display: flex; gap: 10px; align-items: center; border: 1px solid #dcdce0; border-radius: 12px; padding: 11px 12px; font-size: 14px; color: #1d1d1f; }
+.beam label:has(input:checked) { border-color: #1d1d1f; }
+.beam .pay { background: #1d1d1f; color: #fff; border: 0; border-radius: 12px; padding: 13px; font-weight: 600; font-size: 15px; }
+.toast { position: absolute; left: 14px; right: 14px; bottom: 18px; background: var(--ink); color: var(--paper); border-radius: 14px; padding: 10px 14px; font-size: 13px; z-index: 12; box-shadow: 0 8px 24px rgb(0 0 0 / .2); }
+.foot { font-size: 12px; color: var(--ink-2); }
+
+.devsw { justify-self: start; }
+.devsw button { padding: 5px 12px; font-size: 13px; }
+.tablet { width: 860px; max-width: 100%; height: min(640px, calc(100dvh - 48px)); min-height: 520px; flex: 0 1 auto; background: var(--paper); border-radius: 28px; border: 10px solid var(--ink); position: relative; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgb(40 20 10 / .18); }
+.tbar { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.tname { flex: 1; font-family: var(--f-display); font-size: 18px; }
+.tbody { flex: 1; overflow-y: auto; padding: 22px 26px 28px; }
+.khome { display: grid; gap: 16px; justify-items: center; text-align: center; max-width: 620px; margin: 0 auto; padding-top: 10px; }
+.khome h1 { font-family: var(--f-display); font-size: 40px; }
+:lang(th) .khome h1 { font-family: var(--f-thai); font-weight: 600; font-size: 32px; }
+.khome .eyebrow, .kcol .eyebrow, .kleft .eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+.kbtns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; width: 100%; }
+.kbig { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 26px 18px; display: grid; gap: 6px; text-align: center; width: 100%; }
+.kbig b { font-size: 19px; }
+.kbig span { font-size: 13.5px; color: var(--ink-2); }
+.kbig:not(:disabled):hover { border-color: var(--olive); }
+.kbig.small { padding: 14px; }
+.kbig:disabled { opacity: .5; }
+.kbtns .kbig:first-child { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.kbtns .kbig:first-child span { color: var(--paper); opacity: .8; }
+.kcol { max-width: 440px; margin: 0 auto; display: grid; gap: 14px; }
+.kcol h2, .kleft h2 { font-family: var(--f-display); font-size: 24px; }
+:lang(th) .kcol h2, :lang(th) .kleft h2, :lang(th) .khome h2 { font-family: var(--f-thai); font-weight: 600; font-size: 21px; }
+.kdisp { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; text-align: center; font-size: 28px; letter-spacing: .08em; font-variant-numeric: tabular-nums; min-height: 64px; }
+.keys { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.key { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 0; font-size: 22px; font-weight: 600; }
+.key.ok { background: var(--olive); color: var(--olive-ink); border-color: var(--olive); font-size: 17px; }
+.ksplit { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 22px; }
+.kleft, .kright { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.kb { padding-block: 14px; font-size: 16px; }
+.qno { font-family: var(--f-display); font-size: 96px; line-height: 1; color: var(--olive); }
+.qno.small { font-size: 34px; }
+.bhead { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-bottom: 12px; }
+.bhead h2 { font-family: var(--f-thai); font-weight: 600; font-size: 20px; }
+.bsum { display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: 12px; }
+.pill { border-radius: 999px; padding: 3px 12px; font-size: 13px; font-weight: 600; }
+.pill.free, .bed.free .bn::before { background: var(--sand); }
+.pill.busy { background: var(--olive); color: var(--olive-ink); }
+.pill.over { background: var(--warn); color: var(--paper); }
+.beds { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+.bed { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; background: var(--card); display: grid; gap: 4px; min-width: 0; }
+.bed .bn { font-size: 12px; font-weight: 600; letter-spacing: .04em; color: var(--ink-2); }
+.bed .bs { font-size: 13px; line-height: 1.35; }
+.bed .bs span { color: var(--ink-2); font-size: 12px; }
+.bed .bs .badge { color: var(--olive-ink); font-size: 10.5px; }
+.bed.busy { border-color: var(--olive); box-shadow: inset 4px 0 0 var(--olive); }
+.bed.over { border-color: var(--warn); box-shadow: inset 4px 0 0 var(--warn); }
+.bed.over .bs { color: var(--warn); }
+.bed.free .bs { color: var(--ink-2); }
+.bcols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding-top: 16px; }
+.bcols h3 { font-size: 15px; padding-bottom: 6px; }
+.bcols .wrow { margin-bottom: 6px; }
+.qrbox { display: flex; gap: 16px; align-items: center; text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; max-width: 520px; }
+.qrbox > div { display: grid; gap: 4px; min-width: 0; }
+.qr { width: 120px; height: 120px; flex: 0 0 auto; color: var(--ink); }
+@media (max-width: 760px) {
+  .tablet { width: 100%; border-width: 6px; height: calc(100dvh - 190px); }
+  .ksplit, .kbtns, .bcols { grid-template-columns: 1fr; }
+  .tname { display: none; }
+  .stage { flex-direction: column; align-items: stretch; gap: 12px; padding-block: 12px; }
+  .sim { width: auto; position: static; }
+  .sim .intro, .sim .foot { display: none; }
+  .simbtns { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  .simbtns .lbl, .simbtns > p, .simbtns .devsw { grid-column: 1 / -1; }
+  .simbtns .lbl { display: none; }
+  .phone { width: 100%; border-width: 6px; border-radius: 26px; height: calc(100dvh - 190px); min-height: 560px; }
+}
+@media (prefers-reduced-motion: no-preference) { .opt, .slot, .date, .sbtn { transition: border-color .15s, background .15s; } }
+
+/* Layout: a wall-mounted job board for therapists — huge queue numbers, one tap per decision, a receipt-printer job slip */
+body.real, body { background: var(--paper); }
+.st { min-height: 100%; display: flex; flex-direction: column; }
+.sbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-block: 12px; padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); background: var(--ink); color: var(--paper); }
+.sbar .brand { font-family: var(--f-display); font-size: 24px; }
+.sbar .brand small { font-family: var(--f-body); font-size: 14px; opacity: .75; margin-left: 8px; }
+.clockbtn { margin-left: auto; border: 1px solid color-mix(in srgb, var(--paper) 40%, transparent); background: transparent; color: var(--paper); border-radius: 99px; padding: 10px 16px; font-size: 16px; font-weight: 600; }
+.sbar .sclock { margin-left: 8px; font-family: var(--f-display); font-size: 30px; font-variant-numeric: tabular-nums; }
+.stabs { display: flex; gap: 8px; padding: 14px max(18px, env(safe-area-inset-right, 0px)) 0 max(18px, env(safe-area-inset-left, 0px)); }
+.stabs button { flex: 1; border: 2px solid var(--line); background: var(--card); border-radius: 16px; padding: 14px; font-size: 20px; font-weight: 600; color: var(--ink-2); }
+.stabs button[aria-selected="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.stabs .n { display: inline-grid; place-items: center; min-width: 30px; height: 30px; border-radius: 99px; background: var(--warn); color: #fff; font-size: 16px; margin-left: 8px; padding: 0 8px; }
+.sbody { flex: 1; padding: 16px max(18px, env(safe-area-inset-right, 0px)) 40px max(18px, env(safe-area-inset-left, 0px)); }
+.qgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+.qcard { display: grid; gap: 6px; text-align: left; background: var(--card); border: 2px solid var(--line); border-radius: 22px; padding: 18px; min-width: 0; }
+.qcard:active { transform: scale(.98); }
+.qcard .qn { font-family: var(--f-display); font-size: 58px; line-height: 1; letter-spacing: .01em; }
+.qcard .qp { font-family: var(--f-thai); font-weight: 600; font-size: 20px; line-height: 1.3; }
+.qcard .qm { color: var(--ink-2); font-size: 15px; }
+.qcard .qw { justify-self: start; font-size: 14px; font-weight: 600; padding: 3px 12px; border-radius: 99px; background: var(--sand); }
+.qcard .qw.long { background: var(--warn); color: #fff; }
+.qcard.hand { border-color: var(--olive); background: color-mix(in srgb, var(--olive) 12%, var(--card)); }
+.qcard .tag { justify-self: start; background: var(--olive); color: var(--olive-ink); font-size: 14px; font-weight: 600; padding: 4px 12px; border-radius: 99px; }
+.qcard .go { margin-top: 6px; text-align: center; background: var(--ink); color: var(--paper); border-radius: 14px; padding: 12px; font-size: 18px; font-weight: 600; }
+.sempty { padding: 60px 20px; text-align: center; color: var(--ink-2); font-size: 20px; }
+.sempty b { display: block; font-family: var(--f-thai); font-size: 26px; color: var(--ink); margin-bottom: 6px; }
+.live { display: grid; gap: 12px; }
+.lcard { background: var(--card); border: 2px solid var(--line); border-radius: 20px; padding: 16px 18px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 16px; align-items: center; }
+.lcard .qn { font-family: var(--f-display); font-size: 46px; line-height: 1; }
+.lcard .who { font-size: 20px; font-weight: 600; }
+.lcard .pg { color: var(--ink-2); font-size: 15px; }
+.ssteps { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.ssteps span { font-size: 14px; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line); color: var(--ink-2); }
+.ssteps span.done { text-decoration: line-through; opacity: .6; }
+.ssteps span.now { background: var(--ink); color: var(--paper); border-color: var(--ink); font-weight: 600; }
+.left { text-align: right; }
+.left b { display: block; font-family: var(--f-display); font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; }
+.left span { color: var(--ink-2); font-size: 14px; }
+.left.over b { color: var(--warn); }
+.sprog { grid-column: 1 / -1; height: 8px; background: var(--sand); border-radius: 99px; overflow: hidden; }
+.sprog i { display: block; height: 100%; background: var(--olive); }
+.ssec { font-family: var(--f-thai); font-size: 20px; font-weight: 600; margin: 22px 0 10px; }
+.sbeds { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.sbeds div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--card); font-size: 15px; }
+.sbeds div.busy { background: color-mix(in srgb, var(--warn) 14%, var(--card)); }
+.sbeds small { display: block; color: var(--ink-2); font-size: 13px; }
+.fin { display: flex; flex-wrap: wrap; gap: 8px; }
+.fin span { background: var(--card); border: 1px solid var(--line); border-radius: 99px; padding: 6px 14px; font-size: 15px; }
+.sheet { position: fixed; inset: 0; background: color-mix(in srgb, var(--ink) 55%, transparent); display: grid; place-items: center; padding: 20px; z-index: 20; }
+.spanel { background: var(--paper); border-radius: 26px; padding: 24px; width: min(760px, 100%); max-height: 92vh; overflow: auto; display: grid; gap: 16px; }
+.spanel h2 { font-family: var(--f-thai); font-weight: 600; font-size: 26px; }
+.spanel .sub { color: var(--ink-2); font-size: 17px; }
+.names { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.names button { display: grid; justify-items: center; gap: 8px; padding: 16px 10px; border-radius: 20px; border: 2px solid var(--line); background: var(--card); }
+.names button .av { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; font-family: var(--f-thai); font-size: 30px; font-weight: 600; background: var(--sand); color: var(--ink); }
+.names button b { font-size: 22px; }
+.names button small { color: var(--ink-2); font-size: 13px; }
+.names button.busy { opacity: .8; }
+.names button.off { opacity: .6; border-style: dashed; }
+.names button.on { border-color: var(--olive); }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--ok); margin-right: 5px; vertical-align: 1px; }
+.sb { border: 0; border-radius: 18px; padding: 18px; font-size: 22px; font-weight: 600; background: var(--ink); color: var(--paper); width: 100%; }
+.sb.olive { background: var(--olive); color: var(--olive-ink); }
+.sb.ghost { background: transparent; color: var(--ink); border: 2px solid var(--line); }
+.sb.warn { background: var(--warn); color: #fff; }
+.acts { display: grid; gap: 10px; }
+.nextbox { display: grid; gap: 10px; border: 2px solid var(--olive); border-radius: 18px; padding: 14px; background: color-mix(in srgb, var(--olive) 8%, var(--card)); }
+.nextbox b { font-size: 20px; } .nextbox span { color: var(--ink-2); font-size: 15px; margin-top: -6px; }
+.sb:disabled { opacity: .45; }
+.serr { color: var(--warn); font-size: 16px; }
+.toast { position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 14px 22px; border-radius: 16px; font-size: 18px; z-index: 30; max-width: calc(100% - 32px); }
+.setup { max-width: 420px; margin: 10vh auto; display: grid; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 26px; }
+.setup b { font-family: var(--f-display); font-size: 30px; font-weight: 400; }
+.demo { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px max(18px, env(safe-area-inset-right, 0px)) 0 max(18px, env(safe-area-inset-left, 0px)); font-size: 13px; color: var(--ink-2); }
+.demo button { border: 1px dashed var(--ink-2); background: var(--card); border-radius: 99px; padding: 6px 12px; font-size: 13px; }
+/* the job slip, printed on an 80 mm receipt printer */
+#slip { display: none; }
+.slipview { background: #fff; color: #000; width: 300px; max-width: 100%; margin: 0 auto; padding: 14px; font-family: var(--f-body); border-radius: 6px; box-shadow: 0 2px 12px rgba(0,0,0,.15); }
+.slipbody { font-size: 13px; line-height: 1.45; color: #000; }
+.slipbody .c { text-align: center; }
+.slipbody .q { font-size: 54px; font-weight: 700; line-height: 1; text-align: center; margin: 4px 0; font-family: var(--f-display); }
+.slipbody hr { border: 0; border-top: 1px dashed #000; margin: 8px 0; }
+.slipbody .r { display: flex; justify-content: space-between; gap: 8px; }
+.slipbody .k { font-weight: 700; }
+.slipbody .end { font-size: 22px; font-weight: 700; text-align: center; margin-top: 4px; }
+@media print {
+  @page { size: 80mm auto; margin: 3mm; }
+  body * { visibility: hidden !important; }
+  #slip, #slip * { visibility: visible !important; }
+  #slip { display: block !important; position: absolute; left: 0; top: 0; width: 72mm; }
+  body { background: #fff !important; }
+}
+@media (max-width: 700px) {
+  .lcard { grid-template-columns: auto minmax(0, 1fr); } .left { grid-column: 1 / -1; text-align: left; display: flex; gap: 8px; align-items: baseline; }
+  .qcard .qn { font-size: 46px; } .stabs button { font-size: 17px; padding: 12px 8px; }
+}
+.upsell { display: grid; gap: 8px; border: 1px dashed var(--line); border-radius: 14px; padding: 12px; }
+.upsell b { font-size: 15px; }
+.uchips { display: flex; flex-wrap: wrap; gap: 8px; }
+.uchip { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 10px 14px; font: inherit; font-size: 15px; cursor: pointer; }
+.uchip.on { background: color-mix(in srgb, var(--olive, #6b7046) 18%, var(--card)); border-color: var(--olive, #6b7046); }
+.uchip small { color: var(--ink-2); }
+</style>
+</head>
+<body class="real">
+
+
+<div class="st" id="app" lang="th"></div>
+<div id="slip"></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="../config.js"></script>
+<script>var C = window.LANA_CONFIG || {}; var APP = { API_URL: C.API_URL || 'MISSING_API_URL' };</script>
+<script>
+
+</script>
+<script>
+(function () {
+  var demo = !APP.API_URL, $ = function (id) { return document.getElementById(id); };
+  var S = { key: '', branch: '', tab: 'queue', b: null, sheet: null, err: '', busy: false, skew: 0 };
+  try { S.key = localStorage.getItem('lana-kiosk-key') || ''; S.branch = localStorage.getItem('lana-kiosk-branch') || ''; S.tab = localStorage.getItem('lana-station-tab') || 'queue'; } catch (e) {}
+  var DS = null, DNOW = null;
+  if (demo) {
+    var p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date()), g = {};
+    p.forEach(function (x) { g[x.type] = x.value; });
+    var shared = (function () { try { return window.parent !== window && window.parent.__LANA_SHARED || null; } catch (e) { return null; } })();
+    DNOW = shared ? shared.now : { date: g.year + '-' + g.month + '-' + g.day, min: 13 * 60 }; DS = shared ? shared.store : memStore(); S.key = 'demo-kiosk'; S.branch = 'NIM';
+    if (!DS.shifts().length) [['S1', '09:52'], ['S2', '10:05']].forEach(function (x) { DS.addShift({ staffId: x[0], date: DNOW.date, branch: 'NIM', in: x[1], out: '' }); });
+    if (!DS.bookings().length) ['HEAD60', 'COMBO120', 'FOOT90'].forEach(function (pid, i) { var v = makeVisit(DS, DNOW, 'NIM', pid, ['คุณแพร', 'Sophie', 'คุณบอส'][i], { hair: 'mid', pressure: ['light', 'medium', 'firm'][i], addons: i === 0 ? ['VIT'] : [], quiet: i === 1, focus: i === 2 ? ['หลัง', 'บ่า'] : [] }); if (v) { v.checkedAt = lnHM(DNOW.min - 4 - i * 3); DS.saveBooking(v); } });
+  }
+  function api(action, data) {
+    var req = Object.assign({ app: 'station', action: action, kiosk: S.key, branch: S.branch }, data || {});
+    if (demo) return new Promise(function (res, rej) { setTimeout(function () { try { res(stationApi(JSON.parse(JSON.stringify(req)), DS, Object.assign({}, DNOW))); } catch (e) { rej(e); } }, 120); });
+    return fetch(APP.API_URL, { method: 'POST', body: JSON.stringify(req) }).then(function (r) { return r.json(); }, function () { throw new Error('NET'); })
+      .then(function (j) { if (!j.ok) throw new Error(j.error); return j.data; });
+  }
+  var ERR = { KIOSK_KEY: 'รหัสแท็บเล็ตไม่ถูกต้อง', BAD_BRANCH: 'ไม่พบสาขานี้', NET: 'เชื่อมต่อไม่ได้ ลองใหม่', TAKEN: 'มีคนรับคิวนี้ไปแล้ว', SEAT_BUSY: 'เตียงที่ต้องใช้ยังไม่ว่าง (มีลูกค้าอยู่ หรือเพิ่งเลิก รอเก็บเตียง 10 นาที) ลองใหม่อีกสักครู่', HANDED_OFF: 'คิวนี้ส่งต่ออยู่ ให้คนรับต่อก่อนแล้วค่อยต่อเวลา',
+    NO_ROOM: 'ต่อเวลาไม่ได้ มีคิวต่อที่เตียงนี้', CLOSING: 'ต่อเวลาไม่ได้ ร้านใกล้ปิด', NOT_NOW: 'ทำตอนนี้ไม่ได้ ลองรีเฟรช', NO_NEXT_STEP: 'ขั้นนี้เป็นขั้นสุดท้ายแล้ว', BAD_STAFF: 'ไม่พบชื่อนี้ในสาขา', NOT_FOUND: 'ไม่พบคิวนี้', BAD_ACTION: 'ระบบยังไม่อัปเดต (ลง Code.gs ใหม่แล้ว Deploy เป็น New version)' };
+  function errT(e) { var k = String(e && e.message || e); return ERR[k] || k; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function baht(n) { return '฿' + Math.round(+n || 0).toLocaleString('en-US'); }
+  function hm(m) { m = Math.round(+m || 0); return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+  function nowMin() { if (!S.b) return 0; return S.b.now.min + (demo ? 0 : Math.floor((Date.now() - S.skew) / 60000)); }
+  function toast(m) { var t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { t.hidden = true; }, 3200); }
+
+  function load(quiet) {
+    if (!S.key || !S.branch) return render();
+    if (!quiet) { S.busy = true; render(); }
+    return api('sBoard').then(function (b) { S.b = b; S.skew = Date.now(); S.busy = false; S.err = ''; render(); })
+      .catch(function (e) { S.busy = false; if (String(e.message) === 'KIOSK_KEY') { S.key = ''; S.err = errT(e); } else if (!quiet) toast(errT(e)); render(); });
+  }
+
+  function render() {
+    var app = $('app');
+    if (!S.key || !S.branch) {
+      app.innerHTML = '<div class="setup"><b>Lana · รับงาน</b><span>ตั้งค่าครั้งแรก ใช้รหัสเดียวกับแท็บเล็ตหน้าร้าน</span>' +
+        '<label>รหัสแท็บเล็ต<input id="k-key" type="password" value=""></label><label>รหัสสาขา (เช่น NIM, MCH)<input id="k-br" value="' + esc(S.branch || 'NIM') + '"></label>' +
+        (S.err ? '<span class="serr">' + esc(S.err) + '</span>' : '') + '<button class="sb" id="save">บันทึก</button></div>';
+      return;
+    }
+    if (!S.b) { app.innerHTML = '<div class="sempty">กำลังโหลด…</div>'; return; }
+    var b = S.b, now = nowMin(), onN = b.staff.filter(function (s) { return s.on; }).length;
+    var h = '<div class="sbar"><span class="brand">Lana<small>รับงาน · ' + esc(b.branch.name) + '</small></span><button class="clockbtn" id="clockin">เข้า/ออกงาน · ' + onN + ' คน</button><span class="sclock">' + hm(now) + '</span></div>';
+    if (demo) h += '<div class="demo">ตัวอย่าง (ข้อมูลจำลอง) · <button id="d-walk">+ ลูกค้าเช็กอิน</button><button id="d-plus">+15 นาที</button><button id="d-plus60">+1 ชั่วโมง</button></div>';
+    h += '<div class="stabs" role="tablist"><button role="tab" data-tab="queue" aria-selected="' + (S.tab === 'queue') + '">คิวรอ' + (b.waiting.length ? '<span class="n">' + b.waiting.length + '</span>' : '') + '</button>' +
+      '<button role="tab" data-tab="beds" aria-selected="' + (S.tab === 'beds') + '">สถานะเตียง' + (b.live.length ? ' (' + b.live.length + ')' : '') + '</button></div><div class="sbody">';
+    if (S.tab === 'queue') {
+      if (!b.waiting.length) h += '<div class="sempty"><b>ยังไม่มีลูกค้ารอ</b>ลูกค้าเช็กอินที่หน้าร้านแล้ว คิวจะขึ้นที่นี่เอง</div>';
+      else h += '<div class="qgrid">' + b.waiting.map(function (w) {
+        var wait = Math.max(0, now - w.since);
+        if (w.handoff) return '<button class="qcard hand" data-q="' + w.id + '"><span class="tag">ส่งต่อ' + (w.from ? 'จาก ' + esc(w.from) : '') + '</span><span class="qn">' + esc(w.q) + '</span><span class="qp">' + esc(w.prog) + '</span>' +
+          '<span class="qm"><b>ขั้นที่เหลือ:</b> ' + w.rest.map(function (r) { return esc(r.label) + ' ' + r.min + ' นาที'; }).join(' → ') + '</span>' +
+          '<span class="qm">ลูกค้ารออยู่ที่ ' + esc(w.at) + '</span><span class="qw' + (wait >= 10 ? ' long' : '') + '">รอ ' + wait + ' นาที</span><span class="go">แตะเพื่อรับทำต่อ</span></button>';
+        return '<button class="qcard" data-q="' + w.id + '"><span class="qn">' + esc(w.q) + '</span><span class="qp">' + esc(w.prog) + (w.people > 1 ? ' · ' + w.people + ' คน' : '') + '</span>' +
+          '<span class="qm">' + w.min + ' นาที' + (w.hair ? ' · ผม' + esc(w.hair) : '') + '</span><span class="qw' + (wait >= 15 ? ' long' : '') + '">' + (w.start > now + 10 ? 'นัด ' + hm(w.start) : 'รอ ' + wait + ' นาที') + '</span><span class="go">แตะเพื่อรับงาน</span></button>';
+      }).join('') + '</div>';
+    } else {
+      if (!b.live.length) h += '<div class="sempty"><b>ยังไม่มีลูกค้าในเตียง</b></div>';
+      else h += '<div class="live">' + b.live.map(function (v) {
+        var left = v.end - now, pct = Math.max(0, Math.min(100, (now - v.start) / Math.max(1, v.end - v.start) * 100));
+        return '<button class="lcard" data-live="' + v.id + '" style="text-align:left"><span class="qn">' + esc(v.q) + '</span><span><span class="who">' + esc(v.staff) + '</span> <span class="pg">· ' + esc(v.prog) + (v.ext ? ' · ต่อ ' + v.ext * 30 + ' นาที' : '') + '</span>' +
+          '<span class="ssteps">' + v.steps.map(function (s) { return '<span class="' + (s.done ? 'done' : s.now ? 'now' : '') + '">' + esc(s.label) + (s.by && s.by !== v.staff ? ' · ' + esc(s.by) : '') + '</span>'; }).join('') + '</span></span>' +
+          '<span class="left' + (left < 0 ? ' over' : '') + '"><b>' + (left < 0 ? '+' + (-left) : left) + '</b><span>' + (left < 0 ? 'นาที เลยเวลา' : 'นาที · จบ ' + hm(v.end)) + '</span></span><span class="sprog"><i style="width:' + pct + '%"></i></span></button>';
+      }).join('') + '</div>';
+      h += '<div class="ssec">เตียงและเก้าอี้</div><div class="sbeds">' + b.beds.map(function (d) { var busy = d.busyUntil && d.busyUntil > now; return '<div class="' + (busy ? 'busy' : '') + '">' + esc(d.label) + '<small>' + (busy ? 'ไม่ว่างถึง ' + hm(d.busyUntil) : d.next ? 'ว่าง · คิวถัดไป ' + hm(d.next) : 'ว่าง') + '</small></div>'; }).join('') + '</div>';
+      if (b.finished.length) h += '<div class="ssec">จบแล้ว รอลูกค้าจ่ายที่หน้าร้าน</div><div class="fin">' + b.finished.map(function (f) { return '<span>' + esc(f.q) + ' · ' + esc(f.staff) + ' · ' + hm(f.at) + '</span>'; }).join('') + '</div>';
+    }
+    h += '</div>';
+    if (S.sheet) h += '<div class="sheet" id="sheet"><div class="spanel">' + sheetHtml() + '</div></div>';
+    app.innerHTML = h;
+  }
+
+  function sheetHtml() {
+    var sh = S.sheet, b = S.b;
+    if (sh.kind === 'pick') {
+      var w = b.waiting.filter(function (x) { return x.id === sh.id; })[0]; if (!w) { S.sheet = null; return ''; }
+      return '<h2>' + esc(w.q) + ' · ' + esc(w.prog) + '</h2><span class="sub">' + (w.handoff ? 'ทำต่อ: ' + w.rest.map(function (r) { return esc(r.label) + ' ' + r.min + ' นาที'; }).join(' → ') + ' · ลูกค้ารออยู่ที่ ' + esc(w.at) : w.min + ' นาที') + '</span><h2 style="font-size:22px">ใครรับงานนี้? แตะชื่อตัวเอง</h2>' +
+        '<div class="names">' + b.staff.map(function (s) { return '<button data-name="' + s.id + '" class="' + (s.busy.length ? 'busy' : '') + (s.on ? ' on' : ' off') + '"><span class="av">' + esc(String(s.name).charAt(0)) + '</span><b>' + esc(s.name) + '</b><small>' + (s.on ? '<i class="dot"></i>เข้างาน ' + esc(s.inAt) : 'ยังไม่กดเข้างาน') + '</small><small>' + (s.busy.length ? 'กำลังทำ ' + esc(s.busy.join(', ')) : 'ว่าง') + ' · วันนี้ ' + s.done + ' งาน</small></button>'; }).join('') + '</div>' +
+        '<button class="sb ghost" data-close>ยกเลิก</button>';
+    }
+    if (sh.kind === 'confirm') {
+      var w2 = b.waiting.filter(function (x) { return x.id === sh.id; })[0], who = b.staff.filter(function (s) { return s.id === sh.staff; })[0]; if (!w2 || !who) { S.sheet = null; return ''; }
+      return '<h2>' + esc(who.name) + ' รับคิว ' + esc(w2.q) + '</h2><span class="sub">' + esc(w2.prog) + (w2.handoff ? ' · ทำขั้น' + esc(w2.next) : ' · ' + w2.min + ' นาที') + '<br>กดแล้วเริ่มนับเวลาทันที และปริ้นใบงานออกมา</span>' +
+        (who.busy.length ? '<span class="serr">' + esc(who.name) + ' กำลังทำ ' + esc(who.busy.join(', ')) + ' อยู่ ใช่คนนี้แน่ใช่ไหม</span>' : '') +
+        '<div class="acts"><button class="sb olive" id="accept"' + (S.busy ? ' disabled' : '') + '>รับงาน + ปริ้นใบงาน</button><button class="sb ghost" data-back>‹ เปลี่ยนชื่อ</button></div>';
+    }
+    if (sh.kind === 'live') {
+      var v = b.live.filter(function (x) { return x.id === sh.id; })[0]; if (!v) { S.sheet = null; return ''; }
+      var left = v.end - nowMin();
+      return '<h2>' + esc(v.q) + ' · ' + esc(v.staff) + '</h2><span class="sub">' + esc(v.prog) + ' · ' + (left >= 0 ? 'เหลือ ' + left + ' นาที (จบ ' + hm(v.end) + ')' : 'เลยเวลามา ' + (-left) + ' นาที') + '</span>' +
+        '<div class="acts">' +
+        (v.next ? '<div class="nextbox"><b>ขั้นต่อไป: ' + esc(v.next.label) + ' ' + v.next.min + ' นาที</b><span>ตามเวลาจะย้ายเองตอน ' + hm(v.next.at) + '</span>' +
+          '<button class="sb olive" data-act="next">ไป' + esc(v.next.label) + 'ต่อเลย (ทำเอง)</button>' +
+          '<button class="sb" data-act="handoff">ไม่ทำต่อแล้ว · ส่งให้คนอื่นทำ' + esc(v.next.label) + '</button></div>' : '') +
+        (v.upsell ? '<div class="upsell"><b>ขายเพิ่มระหว่างทำ · เก็บเงินตอนจบ' + (v.upsell.due ? ' (ตอนนี้ +' + baht(v.upsell.due) + ')' : '') + '</b><div class="uchips">' +
+          v.upsell.addons.map(function (a) { return '<button class="uchip' + (a.on ? ' on' : '') + '" data-up="addon|' + a.id + '"' + (a.on && !a.added ? ' disabled' : '') + '>' + esc(a.name) + ' <small>' + (a.on ? (a.added ? '✓ เพิ่มแล้ว · แตะเพื่อเอาออก' : '✓ ลูกค้าสั่งไว้แล้ว') : '+' + baht(a.price)) + '</small></button>'; }).join('') +
+          v.upsell.styles.map(function (x) { return '<button class="uchip' + (x.on ? ' on' : '') + '" data-up="style|' + x.id + '"' + (x.on && !x.added ? ' disabled' : '') + '>' + esc(x.name) + ' <small>' + (x.on ? (x.added ? '✓ เปลี่ยนแล้ว · แตะเพื่อเอาออก' : '✓ ลูกค้าเลือกไว้แล้ว') : '+' + baht(x.price)) + '</small></button>'; }).join('') + '</div></div>' : '') +
+        (v.canExtend ? '<button class="sb ghost" data-act="extend">ลูกค้าขอต่อ 30 นาที (+' + baht(v.extPrice) + ')</button>' : '<button class="sb ghost" disabled>ต่อเวลาไม่ได้: ' + esc(v.extBlock) + '</button>') +
+        '<button class="sb ghost" data-act="slip">ปริ้นใบงานอีกครั้ง</button>' +
+        (v.canUndo ? '<button class="sb ghost" data-act="undo">คืนคิว (รับผิด / ยังไม่ได้เริ่มทำ)</button>' : '') +
+        '<button class="sb warn" data-act="finish">' + (v.next ? 'จบงานตอนนี้ (ลูกค้าไม่ทำขั้นที่เหลือ)' : 'จบงานตอนนี้') + '</button>' +
+        '<button class="sb ghost" data-close>ปิด</button></div>';
+    }
+    if (sh.kind === 'sure') {
+      var lv = b.live.filter(function (x) { return x.id === sh.id; })[0]; if (!lv) { S.sheet = null; return ''; }
+      var msgs = { extend: ['ลูกค้ายินยอมต่อเวลา 30 นาที ใช่ไหม?', 'คิดเพิ่ม ' + baht(lv.extPrice) + ' จ่ายตอนจบที่หน้าร้าน · จบใหม่ ' + hm(lv.end + 30)],
+        handoff: [esc(lv.staff) + ' ไม่ทำต่อ ส่ง ' + lv.q + ' ให้คนอื่นทำ' + (lv.next ? esc(lv.next.label) : 'ขั้นต่อไป') + '?', 'คิวจะไปขึ้นในหน้า "คิวรอ" ให้หมอนวดคนอื่นจิ้มรับ ลูกค้ารออยู่ที่เดิม · ' + esc(lv.staff) + ' ได้ค่ามือส่วนที่ทำไปแล้ว'],
+        undo: ['คืนคิว ' + lv.q + ' ?', 'คิวจะกลับไปรอในหน้า "คิวรอ" ตามลำดับเดิม ' + esc(lv.staff) + ' ไม่ได้ค่ามือคิวนี้ · ใช้ได้ภายใน 15 นาทีหลังกดรับ'],
+        next: ['ย้าย ' + lv.q + ' ไป' + (lv.next ? esc(lv.next.label) : 'ขั้นต่อไป') + 'ตอนนี้?', esc(lv.staff) + ' ทำต่อเอง · เริ่มนับเวลา' + (lv.next ? esc(lv.next.label) + ' ' + lv.next.min + ' นาที' : '') + ' ตั้งแต่ตอนนี้'],
+        finish: ['จบงาน ' + lv.q + ' ตอนนี้?', (lv.end - nowMin() > 0 ? 'ยังเหลือเวลาอีก ' + (lv.end - nowMin()) + ' นาที ' : '') + 'ลูกค้าไปจ่ายและให้ดาวที่หน้าร้าน'] }[sh.act];
+      return '<h2>' + msgs[0] + '</h2><span class="sub">' + msgs[1] + '</span><div class="acts"><button class="sb ' + (sh.act === 'finish' ? 'warn' : 'olive') + '" id="sure">ยืนยัน</button><button class="sb ghost" data-close>ยกเลิก</button></div>';
+    }
+    if (sh.kind === 'upsure') return '<h2>' + (sh.off ? 'เอา ' + esc(sh.name) + ' ออก?' : 'ลูกค้าตกลงเพิ่ม ' + esc(sh.name) + ' ใช่ไหม?') + '</h2><span class="sub">' + (sh.off ? 'ไม่เก็บเงินส่วนนี้' : (sh.up[0] === 'style' ? 'เปลี่ยนทรงเป่าเป็น ' + esc(sh.name) + ' · ' : '') + 'คิดเพิ่ม ' + baht(sh.price) + (sh.up[0] === 'style' ? ' (หักส่วนที่จ่ายไว้แล้ว)' : '') + ' จ่ายตอนจบที่หน้าร้าน') + '</span>' +
+      '<div class="acts"><button class="sb olive" id="upsure">ยืนยัน</button><button class="sb ghost" data-live="' + sh.id + '">‹ กลับ</button></div>';
+    if (sh.kind === 'clock') return '<h2>เข้างาน / ออกงาน</h2><span class="sub">แตะชื่อตัวเอง</span><div class="names">' + b.staff.map(function (s) { return '<button data-clock="' + s.id + '" class="' + (s.on ? 'on' : 'off') + '"><span class="av">' + esc(String(s.name).charAt(0)) + '</span><b>' + esc(s.name) + '</b><small>' + (s.on ? '<i class="dot"></i>เข้างาน ' + esc(s.inAt) : 'ยังไม่เข้างาน') + '</small></button>'; }).join('') + '</div><button class="sb ghost" data-close>ปิด</button>';
+    if (sh.kind === 'clock2') { var cs = b.staff.filter(function (x) { return x.id === sh.staff; })[0]; if (!cs) { S.sheet = null; return ''; }
+      return '<h2>' + esc(cs.name) + '</h2><span class="sub">' + (cs.on ? 'เข้างานตั้งแต่ ' + esc(cs.inAt) + (cs.busy.length ? ' · กำลังทำ ' + esc(cs.busy.join(', ')) + ' (งานจะเดินต่อจนจบเอง)' : '') : 'ยังไม่ได้เข้างานวันนี้') + '</span><div class="acts">' +
+        (cs.on ? '<button class="sb warn" data-clockgo="0">ออกงาน ' + hm(nowMin()) + '</button>' : '<button class="sb olive" data-clockgo="1">เข้างาน ' + hm(nowMin()) + '</button>') + '<button class="sb ghost" data-close>ยกเลิก</button></div>'; }
+    if (sh.kind === 'slip') return '<h2>ใบงาน (ตัวอย่าง)</h2><span class="sub">ในร้านจริง ใบนี้ออกจากเครื่องปริ้นใบเสร็จทันที</span><div class="slipview"><div class="slipbody">' + sh.html + '</div></div><button class="sb ghost" data-close>ปิด</button>';
+    return '';
+  }
+
+  function slipHtml(s) {
+    var steps = s.steps.map(function (x) { return '<div class="r"><span>' + (s.people.length > 1 ? esc(x.who) + ' · ' : '') + esc(x.label) + '</span><span>' + hm(x.start) + '–' + hm(x.end) + '</span></div>'; }).join('');
+    var ppl = s.people.map(function (p) {
+      var rows = [['โปรแกรม', p.prog + ' ' + p.min + ' นาที'], p.hair ? ['ผมยาว', p.hair] : null, p.style ? ['ทรงเป่า', p.style] : null, p.addons.length ? ['เพิ่ม', p.addons.join(', ')] : null,
+        ['น้ำหนักมือ', p.pressure + (p.elbow ? ' · ' + p.elbow : '')], p.focus.length ? ['เน้น', p.focus.join(', ')] : null, p.nostretch ? ['', '★ ไม่ต้องปลุก ไม่บิด ไม่ดัดตัว (ปล่อยหลับ)'] : null, p.quiet ? ['', 'ขอพักเงียบๆ'] : null, (p.alerts || []).length ? ['⚠ ระวัง', p.alerts.join(', ')] : null, p.note ? ['ลูกค้าเขียน', p.note + (p.noteNotThai ? ' (ภาษาอังกฤษ ให้หน้าร้านช่วยอ่าน)' : '')] : null].filter(Boolean);
+      return '<div class="k">' + esc(p.name) + '</div>' + rows.map(function (r) { return '<div class="r"><span>' + esc(r[0]) + '</span><span style="text-align:right">' + esc(r[1]) + '</span></div>'; }).join('');
+    }).join('<hr>');
+    return '<div class="c">LANA · ' + esc(s.branch) + '</div><div class="q">' + esc(s.q) + '</div><div class="c">หมอนวด: <b>' + esc(s.therapist) + '</b></div>' + (s.partial ? '<div class="c">ทำต่อ' + (s.from ? 'จาก ' + esc(s.from) : '') + '</div>' : '') + '<hr>' + ppl + '<hr><div class="k">' + (s.partial ? 'ขั้นตอนที่เหลือ' : 'ขั้นตอน') + '</div>' + steps + '<hr>' +
+      '<div class="c">เริ่ม ' + hm(s.partial && s.steps.length ? s.steps[0].start : s.start) + '</div><div class="end">จบ ' + hm(s.end) + '</div><div class="c" style="font-size:11px;margin-top:6px">ปริ้น ' + hm(nowMin()) + '</div>';
+  }
+  function printSlip(s) {
+    var html = slipHtml(s);
+    if (demo) { S.sheet = { kind: 'slip', html: html }; return render(); }
+    $('slip').innerHTML = '<div class="slipbody">' + html + '</div>';
+    setTimeout(function () { try { window.print(); } catch (e) {} }, 60);
+  }
+
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest('button'); if (!el) { if (e.target.id === 'sheet') { S.sheet = null; render(); } return; }
+    var d = el.dataset;
+    if (el.id === 'save') { S.key = $('k-key').value.trim(); S.branch = $('k-br').value.trim().toUpperCase(); try { localStorage.setItem('lana-kiosk-key', S.key); localStorage.setItem('lana-kiosk-branch', S.branch); } catch (x) {} S.err = ''; return load(); }
+    if (d.tab) { S.tab = d.tab; try { localStorage.setItem('lana-station-tab', S.tab); } catch (x) {} return render(); }
+    if (d.close !== undefined) { S.sheet = null; return render(); }
+    if (d.back !== undefined) { S.sheet = { kind: 'pick', id: S.sheet.id }; return render(); }
+    if (d.q) { S.sheet = { kind: 'pick', id: d.q }; return render(); }
+    if (el.id === 'clockin') { S.sheet = { kind: 'clock' }; return render(); }
+    if (d.clock) { S.sheet = { kind: 'clock2', staff: d.clock }; return render(); }
+    if (d.clockgo) { var on = d.clockgo === '1', sid = S.sheet.staff; return api('sClock', { staffId: sid, on: on }).then(function (b) { S.b = b; S.skew = Date.now(); S.sheet = null; render(); toast(on ? 'เข้างานแล้ว' : 'ออกงานแล้ว'); }).catch(function (x) { S.sheet = null; toast(errT(x)); load(true); }); }
+    if (d.name) { S.sheet = { kind: 'confirm', id: S.sheet.id, staff: d.name }; return render(); }
+    if (d.live) { S.sheet = { kind: 'live', id: d.live }; return render(); }
+    if (el.id === 'accept') {
+      S.busy = true; render();
+      return api('sAccept', { id: S.sheet.id, staffId: S.sheet.staff }).then(function (r) { S.busy = false; S.b = r.board; S.skew = Date.now(); S.sheet = null; render(); toast('รับงานแล้ว เริ่มนับเวลา · ปริ้นใบงาน'); printSlip(r.slip); })
+        .catch(function (x) { S.busy = false; S.sheet = null; toast(errT(x)); load(true); });
+    }
+    if (d.up) { var up = d.up.split('|'), lv2 = S.b.live.filter(function (x) { return x.id === S.sheet.id; })[0];
+      var it = lv2 && lv2.upsell ? (up[0] === 'addon' ? lv2.upsell.addons : lv2.upsell.styles).filter(function (x) { return x.id === up[1]; })[0] : null; if (!it) return;
+      S.sheet = { kind: 'upsure', id: S.sheet.id, up: up, name: it.name, price: it.price, off: it.added }; return render(); }
+    if (el.id === 'upsure') { var us = S.sheet, req = { id: us.id }; req[us.up[0]] = us.up[1];
+      return api('sUpsell', req).then(function (b) { S.b = b; S.skew = Date.now(); S.sheet = { kind: 'live', id: us.id }; render(); toast(us.off ? 'เอาออกแล้ว' : 'เพิ่มแล้ว · เก็บเงินตอนจบ'); })
+        .catch(function (x) { S.sheet = null; toast(errT(x)); load(true); }); }
+    if (d.act === 'slip') return api('sSlip', { id: S.sheet.id }).then(function (r) { S.sheet = null; render(); printSlip(r.slip); }).catch(function (x) { toast(errT(x)); });
+    if (d.act) { S.sheet = { kind: 'sure', id: S.sheet.id, act: d.act }; return render(); }
+    if (el.id === 'sure') {
+      var act = S.sheet.act, id = S.sheet.id, map = { extend: 'sExtend', handoff: 'sHandoff', finish: 'sFinish', next: 'sNext', undo: 'sUndo' };
+      return api(map[act], { id: id }).then(function (b) { S.b = b; S.skew = Date.now(); S.sheet = null; render(); toast({ extend: 'ต่อเวลาแล้ว 30 นาที', handoff: 'ส่งเข้าคิวรอแล้ว ให้คนอื่นจิ้มรับ', finish: 'จบงานแล้ว', next: 'ย้ายแล้ว เริ่มนับเวลาขั้นต่อไป', undo: 'คืนคิวแล้ว' }[act]); })
+        .catch(function (x) { S.sheet = null; toast(errT(x)); load(true); });
+    }
+    if (el.id === 'd-walk') { var pr = ['HEAD60', 'COCO120', 'THAI120', 'FOOT90', 'NECK60', 'COMBO120'], nm = ['Kenji', 'คุณมิ้นท์', 'Anna', 'คุณต้น', 'Lucas'];
+      var v = makeVisit(DS, DNOW, 'NIM', pr[Math.floor(Math.random() * pr.length)], nm[Math.floor(Math.random() * nm.length)], { hair: 'mid', pressure: 'medium' }); if (v) { v.checkedAt = lnHM(DNOW.min); DS.saveBooking(v); } else toast('วันนี้ไม่มีที่ว่างแล้ว'); return load(true); }
+    if (el.id === 'd-plus') { DNOW.min += 15; return load(true); }
+    if (el.id === 'd-plus60') { DNOW.min += 60; return load(true); }
+  });
+  load();
+  if (!demo) setInterval(function () { if (document.visibilityState === 'visible' && !S.sheet) load(true); }, 15000);
+  else setInterval(function () { if (!S.sheet) load(true); }, 2000);   /* demo: pick up guests checked in on the other screen */
+  setInterval(function () { if (S.b && !S.sheet) render(); }, 30000);
+})();
+</script>
+
+</body>
+</html>
