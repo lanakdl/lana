@@ -255,15 +255,15 @@ LANA.STYLES = [
 ];
 /* for: programs that can take this add-on. seat: where the extra minutes go (wash / first seat / none) */
 LANA.ADDONS = [
-  { id: 'KERA', name_th: 'เคราติน', name_en: 'Keratin', price: 100, min: 0, seat: '', for: 'HEAD60,COCO120,FACE80,FACE120,FULL150,SNECK90H,SHEAD90H,SFOOT90H,SFGS90H,SFACE90,COMBO120,SFOOT120,SOIL120', rec: 'TRUE',
+  { id: 'KERA', name_th: 'เคราติน', name_en: 'Keratin', price: 100, min: 0, seat: '', for: 'HAIR', rec: 'TRUE',
     desc_th: 'ช่วยฟื้นฟูบำรุงผมเสีย ผมแห้งเสีย ลดความชี้ฟู ทำให้ผมนุ่มลื่น มีน้ำหนัก เงางามขึ้นอย่างเป็นธรรมชาติ', desc_en: 'Repairs dry, damaged hair and calms frizz. Soft, smooth hair with natural weight and shine.' },
-  { id: 'GLASS', name_th: 'เคลือบแก้ว', name_en: 'Glass gloss', price: 150, min: 0, seat: '', for: 'HEAD60,COCO120,FACE80,FACE120,FULL150,SNECK90H,SHEAD90H,SFOOT90H,SFGS90H,SFACE90,COMBO120,SFOOT120,SOIL120', rec: 'FALSE',
+  { id: 'GLASS', name_th: 'เคลือบแก้ว', name_en: 'Glass gloss', price: 150, min: 0, seat: '', for: 'HAIR', rec: 'FALSE',
     desc_th: 'ช่วยบำรุงให้ผมดูมีน้ำหนัก เงางาม', desc_en: 'Leaves hair heavier and glossy.' },
-  { id: 'SCRUB', name_th: 'สครับหนังศีรษะ', name_en: 'Scalp scrub', price: 100, min: 10, seat: 'wash', for: 'HEAD60,COCO120,FACE80,FACE120,FULL150,SNECK90H,SHEAD90H,SFOOT90H,SFGS90H,SFACE90,COMBO120,SFOOT120,SOIL120', rec: 'FALSE',
+  { id: 'SCRUB', name_th: 'สครับหนังศีรษะ', name_en: 'Scalp scrub', price: 100, min: 10, seat: 'wash', for: 'HAIR', rec: 'FALSE',
     desc_th: 'ช่วยขจัดคราบความมันส่วนเกิน รังแค เซลล์ผิวที่ตายแล้ว ลดความมันของเส้นผม', desc_en: 'Clears excess oil, flakes and dead skin. Less oily hair.' },
-  { id: 'DETOX', name_th: 'Detox', name_en: 'Detox', price: 100, min: 0, seat: '', for: 'HEAD60,COCO120,FACE80,FACE120,FULL150,SNECK90H,SHEAD90H,SFOOT90H,SFGS90H,SFACE90,COMBO120,SFOOT120,SOIL120', rec: 'FALSE',
+  { id: 'DETOX', name_th: 'Detox', name_en: 'Detox', price: 100, min: 0, seat: '', for: 'HAIR', rec: 'FALSE',
     desc_th: 'ล้างสารเคมีตกค้างจากการทำสี ดัด ยืดผม ลดความมันของหนังศีรษะ บำรุงผมให้กลับมามีน้ำหนักเงางาม', desc_en: 'Washes out leftover chemicals from colour, perms and straightening, calms an oily scalp and brings back weight and shine.' },
-  { id: 'PURPLE', name_th: 'แชมพูม่วง + ทรีตเม้นม่วง', name_en: 'Purple shampoo + purple treatment', price: 100, min: 0, seat: '', for: 'HEAD60,COCO120,FACE80,FACE120,FULL150,SNECK90H,SHEAD90H,SFOOT90H,SFGS90H,SFACE90,COMBO120,SFOOT120,SOIL120', rec: 'FALSE',
+  { id: 'PURPLE', name_th: 'แชมพูม่วง + ทรีตเม้นม่วง', name_en: 'Purple shampoo + purple treatment', price: 100, min: 0, seat: '', for: 'HAIR', rec: 'FALSE',
     desc_th: 'สำหรับผมทำสีสว่าง ช่วยลดเหลือง ให้สีผมสวยนานขึ้น', desc_en: 'For light or bleached hair: cuts yellow tones so the colour lasts.' },
   /* no longer sold: kept so older visits and vouchers still show their names */
   { id: 'VIT', name_th: 'วิตามินบำรุงผม', name_en: 'Hair vitamin boost', price: 190, min: 0, seat: '', for: '', rec: 'FALSE', desc_th: '', desc_en: '' },
@@ -618,7 +618,13 @@ function lnPack(p, n) {
 }
 function lnSteps(p) { return String(p.steps || '').split(';').filter(Boolean).map(function (x) { var a = x.split('|'); return [a[0] || '', a[1] || a[0] || '', +a[2] || 0]; }); }
 function lnProgAt(p, br) { return !!br && lnTrue(br.active) && lnPairs(p.segs).every(function (s) { return lnKinds(s.k).some(function (k) { return (+br[k] || 0) > 0; }); }); }
-function lnAddonFor(a, progId) { return String(a.for || '').split(',').map(function (x) { return x.trim(); }).indexOf(progId) >= 0; }
+/* "for" lists program ids; HAIR = every treatment with a hair wash (including ones added later and partner tickets) */
+function lnAddonFor(a, progId) {
+  var f = String(a.for || '').split(',').map(function (x) { return x.trim(); });
+  if (f.indexOf(progId) >= 0) return true;
+  if (f.indexOf('HAIR') >= 0) { var p = lnFind(LANA.PROGRAMS, progId); return !!p && lnTrue(p.hair); }
+  return false;
+}
 /* what one person pays on top of the ticket: long hair, blow-dry style, add-ons (free ones from vouchers) */
 function lnPersonLines(prog, pe, free, tierFree, tierName) {
   var lines = [], hair = lnFind(LANA.HAIR, pe.hair), style = lnFind(LANA.STYLES, pe.style);
@@ -1440,7 +1446,7 @@ function cConfig(store) {
     alerts: LANA.ALERTS.map(function (a) { return { id: a[0], name_th: a[1], name_en: a[2] }; }),
     hair: LANA.HAIR.map(function (h) { return { id: h.id, name_th: h.name_th, name_en: h.name_en || h.name_th, price: +h.price, min: +h.min }; }),
     styles: LANA.STYLES.map(function (h) { return { id: h.id, name_th: h.name_th, name_en: h.name_en || h.name_th, price: +h.price, min: +h.min }; }),
-    addons: LANA.ADDONS.map(function (x) { return { id: x.id, name_th: x.name_th, name_en: x.name_en || x.name_th, price: +x.price, min: +x.min, for: String(x.for || '').split(',').map(function (y) { return y.trim(); }).filter(Boolean), rec: lnTrue(x.rec), desc_th: x.desc_th || '', desc_en: x.desc_en || x.desc_th || '' }; }),
+    addons: LANA.ADDONS.map(function (x) { return { id: x.id, name_th: x.name_th, name_en: x.name_en || x.name_th, price: +x.price, min: +x.min, for: LANA.PROGRAMS.filter(function (p) { return lnAddonFor(x, p.id); }).map(function (p) { return p.id; }), rec: lnTrue(x.rec), desc_th: x.desc_th || '', desc_en: x.desc_en || x.desc_th || '' }; }),
     partners: (LANA.PARTNERS || []).map(function (x) { return { id: x.id, name_th: x.name_th, name_en: x.name_en || x.name_th, prog: x.prog, days: +x.days || 60, rule: x.rule || '', desc_th: x.desc_th || '', desc_en: x.desc_en || x.desc_th || '' }; })
   };
 }
