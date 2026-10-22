@@ -355,7 +355,7 @@ button.mcard:active { transform: scale(.99); }
       .then(function (j) { if (!j.ok) throw new Error(j.error); return j.data; });
   }
   var ERR = { NET: ['เชื่อมต่อไม่ได้ ลองใหม่', 'Connection problem, try again'], KIOSK_KEY: ['รหัสแท็บเล็ตไม่ถูกต้อง', 'Wrong tablet password'], FULL: ['วันนี้เต็มแล้ว', 'Fully booked today'], TOO_LATE: ['โปรแกรมนี้ไม่ทันก่อนร้านปิด เลือกโปรแกรมที่สั้นกว่า', 'Not enough time before we close. Try a shorter treatment.'],
-    CLOSED: ['ร้านปิดแล้ว เปิด 10:00–21:00', 'We are closed. Open 10:00–21:00'], NEED_NAME: ['ใส่ชื่อ', 'Enter your name'], BAD_PHONE: ['เบอร์ไม่ครบ หรือเว้นว่างไว้ก็ได้', 'Phone looks incomplete; you can leave it empty'],
+    CLOSED: ['ร้านปิดแล้ว เปิด 10:00–21:00', 'We are closed. Open 10:00–21:00'], PAY_FIRST: ['นัดนี้ยังไม่ได้จ่าย กดจ่ายและรับคิว', 'This booking is unpaid. Tap Pay to get your queue number'], NEED_NAME: ['ใส่ชื่อ', 'Enter your name'], BAD_PHONE: ['เบอร์ไม่ครบ หรือเว้นว่างไว้ก็ได้', 'Phone looks incomplete; you can leave it empty'],
     BAD_EMAIL: ['อีเมลไม่ถูกต้อง หรือเว้นว่างไว้ก็ได้', 'Email looks wrong; you can leave it empty'], NEED_HAIR: ['เลือกความยาวผมก่อน', 'Choose hair length first'], NO_TICKET: ['ตั๋วใช้เวลานี้ไม่ได้', 'No ticket usable now'],
     NOT_HERE: ['สาขานี้ไม่มีโปรแกรมนี้', 'Not available here'], NEED_STARS: ['ให้ดาวก่อน', 'Please rate first'], PAY_SETUP: ['ระบบจ่ายเงินยังไม่ได้ตั้งค่า', 'Payments are not set up yet'], PAY_FAILED: ['เปิดหน้าจ่ายเงินไม่ได้ ลองใหม่', 'Could not open payment, try again'], NOT_FOUND: ['ไม่พบรายการ', 'Not found'], NEED_CONTACT: ['ซื้อคอร์สต้องใส่เบอร์หรืออีเมล', 'Courses need a phone or email'], BAD_BRANCH: ['สาขานี้ยังไม่เปิด', 'This branch is not open'] };
   function errT(e) { var k = String(e && e.message || e), x = ERR[k]; return x ? t(x[0], x[1]) : k; }
@@ -387,7 +387,7 @@ button.mcard:active { transform: scale(.99); }
     pe.addons.forEach(function (id) { var a = find(S.cfg.addons, id), f = (tf || []).indexOf(id) >= 0; if (a) out.push({ label: nm(a) + (f ? ' · ' + t('ฟรีสิทธิ์ ', 'free · ') + tn : ''), amount: f ? 0 : a.price }); });
     return out;
   }
-  function go(screen, extra) { S.k = Object.assign({ screen: screen }, extra || {}); $('beam').hidden = true; render(); $('tbody').scrollTop = 0; }
+  function go(screen, extra) { if (screen === 'home') { try { sessionStorage.removeItem('lana-k-who'); } catch (e) {} } S.k = Object.assign({ screen: screen }, extra || {}); $('beam').hidden = true; render(); $('tbody').scrollTop = 0; }
 
   /* ---------- screens ---------- */
   function keypad(val, label, phoneMode) {
@@ -419,6 +419,8 @@ button.mcard:active { transform: scale(.99); }
         if (c.late) h += '<p class="err">' + t('เลยเวลานัดเกิน 30 นาที ตั๋วกลับเข้ากระเป๋าแล้ว', 'More than 30 min late; your ticket is back in your wallet') + '</p><button class="btn block kb" data-kci="' + bk.id + '">' + t('ตกลง', 'OK') + '</button>';
         else if (c.other) h += '<p class="err">' + t('นัดนี้อยู่อีกสาขา', 'This booking is at another branch') + '</p>' + (c.canNow ? '<button class="btn block kb" data-kci-move="' + bk.id + '">' + t('ย้ายมาที่นี่และเริ่มเลย', 'Move here & start') + '</button>' : '<p class="hint">' + t('สาขานี้ยังไม่ว่าง', 'No free seat here now') + '</p>');
         else if (c.early) h += '<p class="hint">' + t('เช็กอินได้ตั้งแต่ ', 'Check-in opens at ') + hm(c.opensAt) + '</p>' + (c.canNow ? '<button class="btn block kb" data-kci-move="' + bk.id + '">' + t('มีที่ว่าง เริ่มตอนนี้เลย', 'A seat is free, start now') + '</button>' : '');
+        else if (bk.payAtShop && (f.held || []).length) h += '<button class="btn block kb" data-kpaybk-t>' + t('เช็กอิน (ใช้ตั๋วที่จองไว้)', 'Check in with your ticket') + '</button>';
+        else if (bk.payAtShop) h += (f.tickets.length ? '<button class="btn block kb" data-kpaybk-t>' + t('ใช้ตั๋วที่มี (', 'Use my ticket (') + f.tickets.length + t(' ใบ)', ' left)') + '</button>' : '') + '<button class="btn block kb' + (f.tickets.length ? ' ghost' : '') + '" data-kpaybk>' + t('จ่ายเงินและรับคิว', 'Pay & get your queue number') + '</button>';
         else h += '<button class="btn block kb" data-kci="' + bk.id + '">' + t('เช็กอิน', 'Check in') + '</button>';
       } else if (bk) {
         h += '<p class="hint">' + t('คุณเช็กอินแล้ว', 'You are already checked in') + (bk.q ? ' · ' + t('คิว ', 'queue ') + esc(bk.q) : '') + '</p><button class="btn block kb" data-k="home">' + t('กลับหน้าแรก', 'Home') + '</button>';
@@ -432,9 +434,13 @@ button.mcard:active { transform: scale(.99); }
     if (k.screen === 'walkin') return walkin();
     if (k.screen === 'queue') {
       var url = (APP.CUST_URL || (demo ? 'https://example.com/customer/' : '')) + '?v=' + encodeURIComponent(k.vkey || '');
+      /* came together and booked by phone: offer to pay for the next person straight away */
+      var who = k.who; if (!who) { try { who = JSON.parse(sessionStorage.getItem('lana-k-who') || 'null'); sessionStorage.removeItem('lana-k-who'); } catch (e) {} k.who = who; }
+      if (who && k.next === undefined) { k.next = null; api('kFind', who).then(function (r) { var b2 = r.booking, c2 = r.check; if (r.member && b2 && b2.status === 'booked' && b2.payAtShop && c2 && !c2.late && !c2.other) { S.k.next = r; render(); } }).catch(function () {}); }
+      var nextBtn = k.next && (k.next.held || []).length ? '<button class="btn kb" data-knext-t>' + t('เช็กอินคนถัดไป (ใช้ตั๋ว): ', 'Check in the next guest (ticket): ') + esc(k.next.booking.people[0].name) + '</button>' : k.next && (k.next.tickets || []).length ? '<button class="btn kb" data-knext-t>' + t('คนถัดไปใช้ตั๋ว: ', 'Next guest uses a ticket: ') + esc(k.next.booking.people[0].name) + '</button>' + '<button class="btn kb ghost" data-knext>' + t('คนถัดไปจ่ายเงิน', 'Next guest pays') + '</button>' : k.next ? '<button class="btn kb" data-knext>' + t('จ่ายของคนถัดไป: ', 'Pay for the next guest: ') + esc(k.next.booking.people[0].name) + '</button>' : '';
       return '<div class="khome"><span class="eyebrow">' + t('เช็กอินแล้ว', 'Checked in') + '</span><div class="qno">' + esc(k.q) + '</div><h2>' + t('รอเรียกคิวสักครู่นะคะ', 'We will call your number shortly') + '</h2>' +
         '<p class="hint">' + esc(k.label || '') + '</p>' + '<p class="hint" style="font-size:16px">' + t('นั่งรอได้เลย เดี๋ยวพนักงานเรียกคิว', 'Please take a seat, we will call your number.') + '</p><p class="hint">' + t('เสร็จแล้วกลับมาที่แท็บเล็ตนี้ แตะ "จ่ายและให้ดาวก่อนกลับ"', 'When you finish, come back here and tap "Pay & rate before you leave".') + '</p>' +
-        '<button class="btn kb" data-k="home">' + t('เสร็จ', 'Done') + '</button></div>';
+        nextBtn + '<button class="btn kb' + (nextBtn ? ' ghost' : '') + '" data-k="home">' + t('เสร็จ', 'Done') + '</button></div>';
     }
     if (k.screen === 'out') {
       if (!k.list) { api('kOut').then(function (r) { S.k.list = r.list; render(); }).catch(function (e) { toast(errT(e)); }); return '<p class="hint">…</p>'; }
@@ -507,7 +513,7 @@ button.mcard:active { transform: scale(.99); }
     if (!k.person) k.person = newPerson();
     var p = prog(k.prog), pe = k.person;
     var sib = siblings(p, list);
-    var h = '<div class="ksplit"><div class="kleft"><span class="eyebrow">' + (useT ? t('ใช้ตั๋ว', 'Using a ticket') : t('โปรแกรมที่เลือก', 'Your treatment')) + '</span>' +
+    var h = '<div class="ksplit"><div class="kleft">' + (k.phoneBooking ? '<div class="ticket" style="background:var(--sand);border-color:var(--sand)"><b>' + t('นัดที่จองไว้ ', 'Your booking ') + hm(k.phoneAt) + (k.name ? ' · ' + esc(k.name) : '') + '</b><span style="font-size:13px">' + (useT ? t('เลือกความยาวผมและของเสริม แล้วรับคิว (ส่วนเพิ่มจ่ายตรงนี้)', 'Choose hair length and extras, then get your queue number (extras paid here)') : t('เลือกความยาวผมและของเสริม แล้วจ่ายเพื่อรับคิว', 'Choose hair length and extras, then pay to get your queue number')) + '</span></div>' : '') + '<span class="eyebrow">' + (useT ? t('ใช้ตั๋ว', 'Using a ticket') : t('โปรแกรมที่เลือก', 'Your treatment')) + '</span>' +
       (sib.length > 1 ? '<span class="hint">' + esc(gname(p.group)) + '</span><div class="vpick">' + sib.map(function (x) { return '<button class="opt" data-kvar="' + x.id + '" aria-pressed="' + (x.id === p.id) + '"><span class="t">' + esc(x.vlabel ? (S.lang === 'en' ? x.vlabel.en : x.vlabel.th) : nm(x)) + '</span><span class="s">' + (useT ? t('มีตั๋ว ', '') + (owned[x.id] || 0) + t(' ใบ', ' left') : baht(x.price)) + '</span></button>'; }).join('') + '</div>' : '') +
       progCard(p, useT, owned, false) +
       (bundle(list).length > 1 ? '<button class="btn ghost kb" data-kmenu>‹ ' + t('ดูเมนูทั้งหมด / เปลี่ยนโปรแกรม', 'Back to the menu') + '</button>' : '') + '</div><div class="kright">';
@@ -598,6 +604,8 @@ button.mcard:active { transform: scale(.99); }
     api('kFind', who).then(function (r) {
       /* booked for now at this branch: check in straight away, no extra tap */
       var bk = r.booking, c = r.check;
+      /* booked by phone / page: pay here first, then the queue number */
+      if (r.member && bk && bk.status === 'booked' && bk.payAtShop && c && !c.late && !c.other && (!c.early || c.canNow)) return (r.held || []).length ? payBooked(r, who, true) : (r.tickets || []).length ? go('found', { found: r, who: who }) : payBooked(r, who);
       if (r.member && bk && bk.status === 'booked' && c && !c.late && !c.other && !c.early)
         return api('kCheckin', { id: bk.id }).then(function (x) {
           if (x.result === 'checkedin') return go('queue', { q: x.q, vkey: x.vkey, label: t('สวัสดีคุณ ', 'Hello ') + r.member.name + ' · ' + nm(prog(bk.people[0].prog)) + (x.late ? ' · ' + t('มาสาย บริการจบตามเวลาเดิม', 'late, ends at the original time') : '') });
@@ -607,8 +615,16 @@ button.mcard:active { transform: scale(.99); }
       go('walkin', { phoneRaw: who.phone || '', email: who.email || '', intl: who.intl });
     }).catch(function (e) { toast(errT(e)); });
   }
+  /* booked by phone: pay here, or use a ticket the member already has (useT) */
+  function payBooked(r, who, useT) {
+    var bk = r.booking; try { sessionStorage.setItem('lana-k-who', JSON.stringify(who || {})); } catch (e) {}
+    var base = { who: who, tier: r.member.tier, phoneBooking: bk.id, phoneAt: bk.start, name: r.member.name };
+    if (useT) { var tk = (r.held || []).concat(r.tickets || []), own = tk.some(function (x) { return x.prog === bk.people[0].prog; }); return go('walkin', Object.assign(base, { useT: true, tickets: tk, prog: own ? bk.people[0].prog : '' })); }
+    go('walkin', Object.assign(base, { memberChoice: 'buy', prog: bk.people[0].prog }));
+  }
   function kpay() {
     var k = S.k, p = prog(k.prog), req = { prog: k.prog, person: k.person, pack: k.useT ? '1' : (k.pack || '1'), returnUrl: returnUrl() };
+    if (k.phoneBooking) req.phoneBooking = k.phoneBooking;
     if (k.useT) Object.assign(req, k.who, { useTicket: true });
     else if (k.memberChoice) Object.assign(req, k.who, { memberChoice: 'buy' });
     else {
@@ -648,6 +664,10 @@ button.mcard:active { transform: scale(.99); }
         toast(r.result === 'nofree' ? t('ตอนนี้ไม่มีที่ว่าง', 'No free seat right now') : r.result); return find_(k.who);
       }).catch(function (x) { toast(errT(x)); });
     }
+    if (d.kpaybk !== undefined) return payBooked(k.found, k.who);
+    if (d.kpaybkT !== undefined) return payBooked(k.found, k.who, true);
+    if (d.knext !== undefined) return payBooked(k.next, k.who);
+    if (d.knextT !== undefined) return payBooked(k.next, k.who, true);
     if (d.kuse !== undefined) return go('walkin', { useT: true, tickets: k.found.tickets, who: k.who, tier: k.found.member.tier });
     if (d.kbuy !== undefined) return go('walkin', k.who && k.found ? { memberChoice: 'buy', who: k.who, tier: k.found.member.tier } : {});
     if (d.kprog) { k.prog = d.kprog; k.person = newPerson(); render(); var tb = $('tbody'); if (tb) tb.scrollTop = 0; return; }

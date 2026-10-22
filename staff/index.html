@@ -1166,6 +1166,53 @@ function stationApi(req, store, now) {
   return store.lock(function () {
     lnStationTick(store, now);
     if (a === 'sBoard') return stBoard(br, store, now);
+    /* booking taken by phone / Facebook page: seats are held, the guest pays at the counter tablet when they arrive */
+    if (a === 'sBookInfo') {
+      var day = String(req.date || now.date), progs = LANA.PROGRAMS.filter(function (p) { return lnOnSale(p) && lnProgAt(p, br); }).map(function (p) {
+        var g = String(p.group || '').split('|')[0];
+        return { id: p.id, name: p.name_th, group: g, cat: p.cat || (lnTrue(p.hair) ? 'hair' : 'massage'), price: +p.price, min: lnPairs(p.segs).reduce(function (t, x) { return t + x.v; }, 0) }; });
+      var nP = Math.max(1, Math.min(4, +req.n || 1)), times = req.prog ? cSlots({ branch: br.id, date: day, prog: req.prog, people: Array.apply(null, Array(nP)).map(function () { return { hair: 'short' }; }) }, store, now, null).times : [];
+      return { progs: progs, times: times, days: LN_C.DAYS, list: stPhoneList(br, store, now) };
+    }
+    /* who is this phone number: name and tickets they can book with */
+    if (a === 'sBookWho') {
+      var wp = req.phone ? lnNormPhone(req.phone) : '', wm = wp && cPhoneOK(wp) ? cMemberBy(store, 'phone', wp) : null;
+      if (!wm) return { member: null };
+      var cnt = {}; store.tickets().forEach(function (k) { if (k.memberId === wm.id && k.status === 'active' && !(k.expires && now.date > k.expires)) cnt[k.prog] = (cnt[k.prog] || 0) + 1; });
+      return { member: { name: wm.name }, tickets: Object.keys(cnt).map(function (p) { var pg = lnFind(LANA.PROGRAMS, p) || {}; return { prog: p, name: pg.name_th || p, n: cnt[p] }; }) };
+    }
+    if (a === 'sBook') {
+      var pg = lnFind(LANA.PROGRAMS, req.prog), m = +req.time, name = String(req.name || '').trim().slice(0, 40), ph = req.phone ? lnNormPhone(req.phone) : '';
+      if (!pg || !lnOnSale(pg) || !lnProgAt(pg, br)) throw new Error('NOT_HERE');
+      if (!cDateOK(String(req.date), now) || !cTimeOK(req.time) || (req.date === now.date && m < now.min)) throw new Error('BAD_TIME');
+      if (!name) throw new Error('NEED_NAME');
+      if (!ph || !cPhoneOK(ph)) throw new Error('BAD_PHONE');
+      var mem = cMemberBy(store, 'phone', ph);
+      if (!mem) { mem = { id: 'M' + lnId(7), lineUserId: '', name: name, phone: ph, email: '', birthMonth: '', consentMarketing: 'FALSE', privacyAt: '', noShows: 0, source: 'phone', createdAt: cStamp(now), lastPrefs: '' }; store.saveMember(mem); }
+      /* several people coming together: one booking each (each pays at the counter tablet), seats found for all at the same time */
+      var n = Math.max(1, Math.min(4, +req.n || 1)), group = n > 1 ? lnId(6) : '';
+      var pes = Array.apply(null, Array(n)).map(function (_, i) { var x = cCleanPerson(pg, { hair: lnTrue(pg.hair) ? 'short' : '', note: req.note }, i, null); x.name = i ? name + ' (คนที่ ' + (i + 1) + ')' : name; return x; });
+      var chs = pes.map(function (x) { return lnChain(pg, x); }), al = lnAllocate(br, req.date, m, chs, cRows(store, req.date, null));
+      if (!al) throw new Error('SLOT_TAKEN');
+      var useT = req.useTicket ? cPickTickets(store, mem.id, pg.id, n, req.date, m) : null;   /* book with the member's tickets: held now, used when they check in */
+      if (req.useTicket && !useT) throw new Error('NO_TICKET');
+      var made = pes.map(function (x, i) {
+        x.chain = chs[i]; x.alloc = al[i];
+        var nb = { id: lnId(8), code: 'LN' + lnId(5), q: '', branch: br.id, date: req.date, status: 'booked', people: [x], ext: 0, due: [], live: [], memberId: mem.id, tix: [], vouchers: [], paid: 0,
+          src: 'phone', payAtShop: true, phone: ph, email: mem.email || '', group: group, bookedBy: String(req.by || 'หน้าร้าน').slice(0, 30) };
+        if (useT) { var tk = useT[i]; tk.status = 'booked'; tk.bookingId = nb.id; store.saveTicket(tk); nb.tix = [tk.id]; if (tk.src === 'partner') x.partner = true; }
+        store.saveBooking(nb); store.log('', nb.id, 'book_phone', br.id + ' ' + nb.date + ' ' + lnHM(m) + ' ' + pg.id + (n > 1 ? ' ' + (i + 1) + '/' + n : ''));
+        return nb;
+      });
+      return { ok: true, booking: { id: made[0].id, code: made[0].code, date: made[0].date, start: m, n: n }, list: stPhoneList(br, store, now) };
+    }
+    if (a === 'sBookCancel') {
+      var cb = lnFind(store.bookings(), req.id); if (!cb || !cb.payAtShop || cb.branch !== br.id) throw new Error('NOT_FOUND');
+      if (cb.status !== 'booked') throw new Error('NOT_NOW');
+      cb.status = 'cancelled'; store.saveBooking(cb); store.log('', cb.id, 'cancel_phone', '');
+      (cb.tix || []).forEach(function (id) { var k = lnFind(store.tickets(), id); if (k && k.status === 'booked' && k.bookingId === cb.id) { k.status = 'active'; k.bookingId = ''; store.saveTicket(k); } });   /* ticket back to the wallet */
+      return { ok: true, list: stPhoneList(br, store, now) };
+    }
     if (a === 'sClock') {   /* clock in/out at the station tablet (for staff without the LINE app, e.g. part-timers called in) */
       var who = lnFind(store.staff(), req.staffId); if (!who || who.branch !== br.id) throw new Error('BAD_STAFF');
       var open = store.shifts().filter(function (r) { return r.staffId === who.id && r.date === now.date && !r.out; })[0];
@@ -1380,6 +1427,12 @@ function stBoard(br, store, now) {
   }).sort(function (x, y) { return x.end - y.end; });
   var finished = all.filter(function (b) { return b.status === 'finished'; }).map(function (b) { return { id: b.id, q: b.q || b.code, prog: progOf(b), staff: nm(b.staffId), at: +b.finishedAt }; });
   return { now: now, branch: { id: br.id, name: br.name_th || br.id }, staff: people, waiting: waiting, live: live, finished: finished, beds: apiBoard(br.id, store, now) };
+}
+/* phone / page bookings still to come (pay at the shop) */
+function stPhoneList(br, store, now) {
+  return store.bookings().filter(function (b) { return b.payAtShop && b.branch === br.id && b.status === 'booked' && b.date >= now.date; })
+    .sort(function (x, y) { return (x.date + lnHM(x.people[0].alloc[0].start)) < (y.date + lnHM(y.people[0].alloc[0].start)) ? -1 : 1; })
+    .map(function (b) { var p = lnFind(LANA.PROGRAMS, b.people[0].prog) || {}; return { id: b.id, code: b.code, date: b.date, start: b.people[0].alloc[0].start, name: b.people[0].name, phone: b.phone, prog: p.name_th || b.people[0].prog, price: +p.price || 0, ticket: (b.tix || []).length > 0 }; });
 }
 function toMinHM(hm) { var p = String(hm || '').split(':'); return p.length > 1 ? +p[0] * 60 + +p[1] : 0; }
 
@@ -1621,7 +1674,7 @@ function cView(b, store, now, withChecks) {
     ext: b.ext || 0, due: (b.due || []).map(function (d) { return { th: d.th, en: d.en, amount: d.amount }; }), paid: +b.paid || 0, guest: !!b.guest, kiosk: !!b.kiosk,
     staffName: b.staffName || '', upgrade: b.upgrade || null, earlyReq: !!b.earlyReq, endCap: b.endCap || null, stars: +b.stars || 0,
     single: (b.tix || []).every(function (id) { var k = lnFind(store.tickets(), id); return !k || k.src === 'single' || k.src === 'kiosk'; }),
-    quiet: (b.tix || []).some(function (id) { var k = lnFind(store.tickets(), id); return k && k.rule === 'quiet'; }), holdUntil: b.holdUntil || null, orderId: b.orderId || '' };
+    quiet: (b.tix || []).some(function (id) { var k = lnFind(store.tickets(), id); return k && k.rule === 'quiet'; }), holdUntil: b.holdUntil || null, orderId: b.orderId || '', payAtShop: !!b.payAtShop, tixHeld: b.payAtShop ? (b.tix || []).length : 0 };
   if (b.status === 'inservice' || b.status === 'finished') { v.svcStart = +b.svcStart; v.liveEnd = lnEnd(b) || v.end; }
   if (withChecks && b.status === 'inservice') {
     var br = lnFind(store.branches(), b.branch), copy = JSON.parse(JSON.stringify(b)), all = store.bookings().map(function (x) { return x.id === b.id ? copy : JSON.parse(JSON.stringify(x)); });
@@ -2008,10 +2061,13 @@ function cRetake(store, b) {
 }
 function cReleaseHold(store, b) {
   b.status = 'cancelled';
+  var pbBack = null;
+  if (b.fromPhone) { var pb = lnFind(store.bookings(), b.fromPhone); if (pb && pb.status === 'converted') { pb.status = 'booked'; store.saveBooking(pb); pbBack = pb; } }   /* payment not made: the phone booking is back */
   (b.tix || []).forEach(function (id) { var k = lnFind(store.tickets(), id); if (k && k.bookingId === b.id && k.status === 'booked') {
     var paidFor = !k.orderId || (lnFind(store.orders(), k.orderId) || {}).status === 'paid';   /* a ticket bought in this unpaid order was never paid for */
     k.status = k.src === 'kiosk' || !paidFor ? 'void' : 'active'; k.bookingId = ''; store.saveTicket(k); } });
   (b.vouchers || []).forEach(function (id) { var v = lnFind(store.vouchers(), id); if (v && v.bookingId === b.id) { v.status = 'active'; v.bookingId = ''; store.saveVoucher(v); } });
+  if (pbBack) (pbBack.tix || []).forEach(function (id) { var k = lnFind(store.tickets(), id); if (k && k.status === 'active') { k.status = 'booked'; k.bookingId = pbBack.id; store.saveTicket(k); } });   /* its ticket is held for it again */
   store.saveBooking(b); store.log('', b.id, 'hold_released', '');
 }
 function cMinOf(stamp) { var p = String(stamp || '').split(' '); return { date: p[0], min: p[1] ? +p[1].split(':')[0] * 60 + +p[1].split(':')[1] : 0 }; }
@@ -2076,6 +2132,10 @@ function cKiosk(a, req, store, now) {
     var m = cKioskFindMember(store, req);
     if (!m) return { member: null };
     var today = cCheckinVisit(store, m.id, now);
+    /* still unpaid bookings made by phone today (e.g. the second of two friends): show those first */
+    var phoneB = store.bookings().filter(function (x) { return x.memberId === m.id && x.date === now.date && x.status === 'booked' && x.payAtShop; })
+      .sort(function (x, y) { return x.people[0].alloc[0].start - y.people[0].alloc[0].start; })[0];
+    if (phoneB && (!today || today.status !== 'booked')) today = phoneB;
     var tix = store.tickets().filter(function (k) { return k.memberId === m.id && k.status === 'active' && cTicketOK(k, now.date, now.min); });
     var check = null;
     if (today && today.status === 'booked') {
@@ -2084,10 +2144,12 @@ function cKiosk(a, req, store, now) {
         canNow: lnProgAt(lnFind(LANA.PROGRAMS, today.people[0].prog), br) && !!lnAllocate(br, now.date, Math.ceil(now.min / 5) * 5, chains, cRows(store, now.date, today.id)) };
     }
     return { member: { id: m.id, name: m.name, tier: cTier(store, m, now) }, booking: today ? cView(today, store, now, false) : null, check: check,
-      tickets: tix.map(function (k) { return { id: k.id, prog: k.prog }; }) };
+      tickets: tix.map(function (k) { return { id: k.id, prog: k.prog }; }),
+      held: today && today.payAtShop ? (today.tix || []).map(function (id) { var k = lnFind(store.tickets(), id); return k && k.status === 'booked' ? { id: k.id, prog: k.prog } : null; }).filter(Boolean) : [] };
   }
   if (a === 'kCheckin') {
     var b = lnFind(store.bookings(), req.id); if (!b) throw new Error('NOT_FOUND');
+    if (b.payAtShop && b.status === 'booked') throw new Error('PAY_FIRST');   /* booked by phone: pays first (kStart with phoneBooking) */
     var r = cDoCheckin(store, b, br.id, now, !!req.move);
     if (r.result === 'checkedin') { if (!b.vkey) { b.vkey = lnId(12); store.saveBooking(b); } r.vkey = b.vkey; r.booking = cView(b, store, now, false); }
     return r;
@@ -2103,7 +2165,10 @@ function cKioskStart(req, store, now, br) {
   var prog = lnFind(LANA.PROGRAMS, req.prog); if (!prog || !lnProgAt(prog, br)) throw new Error('NOT_HERE');
   var pe = cCleanPerson(prog, req.person, 0, null);
   if (lnTrue(prog.hair) && !pe.hair) throw new Error('NEED_HAIR');
-  var chain = lnChain(prog, pe), start = Math.ceil(now.min / 5) * 5, al = null, rows = cRows(store, now.date, null);
+  /* a phone / page booking for today: its seats are given back here and taken again by this paid visit */
+  var pb = req.phoneBooking ? lnFind(store.bookings(), req.phoneBooking) : null;
+  if (req.phoneBooking && (!pb || !pb.payAtShop || pb.status !== 'booked' || pb.date !== now.date || pb.branch !== br.id)) throw new Error('BAD_FORM');
+  var chain = lnChain(prog, pe), start = Math.ceil(now.min / 5) * 5, al = null, rows = cRows(store, now.date, pb ? pb.id : null);
   for (; start + lnChainMin(chain) <= LANA.CLOSE && !(al = lnAllocate(br, now.date, start, [chain], rows)); start += 5);
   if (!al) throw new Error(Math.ceil(now.min / 5) * 5 + lnChainMin(chain) > LANA.CLOSE ? 'TOO_LATE' : 'FULL');
   var member = null, tix = null;
@@ -2118,7 +2183,11 @@ function cKioskStart(req, store, now, br) {
   var phone = req.phone ? lnNormPhone(req.phone, req.intl) : '', email = String(req.email || '').trim();
   if (req.phone && !cPhoneOK(phone)) throw new Error('BAD_PHONE');
   if (email && !cEmailOK(email)) throw new Error('BAD_EMAIL');
-  if (req.useTicket) { tix = cPickTickets(store, member.id, prog.id, 1, now.date, start); if (!tix) throw new Error('NO_TICKET'); }
+  if (req.useTicket) {
+    /* a phone booking that already holds this member's ticket: use that one */
+    var held = pb ? (pb.tix || []).map(function (id) { return lnFind(store.tickets(), id); }).filter(function (k) { return k && k.status === 'booked' && k.bookingId === pb.id && k.prog === prog.id; }) : [];
+    tix = held.length ? [held[0]] : cPickTickets(store, member.id, prog.id, 1, now.date, start); if (!tix) throw new Error('NO_TICKET');
+  }
   pe.name = name; pe.chain = chain; pe.alloc = al[0];
   if (!member && !req.memberChoice && (phone || email)) {
     /* first visit with a phone or email: keep a member record so it can be linked to LINE later and spending counts toward a level */
@@ -2134,6 +2203,7 @@ function cKioskStart(req, store, now, br) {
   var b = { id: lnId(8), code: 'LN' + lnId(5), q: '', branch: br.id, date: now.date, status: 'hold', people: [pe], ext: 0, due: [], live: [], kiosk: true, src: 'kiosk',
     memberId: member ? member.id : '', guest: !member || member.source === 'kiosk' && !member.lineUserId, tix: [], paid: 0, email: email || (member && member.email) || '', phone: phone || (member && member.phone) || '',
     consent: !!req.consent, vkey: lnId(12), verifiedBy: req.useTicket ? (req.phone ? 'phone' : 'email') : '' };
+  if (pb) { if (pb.memberId && member && pb.memberId !== member.id) throw new Error('BAD_FORM'); b.fromPhone = pb.id; }
   var kt = null;
   if (tix) { tix.forEach(function (k) { k.status = 'booked'; k.bookingId = b.id; store.saveTicket(k); }); b.tix = tix.map(function (k) { return k.id; }); if (tix[0].src === 'partner') pe.partner = true; }
   else {
@@ -2149,6 +2219,7 @@ function cKioskStart(req, store, now, br) {
   } else { b.status = 'checkedin'; b.q = cQueue(store, b); b.checkedAt = lnHM(now.min); }
   if (kt) store.saveTicket(kt);
   store.saveBooking(b); store.log('', b.id, 'kiosk_' + (tix ? 'ticket' : 'walkin'), br.id + ' ' + lnHM(start));
+  if (pb) { pb.status = 'converted'; pb.convertedTo = b.id; store.saveBooking(pb); }
   out.bookingId = b.id; out.q = b.q; out.vkey = b.vkey; out.start = start; out.booking = cView(b, store, now, false);
   return out;
 }

@@ -373,6 +373,18 @@ body.real, body { background: var(--paper); }
 .uchip { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 10px 14px; font: inherit; font-size: 15px; cursor: pointer; }
 .uchip.on { background: color-mix(in srgb, var(--olive, #6b7046) 18%, var(--card)); border-color: var(--olive, #6b7046); }
 .uchip small { color: var(--ink-2); }
+.bkform { display: grid; gap: 8px; max-width: 760px; }
+.bkl { font-size: 15px; color: var(--ink-2); margin-top: 6px; }
+.bkin { font: inherit; font-size: 18px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); width: 100%; box-sizing: border-box; }
+.bklist { display: grid; gap: 8px; max-width: 760px; }
+.bklist > div { display: flex; justify-content: space-between; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; background: var(--card); font-size: 16px; }
+.bklist small { color: var(--ink-2); }
+.uchip.sel { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.bkwho { font-size: 16px; padding: 10px 14px; border-radius: 12px; background: color-mix(in srgb, var(--olive, #6b7046) 12%, var(--card)); }
+.bkchk { display: flex; gap: 10px; align-items: center; font-size: 16px; padding: 6px 2px; }
+.bkchk input { width: 22px; height: 22px; }
+.bkrow { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+.bkwho.new { background: color-mix(in srgb, var(--sand, #efe3cf) 70%, var(--card)); }
 </style>
 </head>
 <body class="real">
@@ -390,7 +402,7 @@ body.real, body { background: var(--paper); }
 <script>
 (function () {
   var demo = !APP.API_URL, $ = function (id) { return document.getElementById(id); };
-  var S = { key: '', branch: '', tab: 'queue', b: null, sheet: null, err: '', busy: false, skew: 0 };
+  var S = { key: '', branch: '', tab: 'queue', b: null, sheet: null, err: '', busy: false, skew: 0, bk: { date: '', prog: '', n: 1, time: null, who: null, useT: false, name: '', phone: '', note: '', info: null, loading: false } };
   try { S.key = localStorage.getItem('lana-kiosk-key') || ''; S.branch = localStorage.getItem('lana-kiosk-branch') || ''; S.tab = localStorage.getItem('lana-station-tab') || 'queue'; } catch (e) {}
   var DS = null, DNOW = null;
   if (demo) {
@@ -407,7 +419,7 @@ body.real, body { background: var(--paper); }
     return fetch(APP.API_URL, { method: 'POST', body: JSON.stringify(req) }).then(function (r) { return r.json(); }, function () { throw new Error('NET'); })
       .then(function (j) { if (!j.ok) throw new Error(j.error); return j.data; });
   }
-  var ERR = { KIOSK_KEY: 'รหัสแท็บเล็ตไม่ถูกต้อง', BAD_BRANCH: 'ไม่พบสาขานี้', NET: 'เชื่อมต่อไม่ได้ ลองใหม่', TAKEN: 'มีคนรับคิวนี้ไปแล้ว', SEAT_BUSY: 'เตียงที่ต้องใช้ยังไม่ว่าง (มีลูกค้าอยู่ หรือเพิ่งเลิก รอเก็บเตียง 10 นาที) ลองใหม่อีกสักครู่', HANDED_OFF: 'คิวนี้ส่งต่ออยู่ ให้คนรับต่อก่อนแล้วค่อยต่อเวลา',
+  var ERR = { NO_TICKET: 'ตั๋วของลูกค้าไม่พอ หรือใช้เวลานี้ไม่ได้', SLOT_TAKEN: 'เวลานี้เต็มแล้ว เลือกเวลาอื่น', NEED_NAME: 'ใส่ชื่อลูกค้า', BAD_PHONE: 'เบอร์โทรไม่ถูกต้อง', BAD_TIME: 'เลือกวันและเวลาใหม่', NOT_HERE: 'สาขานี้ไม่มีโปรแกรมนี้', NOT_FOUND: 'ไม่พบนัดนี้', KIOSK_KEY: 'รหัสแท็บเล็ตไม่ถูกต้อง', BAD_BRANCH: 'ไม่พบสาขานี้', NET: 'เชื่อมต่อไม่ได้ ลองใหม่', TAKEN: 'มีคนรับคิวนี้ไปแล้ว', SEAT_BUSY: 'เตียงที่ต้องใช้ยังไม่ว่าง (มีลูกค้าอยู่ หรือเพิ่งเลิก รอเก็บเตียง 10 นาที) ลองใหม่อีกสักครู่', HANDED_OFF: 'คิวนี้ส่งต่ออยู่ ให้คนรับต่อก่อนแล้วค่อยต่อเวลา',
     NO_ROOM: 'ต่อเวลาไม่ได้ มีคิวต่อที่เตียงนี้', CLOSING: 'ต่อเวลาไม่ได้ ร้านใกล้ปิด', NOT_NOW: 'ทำตอนนี้ไม่ได้ ลองรีเฟรช', NO_NEXT_STEP: 'ขั้นนี้เป็นขั้นสุดท้ายแล้ว', BAD_STAFF: 'ไม่พบชื่อนี้ในสาขา', NOT_FOUND: 'ไม่พบคิวนี้', BAD_ACTION: 'ระบบยังไม่อัปเดต (ลง Code.gs ใหม่แล้ว Deploy เป็น New version)' };
   function errT(e) { var k = String(e && e.message || e); return ERR[k] || k; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -436,8 +448,10 @@ body.real, body { background: var(--paper); }
     var h = '<div class="sbar"><span class="brand">Lana<small>รับงาน · ' + esc(b.branch.name) + '</small></span><button class="clockbtn" id="clockin">เข้า/ออกงาน · ' + onN + ' คน</button><span class="sclock">' + hm(now) + '</span></div>';
     if (demo) h += '<div class="demo">ตัวอย่าง (ข้อมูลจำลอง) · <button id="d-walk">+ ลูกค้าเช็กอิน</button><button id="d-plus">+15 นาที</button><button id="d-plus60">+1 ชั่วโมง</button></div>';
     h += '<div class="stabs" role="tablist"><button role="tab" data-tab="queue" aria-selected="' + (S.tab === 'queue') + '">คิวรอ' + (b.waiting.length ? '<span class="n">' + b.waiting.length + '</span>' : '') + '</button>' +
-      '<button role="tab" data-tab="beds" aria-selected="' + (S.tab === 'beds') + '">สถานะเตียง' + (b.live.length ? ' (' + b.live.length + ')' : '') + '</button></div><div class="sbody">';
-    if (S.tab === 'queue') {
+      '<button role="tab" data-tab="beds" aria-selected="' + (S.tab === 'beds') + '">สถานะเตียง' + (b.live.length ? ' (' + b.live.length + ')' : '') + '</button>' +
+      '<button role="tab" data-tab="book" aria-selected="' + (S.tab === 'book') + '">จองแทนลูกค้า</button></div><div class="sbody">';
+    if (S.tab === 'book') h += bookHtml();
+    else if (S.tab === 'queue') {
       if (!b.waiting.length) h += '<div class="sempty"><b>ยังไม่มีลูกค้ารอ</b>ลูกค้าเช็กอินที่หน้าร้านแล้ว คิวจะขึ้นที่นี่เอง</div>';
       else h += '<div class="qgrid">' + b.waiting.map(function (w) {
         var wait = Math.max(0, now - w.since);
@@ -513,6 +527,44 @@ body.real, body { background: var(--paper); }
     return '';
   }
 
+  /* ----- booking taken by phone / Facebook page: hold the seats, the guest pays at the counter tablet on arrival ----- */
+  function dayStr(d) { var t = S.b.now.date, x = new Date(d + 'T00:00:00'), n = Math.round((x - new Date(t + 'T00:00:00')) / 864e5); return n === 0 ? 'วันนี้' : n === 1 ? 'พรุ่งนี้' : ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'][x.getDay()] + ' ' + x.getDate() + '/' + (x.getMonth() + 1); }
+  function addDays(d, n) { var x = new Date(d + 'T00:00:00'); x.setDate(x.getDate() + n); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); }
+  function loadBook() {
+    var k = S.bk; if (!k.date) k.date = S.b.now.date; k.loading = true;
+    return api('sBookInfo', { date: k.date, prog: k.prog, n: k.n }).then(function (r) { k.info = r; k.loading = false; if (k.time != null && !r.times.some(function (x) { return x.m === k.time && x.ok; })) k.time = null; render(); })
+      .catch(function (e) { k.loading = false; toast(errT(e)); });
+  }
+  function findWho(v) {
+    var ph = String(v || '').trim(); S.bk.phone = ph; if (ph.replace(/\D/g, '').length < 9) { S.bk.who = null; return render(); }
+    api('sBookWho', { phone: ph }).then(function (r) { S.bk.who = r; if (r.member && !S.bk.name) S.bk.name = r.member.name; S.bk.useT = !!(r.tickets || []).some(function (x) { return x.prog === S.bk.prog; }); render(); }).catch(function (e) { toast(errT(e)); });
+  }
+  function bookHtml() {
+    var k = S.bk, inf = k.info; if (!inf) { if (!k.loading) loadBook(); return '<div class="sempty">กำลังโหลด…</div>'; }
+    var cats = [['hair', 'สปาศีรษะ สระไดร์'], ['set', 'เซ็ต'], ['massage', 'นวด']];
+    var h = '<div class="bkform"><div class="ssec">จองให้ลูกค้าที่โทรหรือทักเพจ · ยังไม่ต้องจ่าย มาถึงแล้วจ่ายที่แท็บเล็ตหน้าร้าน</div>';
+    /* 1. phone first: the system tells whether this is a member (and their tickets), no need to ask */
+    var w = k.who, mine = w && w.member ? (w.tickets || []).filter(function (x) { return x.prog === k.prog; })[0] : null, have = mine ? mine.n : 0;
+    h += '<label class="bkl" for="bk-phone">1. เบอร์โทรลูกค้า (ใช้เช็กอินตอนมาถึง)</label><div class="bkrow"><input id="bk-phone" class="bkin" type="tel" inputmode="tel" value="' + esc(k.phone) + '" placeholder="08x xxx xxxx"><button class="uchip" data-bkfind>เช็กเบอร์</button></div>';
+    if (w) h += w.member ? '<div class="bkwho">✓ <b>เป็นสมาชิกแล้ว</b> · ' + esc(w.member.name) + ((w.tickets || []).length ? ' · มีตั๋ว ' + w.tickets.map(function (x) { return esc(x.name) + ' × ' + x.n; }).join(', ') : ' · ไม่มีตั๋ว') + '</div>'
+      : '<div class="bkwho new"><b>ยังไม่เป็นสมาชิก</b> · ระบบสมัครให้จากเบอร์นี้เอง ครั้งหน้าใส่เบอร์นี้ก็เจอ</div>';
+    h += '<label class="bkl" for="bk-name">2. ชื่อลูกค้า</label><input id="bk-name" class="bkin" value="' + esc(k.name) + '" autocomplete="off">';
+    h += '<label class="bkl">3. วัน</label><div class="uchips">' + Array.apply(null, Array(inf.days || 8)).map(function (_, i) { var d = addDays(S.b.now.date, i); return '<button class="uchip' + (k.date === d ? ' sel' : '') + '" data-bkday="' + d + '">' + dayStr(d) + '</button>'; }).join('') + '</div>';
+    h += '<label class="bkl" for="bk-prog">4. บริการ</label><select id="bk-prog" class="bkin"><option value="">เลือกบริการ…</option>' + cats.map(function (c) {
+      var list = inf.progs.filter(function (p) { return p.cat === c[0]; }); if (!list.length) return '';
+      return '<optgroup label="' + c[1] + '">' + list.map(function (p) { var tk = w && w.member ? (w.tickets || []).filter(function (x) { return x.prog === p.id; })[0] : null;
+        return '<option value="' + p.id + '"' + (k.prog === p.id ? ' selected' : '') + '>' + (tk ? '★ มีตั๋ว · ' : '') + esc(p.name) + ' · ' + p.min + ' นาที · ฿' + p.price + '</option>'; }).join('') + '</optgroup>'; }).join('') + '</select>';
+    h += '<label class="bkl">5. มากี่คน</label><div class="uchips">' + [1, 2, 3, 4].map(function (n) { return '<button class="uchip' + (k.n === n ? ' sel' : '') + '" data-bkn="' + n + '">' + n + ' คน</button>'; }).join('') + '</div>';
+    if (k.prog) h += '<label class="bkl">6. เวลา' + (k.n > 1 ? ' (ที่ว่างพร้อมกัน ' + k.n + ' คน)' : '') + '</label>' + (k.loading ? '<div class="sempty">กำลังหาเวลาว่าง…</div>' : inf.times.some(function (x) { return x.ok; }) ? '<div class="uchips">' + inf.times.map(function (x) { return '<button class="uchip' + (k.time === x.m ? ' sel' : '') + '" data-bktime="' + x.m + '"' + (x.ok ? '' : ' disabled style="opacity:.35"') + '>' + hm(x.m) + '</button>'; }).join('') + '</div>' : '<div class="serr">วันนี้ไม่มีเวลาว่างสำหรับบริการนี้</div>');
+    if (k.prog && w && w.member) h += have >= k.n ? '<label class="bkchk"><input type="checkbox" id="bk-uset"' + (k.useT ? ' checked' : '') + '> ใช้ตั๋วของลูกค้าจองนัดนี้ (กันตั๋วไว้ ' + k.n + ' ใบ · มาถึงไม่ต้องจ่ายค่าบริการ จ่ายแค่ส่วนเพิ่ม)</label>'
+      : (w.tickets || []).length ? '<div class="bkl">ตั๋วที่ลูกค้ามีไม่ใช่บริการนี้ หรือมีไม่พอ ' + k.n + ' คน · นัดนี้จ่ายที่ร้าน</div>' : '';
+    h += '<label class="bkl" for="bk-note">หมายเหตุ (ถ้ามี)</label><input id="bk-note" class="bkin" value="' + esc(k.note) + '" placeholder="เช่น จองจากเพจ ผมยาว">' +
+      '<button class="sb olive" id="bkgo"' + (k.prog && k.time != null ? '' : ' disabled') + '>จองให้ลูกค้า' + (k.n > 1 ? ' ' + k.n + ' คน' : '') + (k.time != null ? ' · ' + dayStr(k.date) + ' ' + hm(k.time) : '') + '</button></div>';
+    h += '<div class="ssec">นัดที่จองแทน (ยังไม่จ่าย)</div>' + (inf.list.length ? '<div class="bklist">' + inf.list.map(function (x) {
+      return '<div><span><b>' + dayStr(x.date) + ' ' + hm(x.start) + '</b> · ' + esc(x.name) + ' · ' + esc(x.phone) + '<br><small>' + esc(x.prog) + ' · ' + (x.ticket ? 'ใช้ตั๋ว' : '฿' + x.price + ' จ่ายที่ร้าน') + ' · รหัส ' + esc(x.code) + '</small></span><button class="uchip" data-bkcancel="' + x.id + '">ยกเลิก</button></div>'; }).join('') + '</div>' : '<div class="sempty">ยังไม่มีนัดที่จองแทน</div>');
+    return h;
+  }
+
   function slipHtml(s) {
     var steps = s.steps.map(function (x) { return '<div class="r"><span>' + (s.people.length > 1 ? esc(x.who) + ' · ' : '') + esc(x.label) + '</span><span>' + hm(x.start) + '–' + hm(x.end) + '</span></div>'; }).join('');
     var ppl = s.people.map(function (p) {
@@ -530,10 +582,29 @@ body.real, body { background: var(--paper); }
     setTimeout(function () { try { window.print(); } catch (e) {} }, 60);
   }
 
+  document.addEventListener('input', function (e) { var id = e.target.id; if (id === 'bk-name') S.bk.name = e.target.value; if (id === 'bk-phone') S.bk.phone = e.target.value; if (id === 'bk-note') S.bk.note = e.target.value; });
+  document.addEventListener('change', function (e) {
+    if (e.target.id === 'bk-prog') { S.bk.prog = e.target.value; S.bk.time = null; if (S.bk.who) S.bk.useT = (S.bk.who.tickets || []).some(function (x) { return x.prog === S.bk.prog; }); render(); loadBook(); }
+    if (e.target.id === 'bk-uset') { S.bk.useT = e.target.checked; }
+    if (e.target.id === 'bk-phone') findWho(e.target.value);
+  });
   document.addEventListener('click', function (e) {
     var el = e.target.closest('button'); if (!el) { if (e.target.id === 'sheet') { S.sheet = null; render(); } return; }
     var d = el.dataset;
     if (el.id === 'save') { S.key = $('k-key').value.trim(); S.branch = $('k-br').value.trim().toUpperCase(); try { localStorage.setItem('lana-kiosk-key', S.key); localStorage.setItem('lana-kiosk-branch', S.branch); } catch (x) {} S.err = ''; return load(); }
+    if (d.bkfind !== undefined) return findWho($('bk-phone').value);
+    if (d.bkday) { S.bk.date = d.bkday; S.bk.time = null; render(); return loadBook(); }
+    if (d.bktime) { S.bk.time = +d.bktime; return render(); }
+    if (d.bkn) { S.bk.n = +d.bkn; S.bk.time = null; render(); return loadBook(); }
+    if (el.id === 'bkgo') { var bk = S.bk; bk.name = $('bk-name').value.trim(); bk.phone = $('bk-phone').value.trim(); bk.note = $('bk-note').value.trim();
+      if (!bk.name) return toast('ใส่ชื่อลูกค้า'); if (!bk.phone) return toast('ใส่เบอร์โทรลูกค้า');
+      el.disabled = true;
+      var mine = bk.who && bk.who.member ? (bk.who.tickets || []).filter(function (x) { return x.prog === bk.prog; })[0] : null, useT = !!(bk.useT && mine && mine.n >= bk.n);
+      return api('sBook', { useTicket: useT, prog: bk.prog, n: bk.n, date: bk.date, time: bk.time, name: bk.name, phone: bk.phone, note: bk.note }).then(function (r) {
+        toast('จองแล้ว ' + (r.booking.n > 1 ? r.booking.n + ' คน ' : '') + dayStr(r.booking.date) + ' ' + hm(r.booking.start) + ' · บอกลูกค้าว่ามาถึงแล้วใส่เบอร์ที่แท็บเล็ตหน้าร้าน' + (r.booking.n > 1 ? ' (จ่ายทีละคน)' : ''));
+        bk.name = ''; bk.phone = ''; bk.note = ''; bk.time = null; bk.n = 1; bk.who = null; bk.useT = false; return loadBook();
+      }).catch(function (x) { el.disabled = false; toast(errT(x)); loadBook(); }); }
+    if (d.bkcancel) { if (!confirm('ยกเลิกนัดนี้ใช่ไหม?')) return; return api('sBookCancel', { id: d.bkcancel }).then(function () { toast('ยกเลิกแล้ว'); loadBook(); }).catch(function (x) { toast(errT(x)); }); }
     if (d.tab) { S.tab = d.tab; try { localStorage.setItem('lana-station-tab', S.tab); } catch (x) {} return render(); }
     if (d.close !== undefined) { S.sheet = null; return render(); }
     if (d.back !== undefined) { S.sheet = { kind: 'pick', id: S.sheet.id }; return render(); }
@@ -567,9 +638,9 @@ body.real, body { background: var(--paper); }
     if (el.id === 'd-plus60') { DNOW.min += 60; return load(true); }
   });
   load();
-  if (!demo) setInterval(function () { if (document.visibilityState === 'visible' && !S.sheet) load(true); }, 15000);
-  else setInterval(function () { if (!S.sheet) load(true); }, 2000);   /* demo: pick up guests checked in on the other screen */
-  setInterval(function () { if (S.b && !S.sheet) render(); }, 30000);
+  if (!demo) setInterval(function () { if (document.visibilityState === 'visible' && !S.sheet && S.tab !== 'book') load(true); }, 15000);
+  else setInterval(function () { if (!S.sheet && S.tab !== 'book') load(true); }, 2000);   /* demo: pick up guests checked in on the other screen */
+  setInterval(function () { if (S.b && !S.sheet && S.tab !== 'book') render(); }, 30000);
 })();
 </script>
 
