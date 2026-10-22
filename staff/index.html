@@ -288,6 +288,8 @@ LANA.PARTNERS = [
   { id: 'JB', name_th: 'JB Clinic', name_en: 'JB Clinic', code: 'jbclinic2026', prog: 'PART45', days: 60, rule: 'quiet',
     desc_th: 'ลูกค้าคลินิก รับสปาศีรษะ สระไดร์ 45 นาที ฟรี 1 ครั้ง', desc_en: 'Clinic guests get one free 45-min Head Spa, Wash & Blow-dry.' }
 ];
+/* promo codes the owner adds in the sheet Codes: code, gives (an add-on id = free add-on voucher, or a program id = free ticket), until (last day), active */
+LANA.CODES = [];
 LANA.STAFF = [
   { id: 'S1', name: 'แอน', phone: '+66811111111', pin: '1111', type: 'PT', branch: 'NIM', skills: 'ALL', active: 'TRUE' },
   { id: 'S2', name: 'นิด', phone: '+66822222222', pin: '2222', type: 'FT', branch: 'NIM', skills: 'ALL', active: 'TRUE' },
@@ -1647,7 +1649,7 @@ function cMe(me, store, now) {
   cSweep(store, now);
   var gifts = cGifts(me, store, now);
   var tix = store.tickets().filter(function (k) { return k.memberId === me.id && k.status === 'active' && !(k.expires && now.date > k.expires); });
-  var vs = store.vouchers().filter(function (v) { return v.memberId === me.id && v.status === 'active' && (v.kind !== 'birthday' || +v.month === +now.date.slice(5, 7)); });
+  var vs = store.vouchers().filter(function (v) { return v.memberId === me.id && cVoucherOK(v, now); });
   var mine = store.bookings().filter(function (b) { return b.memberId === me.id; });
   var show = mine.filter(function (b) {
     if (['booked', 'checkedin', 'accepted', 'inservice', 'finished'].indexOf(b.status) >= 0) return true;
@@ -1660,8 +1662,8 @@ function cMe(me, store, now) {
     member: cMemberPub(me), gifts: gifts, now: now, tier: cTier(store, me, now),
     tickets: tix.map(function (k) { return { id: k.id, prog: k.prog, src: k.src, rule: k.rule || '', expires: k.expires || '' }; }),
     passes: store.tickets().filter(function (k) { return k.memberId === me.id && k.status === 'pass'; }).map(function (k) { return { id: k.id, prog: k.prog, expires: k.expires }; }),
-    vouchers: vs.map(function (v) { return { id: v.id, kind: v.kind, addon: v.addon }; }),
-    claims: store.claims().filter(function (c) { return c.memberId === me.id; }).map(function (c) { return { id: c.id, partner: c.partner, receipt: c.receipt, status: String(c.status).toLowerCase() }; }),
+    vouchers: vs.map(function (v) { return { id: v.id, kind: v.kind, addon: v.addon, expires: v.expires || '', code: v.code || '' }; }),
+    claims: store.claims().filter(function (c) { return c.memberId === me.id && String(c.partner).indexOf('CODE:') !== 0; }).map(function (c) { return { id: c.id, partner: c.partner, receipt: c.receipt, status: String(c.status).toLowerCase() }; }),
     bookings: show.map(function (b) { return cView(b, store, now, true); }),
     lastPrefs: cJSON(me.lastPrefs, {}),
     history: cHistory(store, me)
@@ -1764,7 +1766,7 @@ function cUpcoming(store, memberId) { return store.bookings().filter(function (b
 function cVoucherFree(store, me, now, prog, addons) {
   var month = +now.date.slice(5, 7), free = [], used = [];
   (addons || []).forEach(function (id) {
-    var v = store.vouchers().filter(function (x) { return x.memberId === me.id && x.status === 'active' && x.addon === id && used.indexOf(x) < 0 && (x.kind !== 'birthday' || +x.month === month); })[0];
+    var v = store.vouchers().filter(function (x) { return x.memberId === me.id && x.addon === id && used.indexOf(x) < 0 && cVoucherOK(x, now); })[0];
     if (v) { free.push(id); used.push(v); }
   });
   return { free: free, used: used };
@@ -1979,6 +1981,7 @@ function cBuy(me, req, store, now) {
 function cRedeem(me, req, store, now) {
   var code = String(req.code || '').trim().toLowerCase().replace(/\s+/g, '');
   var pt = (LANA.PARTNERS || []).filter(function (p) { return p.code && String(p.code).trim().toLowerCase() === code; })[0];
+  if (code && !pt) return cRedeemPromo(me, code, store, now);
   if (!code || !pt) throw new Error('BAD_CODE');
   if (store.claims().some(function (c) { return c.memberId === me.id && c.partner === pt.id; })) throw new Error('CODE_USED');
   store.saveTicket({ id: 'T' + lnId(8), memberId: me.id, prog: pt.prog, status: 'active', src: 'partner', rule: pt.rule || '', expires: +pt.days ? lnAddDays(now.date, +pt.days) : '', orderId: '', bookingId: '', createdAt: cStamp(now), usedAt: '' });
@@ -1986,6 +1989,23 @@ function cRedeem(me, req, store, now) {
   store.log('', '', 'partner_code', pt.id + ' ' + me.id);
   var out = cMe(me, store, now); out.redeemed = { partner: pt.id, prog: pt.prog }; return out;
 }
+/* promo code from the sheet Codes: once per member, until the last day */
+function cRedeemPromo(me, code, store, now) {
+  var pc = (LANA.CODES || []).filter(function (c) { return c.code && String(c.code).trim().toLowerCase().replace(/\s+/g, '') === code; })[0];
+  if (!pc || String(pc.active).toUpperCase() === 'FALSE') throw new Error('BAD_CODE');
+  var until = String(pc.until || '').trim();
+  if (until && now.date > until) throw new Error('CODE_EXPIRED');
+  var key = 'CODE:' + String(pc.code).trim().toUpperCase();
+  if (store.claims().some(function (c) { return c.memberId === me.id && c.partner === key; })) throw new Error('CODE_USED');
+  var gives = String(pc.gives || '').trim(), ad = lnFind(LANA.ADDONS, gives), pg = lnFind(LANA.PROGRAMS, gives), out;
+  if (ad) store.saveVoucher({ id: 'V' + lnId(7), memberId: me.id, kind: 'promo', addon: ad.id, month: '', year: '', status: 'active', bookingId: '', createdAt: cStamp(now), expires: until, code: String(pc.code).trim() });
+  else if (pg) store.saveTicket({ id: 'T' + lnId(8), memberId: me.id, prog: pg.id, status: 'active', src: 'promo', rule: '', expires: until, orderId: '', bookingId: '', createdAt: cStamp(now), usedAt: '' });
+  else throw new Error('BAD_CODE');
+  store.saveClaim({ id: 'C' + lnId(7), memberId: me.id, partner: key, receipt: code, status: 'issued', createdAt: cStamp(now), name: me.name, phone: me.phone });
+  store.log('', '', 'promo_code', key + ' ' + me.id);
+  out = cMe(me, store, now); out.redeemed = ad ? { addon: ad.id, until: until } : { prog: pg.id, until: until }; return out;
+}
+function cVoucherOK(v, now) { return v.status === 'active' && !(v.expires && now.date > v.expires) && (v.kind !== 'birthday' || +v.month === +now.date.slice(5, 7)); }
 function cClaim(me, req, store, now) {
   var r = String(req.receipt || '').trim().toUpperCase(), pt = lnFind(LANA.PARTNERS, req.partner) || LANA.PARTNERS[0];
   if (r.length < 4) throw new Error('BAD_RECEIPT');
@@ -2164,6 +2184,7 @@ function cKiosk(a, req, store, now) {
     }
     return { member: { id: m.id, name: m.name, tier: cTier(store, m, now) }, booking: today ? cView(today, store, now, false) : null, check: check,
       tickets: tix.map(function (k) { return { id: k.id, prog: k.prog }; }),
+      vouchers: store.vouchers().filter(function (v) { return v.memberId === m.id && cVoucherOK(v, now); }).map(function (v) { return v.addon; }),
       held: today && today.payAtShop ? (today.tix || []).map(function (id) { var k = lnFind(store.tickets(), id); return k && k.status === 'booked' ? { id: k.id, prog: k.prog } : null; }).filter(Boolean) : [] };
   }
   if (a === 'kCheckin') {
@@ -2218,11 +2239,13 @@ function cKioskStart(req, store, now, br) {
   if (!tix && (!lnOnSale(prog) || !lnPack(prog, packN))) throw new Error('BAD_FORM');
   if (packN > 1 && !member) throw new Error('NEED_CONTACT');
   var kTier = member ? cTier(store, member, now) : null;
-  var extras = lnPersonLines(prog, pe, [], kTier ? kTier.free : [], kTier ? kTier.name_en : ''), total = lnSum(extras) + (tix ? 0 : lnPack(prog, packN));
+  var kTf = kTier ? kTier.free : [], kVf = member ? cVoucherFree(store, member, now, prog, pe.addons.filter(function (id) { return kTf.indexOf(id) < 0; })) : { free: [], used: [] };
+  var extras = lnPersonLines(prog, pe, kVf.free, kTf, kTier ? kTier.name_en : ''), total = lnSum(extras) + (tix ? 0 : lnPack(prog, packN));
   var b = { id: lnId(8), code: 'LN' + lnId(5), q: '', branch: br.id, date: now.date, status: 'hold', people: [pe], ext: 0, due: [], live: [], kiosk: true, src: 'kiosk',
     memberId: member ? member.id : '', guest: !member || member.source === 'kiosk' && !member.lineUserId, tix: [], paid: 0, email: email || (member && member.email) || '', phone: phone || (member && member.phone) || '',
     consent: !!req.consent, vkey: lnId(12), verifiedBy: req.useTicket ? (req.phone ? 'phone' : 'email') : '' };
   if (pb) { if (pb.memberId && member && pb.memberId !== member.id) throw new Error('BAD_FORM'); b.fromPhone = pb.id; }
+  if (kVf.used.length) { b.vouchers = kVf.used.map(function (v) { return v.id; }); kVf.used.forEach(function (v) { v.status = 'used'; v.bookingId = b.id; store.saveVoucher(v); }); }
   var kt = null;
   if (tix) { tix.forEach(function (k) { k.status = 'booked'; k.bookingId = b.id; store.saveTicket(k); }); b.tix = tix.map(function (k) { return k.id; }); if (tix[0].src === 'partner') pe.partner = true; }
   else {

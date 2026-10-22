@@ -530,7 +530,7 @@ button.mcard:active { transform: scale(.99); }
     if (!useT) h += '<span class="hint">' + t('ซื้อกี่ครั้ง', 'How many sessions') + '</span><div class="grid3">' + [['1', t('ครั้งเดียว', 'Today only'), p.price], ['3', t('คอร์ส 3 ครั้ง', '3 sessions'), p.pack3], ['5', t('คอร์ส 5 ครั้ง', '5 sessions'), p.pack5], ['11', t('10 แถม 1', '10 + 1 free'), p.pack11]].filter(function (x) { return x[2]; }).map(function (x) {
       return '<button class="opt" data-kpack="' + x[0] + '" aria-pressed="' + ((k.pack || '1') === x[0]) + '"><span class="t">' + x[1] + '</span><span class="s">' + baht(x[2]) + '</span></button>'; }).join('') + '</div>' +
       ((k.pack || '1') !== '1' ? '<span class="hint">' + t('ใช้วันนี้ 1 ครั้ง ที่เหลือเก็บไว้ใช้ครั้งหน้า ดูได้ใน LINE ของร้าน (MY LANA) ต้องใส่เบอร์หรืออีเมล', 'One is used today; the rest are saved for next time (see MY LANA in our LINE). Phone or email needed.') + '</span>' : '');
-    var tier = k.tier || null, ls = lines(p, pe, useT, tier ? tier.free : [], tier ? nm(tier) : '', k.pack), total = ls.reduce(function (s, l) { return s + l.amount; }, 0);
+    var tier = k.tier || null, ls = lines(p, pe, useT, (tier ? tier.free : []).concat(k.vouchers || []), tier ? nm(tier) : t('โค้ด', 'code'), k.pack), total = ls.reduce(function (s, l) { return s + l.amount; }, 0);
     h += '<div class="ticket">' + ls.map(function (l) { return kv(l.label, baht(l.amount)); }).join('') + (useT ? kv(t('ใช้ตั๋ว', 'Ticket'), '1') : '') + kv(t('รวม', 'Total'), baht(total), 'total') + '</div>';
     if (!useT && !k.memberChoice) h += '<label class="f">' + t('ชื่อ', 'Name') + '<input id="k-name" value="' + esc(k.name || '') + '"></label><span class="hint">' + t('เบอร์หรืออีเมลไม่บังคับ ไม่ใส่ก็ได้ รับ QR ไปเก็บในมือถือแทน', 'Phone and email are optional. Skip them and scan a QR to keep your visit on your phone.') + '</span>' +
       '<label class="f">' + t('เบอร์โทร (ไม่บังคับ)', 'Phone (optional)') + '<input id="k-phone" type="tel" inputmode="tel" placeholder="08x xxx xxxx / +44…" value="' + esc(k.phoneRaw || '') + '"></label>' +
@@ -618,7 +618,7 @@ button.mcard:active { transform: scale(.99); }
   /* booked by phone: pay here, or use a ticket the member already has (useT) */
   function payBooked(r, who, useT) {
     var bk = r.booking; try { sessionStorage.setItem('lana-k-who', JSON.stringify(who || {})); } catch (e) {}
-    var base = { who: who, tier: r.member.tier, phoneBooking: bk.id, phoneAt: bk.start, name: r.member.name };
+    var base = { who: who, tier: r.member.tier, vouchers: r.vouchers || [], phoneBooking: bk.id, phoneAt: bk.start, name: r.member.name };
     if (useT) { var tk = (r.held || []).concat(r.tickets || []), own = tk.some(function (x) { return x.prog === bk.people[0].prog; }); return go('walkin', Object.assign(base, { useT: true, tickets: tk, prog: own ? bk.people[0].prog : '' })); }
     go('walkin', Object.assign(base, { memberChoice: 'buy', prog: bk.people[0].prog }));
   }
@@ -668,8 +668,8 @@ button.mcard:active { transform: scale(.99); }
     if (d.kpaybkT !== undefined) return payBooked(k.found, k.who, true);
     if (d.knext !== undefined) return payBooked(k.next, k.who);
     if (d.knextT !== undefined) return payBooked(k.next, k.who, true);
-    if (d.kuse !== undefined) return go('walkin', { useT: true, tickets: k.found.tickets, who: k.who, tier: k.found.member.tier });
-    if (d.kbuy !== undefined) return go('walkin', k.who && k.found ? { memberChoice: 'buy', who: k.who, tier: k.found.member.tier } : {});
+    if (d.kuse !== undefined) return go('walkin', { useT: true, tickets: k.found.tickets, who: k.who, tier: k.found.member.tier, vouchers: k.found.vouchers || [] });
+    if (d.kbuy !== undefined) return go('walkin', k.who && k.found ? { memberChoice: 'buy', who: k.who, tier: k.found.member.tier, vouchers: k.found.vouchers || [] } : {});
     if (d.kprog) { k.prog = d.kprog; k.person = newPerson(); render(); var tb = $('tbody'); if (tb) tb.scrollTop = 0; return; }
     if (d.kvar) { saveForm(); k.prog = d.kvar; if (k.person) k.person.addons = k.person.addons.filter(function (id) { var a = find(S.cfg.addons, id); return a && a.for.indexOf(d.kvar) >= 0; }); if (!(prog(d.kvar) || {}).pack3 && k.pack === '3') k.pack = '1'; return render(); }
     if (d.kmenu !== undefined) { k.prog = ''; k.person = null; render(); var tb2 = $('tbody'); if (tb2) tb2.scrollTop = 0; return; }
