@@ -251,7 +251,9 @@ LANA.STYLES = [
   { id: 'normal', name_th: 'เป่าแห้งธรรมดา', name_en: 'Simple blow-dry', price: 0, min: 0 },
   { id: 'dstraight', name_th: 'ไดร์หนีบตรง ด้วย Dyson', name_en: 'Straight blow-dry with Dyson', price: 59, fee: 10, min: 5 },
   { id: 'dcurls', name_th: 'ไดร์ผมลอนสั้น ด้วย Dyson (ประบ่า)', name_en: 'Short curls with Dyson (shoulder length)', price: 69, fee: 10, min: 10 },
-  { id: 'dcurll', name_th: 'ไดร์ผมลอนยาว ด้วย Dyson', name_en: 'Long curls with Dyson', price: 89, fee: 15, min: 15 }
+  { id: 'dcurll', name_th: 'ไดร์ผมลอนยาว ด้วย Dyson', name_en: 'Long curls with Dyson', price: 89, fee: 15, min: 15 },
+  { id: 'dvolume', name_th: 'ไดร์เพิ่มโวลุ่ม', name_en: 'Volume blow-dry', price: 59, fee: 10, min: 5 },
+  { id: 'dfarrah', name_th: 'ไดร์ลอนฟาร่า', name_en: 'Farrah curls blow-dry', price: 99, fee: 15, min: 15 }
 ];
 /* for: programs that can take this add-on. seat: where the extra minutes go (wash / first seat / none) */
 LANA.ADDONS = [
@@ -1115,7 +1117,7 @@ function ownerApi(req, store, now) {
     tot.payroll = dayPay.reduce(function (t, p) { return t + p.total; }, 0);
     var att = store.shifts().filter(function (r) { var s = lnFind(staff, r.staffId); return r.date === date && s && inBr(s.branch); }).map(function (r) {
       var s = lnFind(staff, r.staffId), a = toMinHM(r.in), z = r.out ? toMinHM(r.out) : (date === now.date ? now.min : 0);
-      return { name: s.name, branch: s.branch, inAt: r.in, outAt: r.out || '', open: !r.out, auto: !!r.outNote, photo: String(r.photo || ''), hours: z > a ? Math.round((z - a) / 6) / 10 : 0 };
+      return { name: s.name, branch: s.branch, inAt: r.in, outAt: r.out || '', open: !r.out, auto: !!r.outNote, photo: String(r.photo || ''), via: r.inDistance === 'station' ? 'ipad' : 'app', hours: z > a ? Math.round((z - a) / 6) / 10 : 0 };
     }).sort(function (x, y) { return x.inAt < y.inAt ? -1 : 1; });
     return { date: date, rows: rows, total: tot, guests: guests, staff: dayPay, att: att };
   }
@@ -1160,16 +1162,17 @@ function ownerApi(req, store, now) {
     var all = ownerApi({ action: 'oPay', key: req.key, branch: req.branch, from: pf, to: pt }, store, now);
     var me = all.people.filter(function (x) { return x.id === who.id; })[0] || { fee: 0, tips: 0, total: 0, jobs: 0, held: 0, topup: 0 };
     var startAt = String(who.start || '').trim() ? toMinHM(who.start) : (who.type === 'FT' ? LANA.OPEN : null);
-    var byDay = {};
+    var byDay = {}, ipad = 0, app = 0;
     store.shifts().forEach(function (r) { if (r.staffId !== who.id || r.date < pf || r.date > pt) return;
-      var a = toMinHM(r.in), z = r.out ? toMinHM(r.out) : (r.date === now.date ? now.min : a), d = byDay[r.date] = byDay[r.date] || { date: r.date, inAt: r.in, first: a, mins: 0, outAt: '', photo: String(r.photo || '') };
-      if (a < d.first) { d.first = a; d.inAt = r.in; } d.mins += Math.max(0, z - a); d.outAt = r.out || d.outAt; });
+      var a = toMinHM(r.in), z = r.out ? toMinHM(r.out) : (r.date === now.date ? now.min : a), d = byDay[r.date] = byDay[r.date] || { date: r.date, inAt: r.in, first: a, mins: 0, outAt: '', photo: String(r.photo || ''), via: r.inDistance === 'station' ? 'ipad' : 'app' };
+      if (r.inDistance === 'station') ipad++; else app++;
+      if (a < d.first) { d.first = a; d.inAt = r.in; d.photo = String(r.photo || ''); d.via = r.inDistance === 'station' ? 'ipad' : 'app'; } d.mins += Math.max(0, z - a); d.outAt = r.out || d.outAt; });
     var days = Object.keys(byDay).sort().map(function (k) { var d = byDay[k], late = startAt == null ? 0 : Math.max(0, d.first - startAt);
-      return { date: d.date, inAt: d.inAt, outAt: d.outAt, hours: Math.round(d.mins / 6) / 10, late: late, photo: d.photo }; });
+      return { date: d.date, inAt: d.inAt, outAt: d.outAt, hours: Math.round(d.mins / 6) / 10, late: late, photo: d.photo, via: d.via }; });
     var lateDays = days.filter(function (d) { return d.late > 0; });
     return { from: pf, to: pt, person: { id: who.id, name: who.name, type: who.type === 'FT' ? 'ประจำ' : 'พาร์ทไทม์', start: startAt == null ? '' : lnHM(startAt) },
       fee: me.fee, tips: me.tips, total: me.total, topup: Math.round(me.topup || 0), held: me.held, jobs: me.jobs,
-      worked: days.length, lateMin: lateDays.reduce(function (t, d) { return t + d.late; }, 0), lateDays: lateDays.length, days: days,
+      worked: days.length, lateMin: lateDays.reduce(function (t, d) { return t + d.late; }, 0), lateDays: lateDays.length, days: days, ipadIns: ipad, appIns: app, photoFolder: store.photoFolderUrl ? store.photoFolderUrl() : '',
       list: all.list.filter(function (x) { return x.sid === who.id; }) };
   }
   throw new Error('BAD_ACTION');
@@ -1239,8 +1242,9 @@ function stationApi(req, store, now) {
       if (!String(who.pin || '').trim() || String(req.pin || '').trim() !== String(who.pin).trim()) { store.log(who.id, '', 'clock_bad_pin', 'station'); throw new Error('BAD_PIN'); }
       var open = store.shifts().filter(function (r) { return r.staffId === who.id && r.date === now.date && !r.out; })[0];
       var photo = '';
-      if (req.on && !open && req.photo && store.savePhoto) { try { photo = store.savePhoto(String(req.photo), who.id + '_' + now.date + '_' + lnHM(now.min).replace(':', '') + '.jpg') || ''; } catch (e) { photo = ''; } }
-      if (req.on && !open) store.addShift({ staffId: who.id, date: now.date, branch: br.id, in: lnHM(now.min), out: '', inDistance: 'station', inAccuracy: '', photo: photo || (req.photo ? '' : 'ไม่มีรูป') });
+      if (req.on && !open && !/^data:image\/jpeg;base64,/.test(String(req.photo || ''))) throw new Error('NEED_PHOTO');
+      if (req.on && !open && req.photo && store.savePhoto) { try { photo = store.savePhoto(String(req.photo), now.date + '_' + lnHM(now.min).replace(':', '') + '_' + who.name + '_' + who.id + '.jpg') || ''; } catch (e) { photo = ''; } }
+      if (req.on && !open) store.addShift({ staffId: who.id, date: now.date, branch: br.id, in: lnHM(now.min), out: '', inDistance: 'station', inAccuracy: '', photo: photo || 'บันทึกรูปไม่สำเร็จ' });
       if (!req.on && open) { open.out = lnHM(now.min); open.outNote = 'ออกที่แท็บเล็ตรับงาน'; store.updateShift(open); }
       store.log(who.id, '', req.on ? 'clock_in' : 'clock_out', 'station');
       return stBoard(br, store, now);
@@ -2283,6 +2287,7 @@ function memStore() {
     shifts: function () { return db.shifts; },
     addShift: function (r) { db.shifts.push(r); },
     savePhoto: function (dataUrl) { return dataUrl; },
+    photoFolderUrl: function () { return 'https://drive.google.com/'; },
     updateShift: function () {},   /* rows are edited in place */
     session: function (t) { return db.sessions[t] || null; },
     newSession: function (sid) { var t = Math.random().toString(36).slice(2) + Date.now().toString(36); db.sessions[t] = sid; return t; },

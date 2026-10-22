@@ -379,6 +379,9 @@ tr.click:hover td { background: color-mix(in srgb, var(--sand) 18%, var(--card))
 tr.late td { background: color-mix(in srgb, #a4502f 8%, var(--card)); }
 @media (max-width: 720px) { .pcards { grid-template-columns: repeat(2, 1fr); } .pcards div.hi { grid-column: span 2; } }
 .plink { color: var(--accent, #a4502f); font-weight: 600; } .nophoto { color: #a4502f; }
+.insum { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin: 4px 0 10px; font-size: 14px; }
+.via { font-size: 12px; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--line, #ddd); white-space: nowrap; }
+.via.ipad { background: color-mix(in srgb, #6b7046 14%, transparent); }
 </style>
 </head>
 <body class="real">
@@ -475,7 +478,7 @@ tr.late td { background: color-mix(in srgb, #a4502f 8%, var(--card)); }
       '<div class="row"><span>ลูกค้าที่ทำเสร็จ</span><span>' + d.guests + ' คน</span></div></div>' +
       '<div class="box"><h3>ค่ามือวันนี้</h3>' + (d.staff.length ? d.staff.map(function (p) { return '<div class="row"><span>' + esc(p.name) + ' · ' + p.jobs + ' งาน</span><span>' + baht(p.total) + '</span></div>'; }).join('') +
       '<div class="row tot"><span>รวมต้องจ่าย</span><span>' + baht(d.total.payroll) + '</span></div>' : '<div class="empty" style="padding:12px">ยังไม่มีงาน</div>') +
-      '<h3 style="margin-top:16px">ใครมาทำงาน</h3>' + ((d.att || []).length ? d.att.map(function (a) { return '<div class="row"><span>' + esc(a.name) + ' · ' + esc(a.inAt) + '–' + (a.open ? 'ยังอยู่' : esc(a.outAt) + (a.auto ? ' (ระบบออกให้)' : '')) + photoLink(a.photo) + '</span><span>' + a.hours + ' ชม.</span></div>'; }).join('') : '<div class="empty" style="padding:12px">ไม่มีใครกดเข้างาน</div>') + '</div></div>';
+      '<h3 style="margin-top:16px">ใครมาทำงาน</h3>' + ((d.att || []).length ? d.att.map(function (a) { return '<div class="row"><span>' + esc(a.name) + ' · ' + esc(a.inAt) + '–' + (a.open ? 'ยังอยู่' : esc(a.outAt) + (a.auto ? ' (ระบบออกให้)' : '')) + ' ' + viaTag(a.via) + photoLink(a.photo) + '</span><span>' + a.hours + ' ชม.</span></div>'; }).join('') : '<div class="empty" style="padding:12px">ไม่มีใครกดเข้างาน</div>') + '</div></div>';
     h += '</section>' + (S.err ? '<p class="err">' + esc(S.err) + '</p>' : '') + '<div class="foot"><span>ยอดนับตามวันที่ลูกค้าจ่ายเงิน · ข้อมูลจากระบบจริง</span>' + (demo ? '' : '<button id="logout">ออกจากระบบ</button>') + '</div></div>';
     app.innerHTML = h;
     $('br').value = S.branch;
@@ -485,7 +488,8 @@ tr.late td { background: color-mix(in srgb, #a4502f 8%, var(--card)); }
   function shortTh(d) { var p = d.split('-'); return (+p[2]) + ' ' + TMS[+p[1] - 1]; }
   function rangeTh(a, b) { return a === b ? dayTh(a).replace(/^วัน\S+ที่ /, '') : shortTh(a) + ' – ' + shortTh(b) + ' ' + (+b.slice(0, 4) + 543); }
   /* clock-in photo from the station tablet (Drive link). 'ไม่มีรูป' = camera was off */
-  function photoLink(p) { p = String(p || ''); if (/^(https:|data:image)/.test(p)) return ' <a class="plink" href="' + esc(p) + '" target="_blank" rel="noopener">รูป</a>'; return p === 'ไม่มีรูป' ? ' <small class="nophoto">ไม่มีรูป</small>' : ''; }
+  function photoLink(p) { p = String(p || ''); if (/^(https:|data:image)/.test(p)) return ' <a class="plink" href="' + esc(p) + '" target="_blank" rel="noopener">รูป</a>'; return p ? ' <small class="nophoto">' + esc(p) + '</small>' : ''; }
+  function viaTag(v) { return v === 'ipad' ? '<span class="via ipad">ไอแพด</span>' : '<span class="via">แอป GPS</span>'; }
   /* one person: pay, tips, late minutes and every job for a month or any date range */
   function rangeBox() {
     var t = S.init.today, mon = S.pf.slice(0, 7), last = mon + '-' + daysIn(mon), wholeMonth = S.pf === mon + '-01' && (S.pt === last || (mon === S.init.month && S.pt === t));
@@ -500,8 +504,9 @@ tr.late td { background: color-mix(in srgb, #a4502f 8%, var(--card)); }
       '<div><small>ทิปรวม</small><b>' + baht(r.tips) + '</b></div><div class="hi"><small>รวมต้องจ่าย</small><b>' + baht(r.total) + '</b>' + (r.held ? '<span>รอตรวจ ' + baht(r.held) + '</span>' : '') + '</div>' +
       '<div' + (r.lateMin ? ' class="warn"' : '') + '><small>มาสายรวม</small><b>' + r.lateMin + ' นาที</b><span>' + r.lateDays + ' วัน</span></div>' +
       '<div><small>มาทำงาน</small><b>' + r.worked + ' วัน</b><span>' + r.jobs + ' งาน</span></div></div>';
-    h += '<h2 class="ttl">เข้างาน · มาสาย</h2>' + (r.days.length ? '<div class="tbl"><table><thead><tr><th>วันที่</th><th class="num">เข้า</th><th class="num">ออก</th><th class="num hide">ชั่วโมง</th><th class="num">มาสาย</th><th>รูป</th></tr></thead><tbody>' +
-      r.days.map(function (d) { return '<tr' + (d.late ? ' class="late"' : '') + '><td>' + esc(dayTh(d.date).replace(/ \d{4}$/, '')) + '</td><td class="num">' + esc(d.inAt) + '</td><td class="num">' + esc(d.outAt || '–') + '</td><td class="num hide">' + d.hours + '</td><td class="num">' + (d.late ? '<b>' + d.late + ' นาที</b>' : '–') + '</td><td>' + (photoLink(d.photo) || '–') + '</td></tr>'; }).join('') +
+    h += '<h2 class="ttl">เข้างาน · มาสาย</h2><div class="insum"><span>เข้างานที่ไอแพด <b>' + (r.ipadIns || 0) + ' ครั้ง</b></span><span>ผ่านแอป GPS <b>' + (r.appIns || 0) + ' ครั้ง</b></span>' +
+      (r.photoFolder ? '<a class="plink" href="' + esc(r.photoFolder) + '" target="_blank" rel="noopener">เปิดโฟลเดอร์รูปใน Google Drive ›</a>' : '') + '</div>' + (r.days.length ? '<div class="tbl"><table><thead><tr><th>วันที่</th><th>เข้าทาง</th><th class="num">เข้า</th><th class="num">ออก</th><th class="num hide">ชั่วโมง</th><th class="num">มาสาย</th><th>รูป</th></tr></thead><tbody>' +
+      r.days.map(function (d) { return '<tr' + (d.late ? ' class="late"' : '') + '><td>' + esc(dayTh(d.date).replace(/ \d{4}$/, '')) + '</td><td>' + viaTag(d.via) + '</td><td class="num">' + esc(d.inAt) + '</td><td class="num">' + esc(d.outAt || '–') + '</td><td class="num hide">' + d.hours + '</td><td class="num">' + (d.late ? '<b>' + d.late + ' นาที</b>' : '–') + '</td><td>' + (photoLink(d.photo) || '–') + '</td></tr>'; }).join('') +
       '</tbody></table><div class="tfoot"><span>มาสาย ' + r.lateDays + ' วัน</span><b>' + r.lateMin + ' นาที</b></div></div>' : '<div class="tbl"><div class="empty">ไม่มีการเข้างานในช่วงนี้</div></div>');
     h += '<h2 class="ttl">รายการที่ทำ ' + esc(rangeTh(r.from, r.to)) + '</h2>' + (r.list.length ? '<div class="tbl"><table><thead><tr><th class="num" style="width:1%">ลำดับ</th><th>รายการ</th><th class="num">ค่ามือ</th></tr></thead><tbody>' +
       r.list.map(function (x, i) { var k = 'p' + i;
@@ -584,7 +589,7 @@ tr.late td { background: color-mix(in srgb, #a4502f 8%, var(--card)); }
         if (walk) st.saveOrder({ id: 'OW' + b.id, kind: 'walkin', amount: prog.price, status: 'paid', prog: pid, count: 1, bookingId: b.id, items: [], paidAt: stamp(t - 5) });
         if (ext || tip) st.saveOrder({ id: 'OC' + b.id, kind: 'checkout', amount: (ext ? LANA.EXT_PRICE : 0) + tip, status: 'paid', bookingId: b.id, items: (ext ? [{ th: 'ต่อเวลา 30 นาที', en: 'Extra 30 min', amount: LANA.EXT_PRICE }] : []).concat(tip ? [{ th: 'ทิป', en: 'Tip', amount: tip }] : []), paidAt: stamp(m0 + 3) });
       }
-      staff.forEach(function (sf) { if (sf.id === 'S8' && rnd() < 0.3) return; st.addShift({ staffId: sf.id, date: date, branch: sf.branch, in: (rnd() < 0.25 ? '10:' + String(3 + Math.floor(rnd() * 22)).padStart(2, '0') : '09:' + (40 + Math.floor(rnd() * 19))), out: back === 0 ? '' : '21:' + (10 + Math.floor(rnd() * 40)) }); });
+      staff.forEach(function (sf) { if (sf.id === 'S8' && rnd() < 0.3) return; var ip = rnd() < 0.6; st.addShift({ staffId: sf.id, date: date, branch: sf.branch, in: (rnd() < 0.25 ? '10:' + String(3 + Math.floor(rnd() * 22)).padStart(2, '0') : '09:' + (40 + Math.floor(rnd() * 19))), out: back === 0 ? '' : '21:' + (10 + Math.floor(rnd() * 40)), inDistance: ip ? 'station' : String(20 + Math.floor(rnd() * 200)), photo: ip ? 'https://drive.google.com/' : '' }); });
       if (rnd() < 0.3) { var cp = lnFind(LANA.PROGRAMS, pick(progs)), mid = 'MD' + back; st.saveMember({ id: mid, name: pick(names) }); st.saveOrder({ id: 'OB' + date, memberId: mid, kind: 'buy', amount: lnPack(cp, 5), status: 'paid', prog: cp.id, count: 5, items: [], paidAt: date + ' 12:10' }); }
     }
   }

@@ -431,7 +431,7 @@ body.real, body { background: var(--paper); }
     return fetch(APP.API_URL, { method: 'POST', body: JSON.stringify(req) }).then(function (r) { return r.json(); }, function () { throw new Error('NET'); })
       .then(function (j) { if (!j.ok) throw new Error(j.error); return j.data; });
   }
-  var ERR = { BAD_PIN: 'PIN ไม่ถูกต้อง ลองใหม่', CLOCK_IN_FIRST: 'ต้องเข้างานก่อน (ใส่ PIN + ถ่ายรูป)', NO_TICKET: 'ตั๋วของลูกค้าไม่พอ หรือใช้เวลานี้ไม่ได้', SLOT_TAKEN: 'เวลานี้เต็มแล้ว เลือกเวลาอื่น', NEED_NAME: 'ใส่ชื่อลูกค้า', BAD_PHONE: 'เบอร์โทรไม่ถูกต้อง', BAD_TIME: 'เลือกวันและเวลาใหม่', NOT_HERE: 'สาขานี้ไม่มีโปรแกรมนี้', NOT_FOUND: 'ไม่พบนัดนี้', KIOSK_KEY: 'รหัสแท็บเล็ตไม่ถูกต้อง', BAD_BRANCH: 'ไม่พบสาขานี้', NET: 'เชื่อมต่อไม่ได้ ลองใหม่', TAKEN: 'มีคนรับคิวนี้ไปแล้ว', SEAT_BUSY: 'เตียงที่ต้องใช้ยังไม่ว่าง (มีลูกค้าอยู่ หรือเพิ่งเลิก รอเก็บเตียง 10 นาที) ลองใหม่อีกสักครู่', HANDED_OFF: 'คิวนี้ส่งต่ออยู่ ให้คนรับต่อก่อนแล้วค่อยต่อเวลา',
+  var ERR = { BAD_PIN: 'PIN ไม่ถูกต้อง ลองใหม่', NEED_PHOTO: 'ต้องถ่ายรูปหน้าก่อนเข้างาน · เปิดกล้องให้ได้ก่อน', CLOCK_IN_FIRST: 'ต้องเข้างานก่อน (ใส่ PIN + ถ่ายรูป)', NO_TICKET: 'ตั๋วของลูกค้าไม่พอ หรือใช้เวลานี้ไม่ได้', SLOT_TAKEN: 'เวลานี้เต็มแล้ว เลือกเวลาอื่น', NEED_NAME: 'ใส่ชื่อลูกค้า', BAD_PHONE: 'เบอร์โทรไม่ถูกต้อง', BAD_TIME: 'เลือกวันและเวลาใหม่', NOT_HERE: 'สาขานี้ไม่มีโปรแกรมนี้', NOT_FOUND: 'ไม่พบนัดนี้', KIOSK_KEY: 'รหัสแท็บเล็ตไม่ถูกต้อง', BAD_BRANCH: 'ไม่พบสาขานี้', NET: 'เชื่อมต่อไม่ได้ ลองใหม่', TAKEN: 'มีคนรับคิวนี้ไปแล้ว', SEAT_BUSY: 'เตียงที่ต้องใช้ยังไม่ว่าง (มีลูกค้าอยู่ หรือเพิ่งเลิก รอเก็บเตียง 10 นาที) ลองใหม่อีกสักครู่', HANDED_OFF: 'คิวนี้ส่งต่ออยู่ ให้คนรับต่อก่อนแล้วค่อยต่อเวลา',
     NO_ROOM: 'ต่อเวลาไม่ได้ มีคิวต่อที่เตียงนี้', CLOSING: 'ต่อเวลาไม่ได้ ร้านใกล้ปิด', NOT_NOW: 'ทำตอนนี้ไม่ได้ ลองรีเฟรช', NO_NEXT_STEP: 'ขั้นนี้เป็นขั้นสุดท้ายแล้ว', BAD_STAFF: 'ไม่พบชื่อนี้ในสาขา', NOT_FOUND: 'ไม่พบคิวนี้', BAD_ACTION: 'ระบบยังไม่อัปเดต (ลง Code.gs ใหม่แล้ว Deploy เป็น New version)' };
   function errT(e) { var k = String(e && e.message || e); return ERR[k] || k; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -539,10 +539,10 @@ body.real, body { background: var(--paper); }
       /* own PIN (+ a photo when clocking in) so nobody clocks in for a friend */
       if (!cs.on && !S.cam && !S.camTried) startCam();
       var pin = sh.pin || '';
-      return '<h2>' + esc(cs.name) + '</h2><span class="sub">' + (cs.on ? 'เข้างานตั้งแต่ ' + esc(cs.inAt) + (cs.busy.length ? ' · กำลังทำ ' + esc(cs.busy.join(', ')) + ' (งานจะเดินต่อจนจบเอง)' : '') : 'ยังไม่ได้เข้างานวันนี้ · มองกล้อง แล้วใส่ PIN ของตัวเอง') + '</span>' +
-        '<div class="clockbox">' + (!cs.on ? '<div class="camwrap">' + (S.cam ? '<video id="cam" autoplay playsinline muted></video>' : '<span>' + (S.camTried === true ? 'เปิดกล้องไม่ได้ · เข้างานด้วย PIN อย่างเดียว (บันทึกว่าไม่มีรูป)' : 'กำลังเปิดกล้อง…') + '</span>') + '</div>' : '') +
+      return '<h2>' + esc(cs.name) + '</h2><span class="sub">' + (cs.on ? 'เข้างานตั้งแต่ ' + esc(cs.inAt) + (cs.busy.length ? ' · กำลังทำ ' + esc(cs.busy.join(', ')) + ' (งานจะเดินต่อจนจบเอง)' : '') : 'ยังไม่ได้เข้างานวันนี้ · มองกล้องให้เห็นหน้า แล้วใส่ PIN ของตัวเอง (ต้องมีรูปถึงจะเข้างานได้)') + '</span>' +
+        '<div class="clockbox">' + (!cs.on ? '<div class="camwrap">' + (S.cam ? '<video id="cam" autoplay playsinline muted></video>' : '<span>' + (S.camTried === true ? 'เปิดกล้องไม่ได้ · ต้องถ่ายรูปถึงจะเข้างานได้<br>ตั้งค่า iPad › Safari › กล้อง › อนุญาต แล้วรีเฟรชหน้านี้ หรือเข้างานผ่านแอป LINE (GPS)' : 'กำลังเปิดกล้อง…') + '</span>') + '</div>' : '') +
         '<div class="pinpad"><div class="pindots">' + [0, 1, 2, 3].map(function (i) { return '<i class="' + (i < pin.length ? 'f' : '') + '"></i>'; }).join('') + '</div><div class="pkeys">' +
-        ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'].map(function (k) { return k === 'ok' ? '<button class="pk ok" data-clockgo="' + (cs.on ? '0' : '1') + '"' + (pin.length < 4 || S.busy ? ' disabled' : '') + '>' + (cs.on ? 'ออกงาน' : 'เข้างาน') + '</button>' : '<button class="pk" data-pin="' + k + '">' + (k === 'del' ? 'ลบ' : k) + '</button>'; }).join('') + '</div></div></div>' +
+        ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'].map(function (k) { return k === 'ok' ? '<button class="pk ok" data-clockgo="' + (cs.on ? '0' : '1') + '"' + (pin.length < 4 || S.busy || (!cs.on && !S.cam) ? ' disabled' : '') + '>' + (cs.on ? 'ออกงาน' : 'เข้างาน') + '</button>' : '<button class="pk" data-pin="' + k + '">' + (k === 'del' ? 'ลบ' : k) + '</button>'; }).join('') + '</div></div></div>' +
         '<div class="acts"><button class="sb ghost" ' + (sh.back ? 'data-clockback' : 'data-close') + '>ยกเลิก</button></div>'; }
     if (sh.kind === 'slip') return '<h2>ใบงาน (ตัวอย่าง)</h2><span class="sub">ในร้านจริง ใบนี้ออกจากเครื่องปริ้นใบเสร็จทันที</span><div class="slipview"><div class="slipbody">' + sh.html + '</div></div><button class="sb ghost" data-close>ปิด</button>';
     return '';
@@ -651,13 +651,14 @@ body.real, body { background: var(--paper); }
     if (d.pin) { var sp = S.sheet; sp.pin = d.pin === 'del' ? (sp.pin || '').slice(0, -1) : ((sp.pin || '') + d.pin).slice(0, 4);
       /* update dots in place so the camera preview doesn't flicker */
       var dots = document.querySelectorAll('.pindots i'), okb = document.querySelector('.pk.ok');
-      if (dots.length && okb) { for (var di = 0; di < dots.length; di++) dots[di].className = di < sp.pin.length ? 'f' : ''; okb.disabled = sp.pin.length < 4 || S.busy; return; }
+      if (dots.length && okb) { for (var di = 0; di < dots.length; di++) dots[di].className = di < sp.pin.length ? 'f' : ''; okb.disabled = sp.pin.length < 4 || S.busy || (okb.getAttribute('data-clockgo') === '1' && !S.cam); return; }
       return render(); }
     if (d.clockfor) { S.sheet = { kind: 'clock2', staff: d.clockfor, back: { kind: 'confirm', id: S.sheet.id, staff: S.sheet.staff } }; return render(); }
     if (d.clockback !== undefined) { S.sheet = S.sheet.back; stopCam(); return render(); }
     if (d.clockgo) { var on = d.clockgo === '1', sh0 = S.sheet, sid = sh0.staff, photo = on ? snap() : '';
+      if (on && !photo) return toast('ยังถ่ายรูปไม่ได้ รอกล้องแสดงภาพก่อน แล้วกดอีกครั้ง');
       S.busy = true; render();
-      return api('sClock', { staffId: sid, on: on, pin: sh0.pin || '', photo: photo }).then(function (b) { S.busy = false; S.b = b; S.skew = Date.now(); stopCam(); S.sheet = sh0.back || null; render(); toast(on ? 'เข้างานแล้ว' + (photo ? '' : ' (ไม่มีรูป)') : 'ออกงานแล้ว'); })
+      return api('sClock', { staffId: sid, on: on, pin: sh0.pin || '', photo: photo }).then(function (b) { S.busy = false; S.b = b; S.skew = Date.now(); stopCam(); S.sheet = sh0.back || null; render(); toast(on ? 'เข้างานแล้ว (บันทึกรูปแล้ว)' : 'ออกงานแล้ว'); })
         .catch(function (x) { S.busy = false; if (String(x.message) === 'BAD_PIN') { sh0.pin = ''; render(); return toast(errT(x)); } stopCam(); S.sheet = null; toast(errT(x)); render(); });
     }
     if (d.name) { S.sheet = { kind: 'confirm', id: S.sheet.id, staff: d.name }; return render(); }
