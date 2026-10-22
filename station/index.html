@@ -397,6 +397,41 @@ body.real, body { background: var(--paper); }
 .pk.ok { font-size: 17px; font-weight: 600; background: var(--olive, #6b7046); color: #fff; border-color: transparent; }
 .pk.ok:disabled { opacity: .35; }
 @media (max-width: 700px) { .clockbox { grid-template-columns: 1fr; } }
+.scday { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.scday .chip, .mvtimes .chip { font: inherit; font-size: 16px; padding: 9px 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--card); color: var(--ink); }
+.scday .chip.sel, .mvtimes .chip.sel { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.sclegend { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 14px; color: var(--ink-2); margin-bottom: 10px; }
+.sclegend .lg::before { content: ''; display: inline-block; width: 14px; height: 14px; border-radius: 4px; margin-right: 6px; vertical-align: -2px; }
+.lg.booked::before { background: #e9d3b4; } .lg.hold::before { border: 2px dashed #b48a5a; } .lg.here::before { background: #6b7046; } .lg.finished::before { background: #d9d2c7; }
+.sclegend .tip { margin-left: auto; }
+.scwrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 18px; background: var(--card); }
+.scgrid { display: grid; position: relative; min-width: max-content; }
+.schead { position: sticky; top: 0; z-index: 3; height: 44px; display: grid; place-items: center; font-size: 14px; font-weight: 600; background: var(--paper); border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); text-align: center; line-height: 1.15; padding: 0 4px; }
+.schead.sct { border-left: 0; }
+.sctimes { position: relative; }
+.sctimes span { position: absolute; right: 8px; transform: translateY(-50%); font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.sctimes span:first-child { transform: none; }
+.sccol { position: relative; border-left: 1px solid var(--line); background-image: linear-gradient(to bottom, color-mix(in srgb, var(--line) 70%, transparent) 1px, transparent 1px); }
+.scb { position: absolute; left: 3px; right: 3px; border-radius: 10px; padding: 4px 7px; text-align: left; display: flex; flex-direction: column; gap: 1px; overflow: hidden; font: inherit; font-size: 13px; line-height: 1.25; border: 1px solid transparent; color: var(--ink); cursor: pointer; }
+.scb b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scb span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: .85; }
+.scb.booked { background: #e9d3b4; border-color: #d4b58c; }
+.scb.hold { background: #fbf3e6; border: 2px dashed #b48a5a; }
+.scb.here { background: #6b7046; color: #fff; }
+.scb.finished { background: #e7e1d8; color: #8a7d6e; }
+.scb.late { background: #f3c9b5; border-color: #a4502f; }
+.scb .lt { color: #a4502f; font-weight: 600; opacity: 1; }
+.scnow { position: absolute; left: 64px; right: 0; height: 0; border-top: 2px solid #a4502f; z-index: 2; pointer-events: none; }
+.scnow span { position: absolute; left: -62px; top: -11px; background: #a4502f; color: #fff; font-size: 12px; border-radius: 6px; padding: 2px 5px; }
+.apinfo { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 10px 0; font-size: 16px; }
+.mvh { font-size: 17px; margin: 14px 0 8px; }
+.mvtimes { display: flex; flex-wrap: wrap; gap: 8px; max-height: 260px; overflow-y: auto; }
+@media (max-width: 700px) { .sclegend .tip { margin-left: 0; } }
+.dropbox { display: grid; gap: 4px; margin: 12px 0; padding: 14px 16px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); font-size: 16px; }
+.dropb { color: #a4502f; border-color: #e3b9a4; }
+.askov { position: fixed; inset: 0; z-index: 60; background: rgba(40, 24, 16, .45); display: grid; place-items: center; padding: 16px; }
+.askbox { background: var(--paper); border-radius: 20px; padding: 22px; max-width: 460px; width: 100%; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
+.askbox p { font-size: 19px; margin: 0 0 14px; line-height: 1.45; }
 </style>
 </head>
 <body class="real">
@@ -424,6 +459,9 @@ body.real, body { background: var(--paper); }
     DNOW = shared ? shared.now : { date: g.year + '-' + g.month + '-' + g.day, min: 13 * 60 }; DS = shared ? shared.store : memStore(); S.key = 'demo-kiosk'; S.branch = 'NIM';
     if (!DS.shifts().length) [['S1', '09:52'], ['S2', '10:05']].forEach(function (x) { DS.addShift({ staffId: x[0], date: DNOW.date, branch: 'NIM', in: x[1], out: '' }); });
     if (!DS.bookings().length) ['HEAD60', 'COMBO120', 'FOOT90'].forEach(function (pid, i) { var v = makeVisit(DS, DNOW, 'NIM', pid, ['คุณแพร', 'Sophie', 'คุณบอส'][i], { hair: 'mid', pressure: ['light', 'medium', 'firm'][i], addons: i === 0 ? ['VIT'] : [], quiet: i === 1, focus: i === 2 ? ['หลัง', 'บ่า'] : [] }); if (v) { v.checkedAt = lnHM(DNOW.min - 4 - i * 3); DS.saveBooking(v); } });
+    if (!DS.bookings().some(function (x) { return x.src === 'phone'; })) { var t0 = Math.ceil((DNOW.min + 30) / 30) * 30;   /* demo: a few appointments later today and tomorrow for the grid */
+      [['คุณมายด์', 'THAI60', t0, 1, 0], ['Emma', 'HEAD60', t0 + 30, 2, 0], ['คุณต้น', 'OIL90', t0 + 60, 1, 0], ['คุณฝ้าย', 'COMBO120', t0 + 120, 1, 0], ['คุณบี', 'FOOT60', 660, 1, 1]].forEach(function (x, i) {
+        try { stationApi({ kiosk: 'demo-kiosk', branch: 'NIM', action: 'sBook', prog: x[1], date: x[4] ? lnAddDays(DNOW.date, 1) : DNOW.date, time: x[2], name: x[0], phone: '08' + (10000000 + i * 1111111), n: x[3] }, DS, Object.assign({}, DNOW)); } catch (e) {} }); }
   }
   function api(action, data) {
     var req = Object.assign({ app: 'station', action: action, kiosk: S.key, branch: S.branch }, data || {});
@@ -461,8 +499,10 @@ body.real, body { background: var(--paper); }
     if (demo) h += '<div class="demo">ตัวอย่าง (ข้อมูลจำลอง) · <button id="d-walk">+ ลูกค้าเช็กอิน</button><button id="d-plus">+15 นาที</button><button id="d-plus60">+1 ชั่วโมง</button></div>';
     h += '<div class="stabs" role="tablist"><button role="tab" data-tab="queue" aria-selected="' + (S.tab === 'queue') + '">คิวรอ' + (b.waiting.length ? '<span class="n">' + b.waiting.length + '</span>' : '') + '</button>' +
       '<button role="tab" data-tab="beds" aria-selected="' + (S.tab === 'beds') + '">สถานะเตียง' + (b.live.length ? ' (' + b.live.length + ')' : '') + '</button>' +
+      '<button role="tab" data-tab="sched" aria-selected="' + (S.tab === 'sched') + '">ตารางนัด</button>' +
       '<button role="tab" data-tab="book" aria-selected="' + (S.tab === 'book') + '">จองแทนลูกค้า</button></div><div class="sbody">';
     if (S.tab === 'book') h += bookHtml();
+    else if (S.tab === 'sched') h += schedHtml();
     else if (S.tab === 'queue') {
       if (!b.waiting.length) h += '<div class="sempty"><b>ยังไม่มีลูกค้ารอ</b>ลูกค้าเช็กอินที่หน้าร้านแล้ว คิวจะขึ้นที่นี่เอง</div>';
       else h += '<div class="qgrid">' + b.waiting.map(function (w) {
@@ -486,6 +526,7 @@ body.real, body { background: var(--paper); }
     }
     h += '</div>';
     if (S.sheet) h += '<div class="sheet" id="sheet"><div class="spanel">' + sheetHtml() + '</div></div>';
+    if (S.ask) h += '<div class="askov"><div class="askbox" role="alertdialog"><p>' + esc(S.ask.msg) + '</p><div class="acts"><button class="sb warn" data-askyes>' + esc(S.ask.yes) + '</button><button class="sb ghost" data-askno>กลับ</button></div></div></div>';
     app.innerHTML = h;
     if (S.cam && (!S.sheet || S.sheet.kind !== 'clock2')) stopCam();
     var cv = $('cam'); if (cv && S.cam && cv.srcObject !== S.cam) cv.srcObject = S.cam;
@@ -497,7 +538,18 @@ body.real, body { background: var(--paper); }
       var w = b.waiting.filter(function (x) { return x.id === sh.id; })[0]; if (!w) { S.sheet = null; return ''; }
       return '<h2>' + esc(w.q) + ' · ' + esc(w.prog) + '</h2><span class="sub">' + (w.handoff ? 'ทำต่อ: ' + w.rest.map(function (r) { return esc(r.label) + ' ' + r.min + ' นาที'; }).join(' → ') + ' · ลูกค้ารออยู่ที่ ' + esc(w.at) : w.min + ' นาที') + '</span><h2 style="font-size:22px">ใครรับงานนี้? แตะชื่อตัวเอง</h2>' +
         '<div class="names">' + b.staff.map(function (s) { return '<button data-name="' + s.id + '" class="' + (s.busy.length ? 'busy' : '') + (s.on ? ' on' : ' off') + '"><span class="av">' + esc(String(s.name).charAt(0)) + '</span><b>' + esc(s.name) + '</b><small>' + (s.on ? '<i class="dot"></i>เข้างาน ' + esc(s.inAt) : 'ยังไม่กดเข้างาน') + '</small><small>' + (s.busy.length ? 'กำลังทำ ' + esc(s.busy.join(', ')) : 'ว่าง') + ' · วันนี้ ' + s.done + ' งาน</small></button>'; }).join('') + '</div>' +
-        '<button class="sb ghost" data-close>ยกเลิก</button>';
+        '<div class="acts">' + (!w.handoff ? '<button class="sb ghost dropb" data-drop="' + esc(w.id) + '">ลูกค้าไม่ทำแล้ว</button>' : '') + '<button class="sb ghost" data-close>ยกเลิก</button></div>';
+    }
+    if (sh.kind === 'drop') {
+      var di = sh.info; if (!di) return '<div class="sempty">กำลังโหลด…</div>';
+      var hd = '<h2>' + esc(di.q) + ' · ' + esc(di.name) + ' ไม่ทำแล้ว</h2><span class="sub">' + esc(di.prog) + (di.n > 1 ? ' × ' + di.n : '') + ' · ยังไม่มีใครเริ่มทำ</span>';
+      if (!di.fromWallet && !di.paid) return hd + '<div class="dropbox"><span>ไม่มีเงินหรือตั๋วที่ต้องคืน</span></div><div class="acts"><button class="sb warn" data-dropgo="refund"' + (S.busy ? ' disabled' : '') + '>ยืนยัน เอาออกจากคิว</button><button class="sb ghost" data-close>กลับ</button></div>';
+      if (di.fromWallet) return hd + '<div class="dropbox"><b>ใช้ตั๋วในกระเป๋า</b><span>ตั๋วจะกลับเข้ากระเป๋าลูกค้า ใช้ครั้งหน้าได้เหมือนเดิม' + (di.paid ? ' · ค่าของเพิ่มที่จ่ายไว้ ' + baht(di.paid) + ' ต้องคืนเงินให้ลูกค้า' : '') + '</span></div>' +
+        '<div class="acts"><button class="sb warn" data-dropgo="refund"' + (S.busy ? ' disabled' : '') + '>ยืนยัน ลูกค้าไม่ทำ' + (di.paid ? ' (คืนเงิน ' + baht(di.paid) + ')' : '') + '</button><button class="sb ghost" data-close>กลับ</button></div>';
+      return hd + '<div class="dropbox"><b>ลูกค้าจ่ายเงินที่หน้าร้าน ' + baht(di.paid) + '</b><span>เลือกให้ลูกค้า:</span></div>' +
+        '<div class="acts">' + (di.canKeep ? '<button class="sb olive" data-dropgo="keep"' + (S.busy ? ' disabled' : '') + '>เก็บเป็นตั๋วไว้ใช้ครั้งหน้า (90 วัน)' + (di.extras ? ' + คืนค่าของเพิ่ม ' + baht(di.extras) : '') + '</button>' : '') +
+        '<button class="sb warn" data-dropgo="refund"' + (S.busy ? ' disabled' : '') + '>คืนเงิน ' + baht(di.paid) + ' (ร้านคืนเงินสด/โอนเอง)</button><button class="sb ghost" data-close>กลับ</button></div>' +
+        (!di.canKeep ? '<span class="sub">เก็บเป็นตั๋วไม่ได้ เพราะลูกค้าไม่ได้ให้เบอร์โทร (ไม่มีกระเป๋าตั๋ว)</span>' : '');
     }
     if (sh.kind === 'confirm') {
       var w2 = b.waiting.filter(function (x) { return x.id === sh.id; })[0], who = b.staff.filter(function (s) { return s.id === sh.staff; })[0]; if (!w2 || !who) { S.sheet = null; return ''; }
@@ -535,6 +587,7 @@ body.real, body { background: var(--paper); }
     if (sh.kind === 'upsure') return '<h2>' + (sh.off ? 'เอา ' + esc(sh.name) + ' ออก?' : 'ลูกค้าตกลงเพิ่ม ' + esc(sh.name) + ' ใช่ไหม?') + '</h2><span class="sub">' + (sh.off ? 'ไม่เก็บเงินส่วนนี้' : (sh.up[0] === 'style' ? 'เปลี่ยนทรงเป่าเป็น ' + esc(sh.name) + ' · ' : '') + 'คิดเพิ่ม ' + baht(sh.price) + (sh.up[0] === 'style' ? ' (หักส่วนที่จ่ายไว้แล้ว)' : '') + ' จ่ายตอนจบที่หน้าร้าน') + '</span>' +
       '<div class="acts"><button class="sb olive" id="upsure">ยืนยัน</button><button class="sb ghost" data-live="' + sh.id + '">‹ กลับ</button></div>';
     if (sh.kind === 'clock') return '<h2>เข้างาน / ออกงาน</h2><span class="sub">แตะชื่อตัวเอง</span><div class="names">' + b.staff.map(function (s) { return '<button data-clock="' + s.id + '" class="' + (s.on ? 'on' : 'off') + '"><span class="av">' + esc(String(s.name).charAt(0)) + '</span><b>' + esc(s.name) + '</b><small>' + (s.on ? '<i class="dot"></i>เข้างาน ' + esc(s.inAt) : 'ยังไม่เข้างาน') + '</small></button>'; }).join('') + '</div><button class="sb ghost" data-close>ปิด</button>';
+    if (sh.kind === 'appt') return apptHtml(sh);
     if (sh.kind === 'clock2') { var cs = b.staff.filter(function (x) { return x.id === sh.staff; })[0]; if (!cs) { S.sheet = null; return ''; }
       /* own PIN (+ a photo when clocking in) so nobody clocks in for a friend */
       if (!cs.on && !S.cam && !S.camTried) startCam();
@@ -560,6 +613,61 @@ body.real, body { background: var(--paper); }
     var ph = String(v || '').trim(); S.bk.phone = ph; if (ph.replace(/\D/g, '').length < 9) { S.bk.who = null; return render(); }
     api('sBookWho', { phone: ph }).then(function (r) { S.bk.who = r; if (r.member && !S.bk.name) S.bk.name = r.member.name; S.bk.useT = !!(r.tickets || []).some(function (x) { return x.prog === S.bk.prog; }); render(); }).catch(function (e) { toast(errT(e)); });
   }
+  /* ---------- appointment grid: beds across, time down; tap a name to move or cancel ---------- */
+  var ROWH = 24;   /* px per 15 minutes */
+  function loadSched(quiet) {
+    var c = S.sc = S.sc || {}; if (!c.date) c.date = S.b.now.date; if (!quiet) c.loading = true;
+    return api('sSched', { date: c.date }).then(function (r) { c.data = r; c.loading = false; if (!S.sheet || S.sheet.kind === 'appt') render(); })
+      .catch(function (e) { c.loading = false; toast(errT(e)); });
+  }
+  var SRC = { line: 'LINE', phone: 'โทร/เพจ', walkin: 'วอคอิน', kiosk: 'วอคอิน' };
+  var STT = { booked: 'จองไว้', hold: 'รอจ่ายเงิน', checkedin: 'มาแล้ว รอคิว', accepted: 'กำลังทำ', inservice: 'กำลังทำ', finished: 'เสร็จแล้ว', done: 'เสร็จแล้ว' };
+  function schedHtml() {
+    var c = S.sc = S.sc || {}, r = c.data;
+    if (!r || r.date !== (c.date || S.b.now.date)) { if (!c.loading) loadSched(); return '<div class="sempty">กำลังโหลด…</div>'; }
+    var rows = (r.close - r.open) / 15, H = rows * ROWH, isToday = r.date === r.today;
+    var h = '<div class="scday">' + r.days.map(function (d) { return '<button class="chip' + (d === r.date ? ' sel' : '') + '" data-scday="' + d + '">' + esc(dayStr(d)) + '</button>'; }).join('') + '</div>' +
+      '<div class="sclegend"><span class="lg booked">จองไว้</span><span class="lg hold">รอจ่ายเงิน</span><span class="lg here">มาแล้ว / กำลังทำ</span><span class="lg finished">เสร็จแล้ว</span><span class="tip">แตะชื่อ เพื่อเลื่อนเวลา หรือยกเลิก · ไม่มาเกิน ' + r.noShow + ' นาที ระบบปล่อยเตียงเอง</span></div>';
+    var cols = r.cols, tmpl = '64px repeat(' + cols.length + ', minmax(104px, 1fr))';
+    h += '<div class="scwrap"><div class="scgrid" style="grid-template-columns:' + tmpl + '">' +
+      '<div class="schead sct"></div>' + cols.map(function (col) { return '<div class="schead">' + esc(col.label) + '</div>'; }).join('') +
+      '<div class="sctimes" style="height:' + H + 'px">';
+    for (var i = 0; i <= rows; i += 2) h += '<span style="top:' + (i * ROWH) + 'px">' + hm(r.open + i * 15) + '</span>';
+    h += '</div>';
+    cols.forEach(function (col) {
+      h += '<div class="sccol" style="height:' + H + 'px;background-size:100% ' + (ROWH * 2) + 'px">';
+      r.blocks.filter(function (b) { return b.res === col.res && b.unit === col.unit; }).forEach(function (b) {
+        var top = (b.from - r.open) / 15 * ROWH, ht = Math.max(ROWH, (b.to - b.from) / 15 * ROWH - 2);
+        var cls = b.status === 'booked' ? 'booked' : b.status === 'hold' ? 'hold' : (b.status === 'finished' || b.status === 'done') ? 'finished' : 'here';
+        var late = b.status === 'booked' && isToday && r.now > b.start;
+        h += '<button class="scb ' + cls + (late ? ' late' : '') + '" data-appt="' + esc(b.id) + '" data-who="' + b.who + '" style="top:' + top + 'px;height:' + ht + 'px">' +
+          '<b>' + esc(b.name) + (b.q ? ' · ' + esc(b.q) : '') + '</b><span>' + hm(b.from) + '–' + hm(b.to) + '</span>' + (ht > 60 ? '<span>' + esc(b.prog) + '</span>' : '') + (late ? '<span class="lt">เลยนัด ' + (r.now - b.start) + ' นาที</span>' : '') + '</button>';
+      });
+      h += '</div>';
+    });
+    if (isToday && r.now >= r.open && r.now <= r.close) h += '<div class="scnow" style="top:' + (44 + (r.now - r.open) / 15 * ROWH) + 'px"><span>' + hm(r.now) + '</span></div>';
+    return h + '</div></div>';
+  }
+  function apptHtml(sh) {
+    var r = S.sc && S.sc.data, b = r && r.blocks.filter(function (x) { return x.id === sh.id && x.who === sh.who; })[0] || (r && r.blocks.filter(function (x) { return x.id === sh.id; })[0]);
+    if (!b) { S.sheet = null; return ''; }
+    var h = '<h2>' + esc(b.name) + (b.q ? ' · ' + esc(b.q) : '') + '</h2><span class="sub">' + esc(dayStr(r.date)) + ' ' + hm(b.start) + ' · ' + esc(b.prog) + (b.n > 1 ? ' × ' + b.n : '') + '</span>' +
+      '<div class="apinfo"><span>สถานะ <b>' + esc(STT[b.status] || b.status) + '</b></span><span>จองทาง <b>' + esc(SRC[b.src] || b.src) + '</b></span>' + (b.phone ? '<span>โทร <b>' + esc(String(b.phone).replace(/^\+66/, '0')) + '</b></span>' : '') +
+      '<span>' + (b.tix ? 'ใช้ตั๋วแล้ว' : b.payAtShop ? 'ยังไม่จ่าย (จ่ายที่ kiosk)' : 'จ่ายแล้ว') + '</span>' + (b.group > 1 ? '<span>มาด้วยกัน <b>' + b.group + ' คน</b> (เลื่อนพร้อมกัน)</span>' : '') + (b.code ? '<span>รหัส ' + esc(b.code) + '</span>' : '') + '</div>';
+    if (b.status === 'checkedin') return h + '<span class="sub">ลูกค้าเช็กอินแล้ว รอคิวอยู่ (เลื่อนเวลาไม่ได้)</span><div class="acts"><button class="sb warn" data-drop="' + esc(b.id) + '">ลูกค้าไม่ทำแล้ว</button><button class="sb ghost" data-close>ปิด</button></div>';
+    if (b.status !== 'booked') return h + '<span class="sub">เริ่มทำแล้ว เลื่อนหรือยกเลิกจากตรงนี้ไม่ได้ ดูที่แท็บสถานะเตียง</span><div class="acts"><button class="sb ghost" data-close>ปิด</button></div>';
+    if (sh.move) {
+      var mv = sh.move;
+      h += '<h3 class="mvh">เลื่อนไปวันไหน</h3><div class="scday">' + r.days.map(function (d) { return '<button class="chip' + (d === mv.date ? ' sel' : '') + '" data-mvday="' + d + '">' + esc(dayStr(d)) + '</button>'; }).join('') + '</div>' +
+        '<h3 class="mvh">เวลาที่ว่าง' + (b.group > 1 ? ' (พอสำหรับ ' + b.group + ' คน)' : '') + '</h3>' + (mv.times == null ? '<div class="sempty">กำลังหา…</div>' : mv.times.length ? '<div class="mvtimes">' + mv.times.map(function (m) { return '<button class="chip' + (mv.date === r.date && m === b.start ? ' sel' : '') + '" data-mvto="' + m + '"' + (S.busy ? ' disabled' : '') + '>' + hm(m) + '</button>'; }).join('') + '</div>' : '<div class="sempty">วันนี้ไม่มีเวลาว่างพอ ลองวันอื่น</div>') +
+        '<div class="acts"><button class="sb ghost" data-mvback>‹ กลับ</button></div>';
+      return h;
+    }
+    return h + '<div class="acts"><button class="sb olive" data-mvopen>เลื่อนเวลา</button><button class="sb warn" data-apcancel="0">ยกเลิกนัด' + (b.group > 1 ? 'คนนี้' : '') + '</button>' +
+      (b.group > 1 ? '<button class="sb warn" data-apcancel="1">ยกเลิกทั้ง ' + b.group + ' คน</button>' : '') + '<button class="sb ghost" data-close>ปิด</button></div>';
+  }
+  function loadMove() { var sh = S.sheet, mv = sh.move; mv.times = null; render();
+    return api('sMoveSlots', { id: sh.id, date: mv.date }).then(function (r) { if (S.sheet === sh) { mv.times = r.times; render(); } }).catch(function (e) { toast(errT(e)); S.sheet = null; loadSched(); }); }
   function bookHtml() {
     var k = S.bk, inf = k.info; if (!inf) { if (!k.loading) loadBook(); return '<div class="sempty">กำลังโหลด…</div>'; }
     var cats = [['hair', 'สปาศีรษะ สระไดร์'], ['set', 'เซ็ต'], ['massage', 'นวด']];
@@ -602,6 +710,8 @@ body.real, body { background: var(--paper); }
     c.getContext('2d').drawImage(v, 0, 0, w, h);
     try { return c.toDataURL('image/jpeg', 0.6); } catch (e) { return ''; }
   }
+  /* in-page yes/no (native confirm() is blocked in some embedded views) */
+  function ask(msg, yes, fn) { S.ask = { msg: msg, yes: yes || 'ยืนยัน', fn: fn }; render(); }
   function slipHtml(s) {
     var steps = s.steps.map(function (x) { return '<div class="r"><span>' + (s.people.length > 1 ? esc(x.who) + ' · ' : '') + esc(x.label) + '</span><span>' + hm(x.start) + '–' + hm(x.end) + '</span></div>'; }).join('');
     var ppl = s.people.map(function (p) {
@@ -641,7 +751,26 @@ body.real, body { background: var(--paper); }
         toast('จองแล้ว ' + (r.booking.n > 1 ? r.booking.n + ' คน ' : '') + dayStr(r.booking.date) + ' ' + hm(r.booking.start) + ' · บอกลูกค้าว่ามาถึงแล้วใส่เบอร์ที่แท็บเล็ตหน้าร้าน' + (r.booking.n > 1 ? ' (จ่ายทีละคน)' : ''));
         bk.name = ''; bk.phone = ''; bk.note = ''; bk.time = null; bk.n = 1; bk.who = null; bk.useT = false; return loadBook();
       }).catch(function (x) { el.disabled = false; toast(errT(x)); loadBook(); }); }
-    if (d.bkcancel) { if (!confirm('ยกเลิกนัดนี้ใช่ไหม?')) return; return api('sBookCancel', { id: d.bkcancel }).then(function () { toast('ยกเลิกแล้ว'); loadBook(); }).catch(function (x) { toast(errT(x)); }); }
+    if (d.askyes !== undefined) { var af = S.ask && S.ask.fn; S.ask = null; render(); return af && af(); }
+    if (d.askno !== undefined) { S.ask = null; return render(); }
+    if (d.bkcancel) { var bkc = d.bkcancel; return ask('ยกเลิกนัดนี้ใช่ไหม?', 'ยกเลิกนัด', function () { return api('sBookCancel', { id: bkc }).then(function () { toast('ยกเลิกแล้ว'); loadBook(); }).catch(function (x) { toast(errT(x)); }); }); }
+    if (d.drop) { var dsh = S.sheet = { kind: 'drop', id: d.drop, info: null }; render();
+      return api('sDropInfo', { id: d.drop }).then(function (r) { if (S.sheet === dsh) { dsh.info = r; render(); } }).catch(function (x) { S.sheet = null; toast(errT(x)); load(true); }); }
+    if (d.dropgo) { var gsh = S.sheet, gi = gsh.info, mode = d.dropgo, keep = mode === 'keep', amt = keep ? gi.extras : gi.paid;
+      return ask(keep ? 'เก็บเป็นตั๋วให้ลูกค้าใช้ครั้งหน้า' + (amt ? ' และคืนเงินค่าของเพิ่ม ' + baht(amt) : '') + ' ใช่ไหม?' : amt ? 'คืนเงินลูกค้า ' + baht(amt) + ' แล้ว ใช่ไหม? (ระบบจะหักออกจากยอดขายวันนี้)' : 'เอาคิวนี้ออก ลูกค้าไม่ทำแล้ว ใช่ไหม?', 'ยืนยัน', function () {
+      S.busy = true; render();
+      return api('sDrop', { id: gsh.id, mode: mode }).then(function (bd) { S.busy = false; S.b = bd; S.skew = Date.now(); S.sheet = null; if (S.sc) S.sc.data = null; render(); toast(keep ? 'เก็บเป็นตั๋วแล้ว' + (amt ? ' · คืนเงิน ' + baht(amt) : '') : amt ? 'บันทึกคืนเงิน ' + baht(amt) + ' แล้ว' : gi.fromWallet ? 'ยกเลิกคิวแล้ว ตั๋วกลับเข้ากระเป๋า' : 'เอาออกจากคิวแล้ว'); })
+        .catch(function (x) { S.busy = false; S.sheet = null; toast(errT(x)); load(true); }); }); }
+    if (d.scday) { S.sc.date = d.scday; return loadSched(); }
+    if (d.appt) { S.sheet = { kind: 'appt', id: d.appt, who: +d.who || 0 }; return render(); }
+    if (d.mvopen !== undefined) { S.sheet.move = { date: S.sc.data.date, times: null }; return loadMove(); }
+    if (d.mvback !== undefined) { S.sheet.move = null; return render(); }
+    if (d.mvday) { S.sheet.move.date = d.mvday; return loadMove(); }
+    if (d.mvto) { var msh = S.sheet, to = +d.mvto; return ask('เลื่อนนัดไป ' + dayStr(msh.move.date) + ' ' + hm(to) + ' ใช่ไหม?', 'เลื่อนนัด', function () { S.busy = true; render();
+      return api('sMoveBk', { id: msh.id, date: msh.move.date, time: to }).then(function (r) { S.busy = false; S.sc.date = r.date; S.sc.data = r; S.sheet = null; render(); toast('เลื่อนนัดแล้ว → ' + dayStr(r.date) + ' ' + hm(to)); })
+        .catch(function (x) { S.busy = false; toast(errT(x)); loadMove(); }); }); }
+    if (d.apcancel !== undefined) { var csh = S.sheet, all = d.apcancel === '1'; return ask(all ? 'ยกเลิกนัดทั้งกลุ่มใช่ไหม? ตั๋วจะกลับเข้ากระเป๋าลูกค้า' : 'ยกเลิกนัดนี้ใช่ไหม? ตั๋วจะกลับเข้ากระเป๋าลูกค้า', 'ยกเลิกนัด', function () {
+      return api('sCancelBk', { id: csh.id, all: all, date: S.sc.data.date }).then(function (r) { S.sc.data = r; S.sheet = null; render(); toast('ยกเลิกนัดแล้ว'); }).catch(function (x) { toast(errT(x)); S.sheet = null; loadSched(); }); }); }
     if (d.tab) { S.tab = d.tab; try { localStorage.setItem('lana-station-tab', S.tab); } catch (x) {} return render(); }
     if (d.close !== undefined) { S.sheet = null; return render(); }
     if (d.back !== undefined) { S.sheet = { kind: 'pick', id: S.sheet.id }; return render(); }
@@ -687,8 +816,8 @@ body.real, body { background: var(--paper); }
     if (el.id === 'd-plus60') { DNOW.min += 60; return load(true); }
   });
   load();
-  if (!demo) setInterval(function () { if (document.visibilityState === 'visible' && !S.sheet && S.tab !== 'book') load(true); }, 15000);
-  else setInterval(function () { if (!S.sheet && S.tab !== 'book') load(true); }, 2000);   /* demo: pick up guests checked in on the other screen */
+  if (!demo) setInterval(function () { if (document.visibilityState === 'visible' && !S.sheet && S.tab !== 'book') { load(true); if (S.tab === 'sched' && S.sc) loadSched(true); } }, 15000);
+  else setInterval(function () { if (!S.sheet && S.tab !== 'book') { load(true); if (S.tab === 'sched' && S.sc) loadSched(true); } }, 2000);   /* demo: pick up guests checked in on the other screen */
   setInterval(function () { if (S.b && !S.sheet && S.tab !== 'book') render(); }, 30000);
 })();
 </script>
