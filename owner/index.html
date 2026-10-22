@@ -361,6 +361,23 @@ tr.click:hover td { background: color-mix(in srgb, var(--sand) 18%, var(--card))
   .range input { width: 100%; } .range .dates { width: 100%; } .range label { flex: 1; }
   .tabs { width: 100%; } .tabs button { flex: 1; }
 }
+.plink { color: var(--ink); }
+.back { border: 0; background: none; color: var(--ink-2); font: inherit; font-size: 14px; padding: 0 0 8px; cursor: pointer; }
+.phead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.phead h2 { font-size: 26px; }
+.mpick { display: flex; align-items: center; gap: 8px; }
+.mpick button { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); font-size: 18px; }
+.mpick button:disabled { opacity: .3; }
+.mpick b { min-width: 150px; text-align: center; font-weight: 600; }
+.pcards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 14px 0 6px; }
+.pcards div { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+.pcards div.hi { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.pcards div.warn b { color: #a4502f; }
+.pcards small { display: block; font-size: 12px; opacity: .75; }
+.pcards b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+.pcards span { font-size: 12px; opacity: .75; }
+tr.late td { background: color-mix(in srgb, #a4502f 8%, var(--card)); }
+@media (max-width: 720px) { .pcards { grid-template-columns: repeat(2, 1fr); } .pcards div.hi { grid-column: span 2; } }
 </style>
 </head>
 <body class="real">
@@ -376,7 +393,7 @@ tr.click:hover td { background: color-mix(in srgb, var(--sand) 18%, var(--card))
 <script>
 (function () {
   var demo = !APP.API_URL, $ = function (id) { return document.getElementById(id); };
-  var S = { key: '', branch: 'ALL', month: '', date: '', init: null, m: null, d: null, err: '', busy: false, tab: 'sales', pf: '', pt: '', p: null, open: {} };
+  var S = { key: '', branch: 'ALL', month: '', date: '', init: null, m: null, d: null, err: '', busy: false, tab: 'sales', pf: '', pt: '', p: null, open: {}, person: '', pp: null };
   try { S.key = localStorage.getItem('lana-owner-key') || ''; S.branch = localStorage.getItem('lana-owner-branch') || 'ALL'; S.tab = localStorage.getItem('lana-owner-tab') || 'sales'; } catch (e) {}
   var DS = null, DNOW = null;
   if (demo) { DS = memStore(); DNOW = demoNow(); seedDemo(DS, DNOW); S.key = 'demo-owner'; }
@@ -408,7 +425,8 @@ tr.click:hover td { background: color-mix(in srgb, var(--sand) 18%, var(--card))
       return loadAll();
     }).catch(function (e) { S.busy = false; if (String(e.message) === 'OWNER_KEY') { S.key = ''; S.err = errT(e); try { localStorage.removeItem('lana-owner-key'); } catch (x) {} } else S.err = errT(e); render(); });
   }
-  function loadPay() { S.busy = true; render(); return api('oPay', { from: S.pf, to: S.pt }).then(function (p) { S.p = p; S.busy = false; S.err = ''; render(); }).catch(function (e) { S.busy = false; S.err = errT(e); render(); }); }
+  function loadPerson() { S.busy = true; render(); return api('oPerson', { id: S.person, from: S.pf, to: S.pt }).then(function (r) { S.pp = r; S.busy = false; S.err = ''; render(); }).catch(function (e) { S.busy = false; S.err = errT(e); render(); }); }
+  function loadPay() { if (S.person) return loadPerson(); S.busy = true; render(); return api('oPay', { from: S.pf, to: S.pt }).then(function (p) { S.p = p; S.busy = false; S.err = ''; render(); }).catch(function (e) { S.busy = false; S.err = errT(e); render(); }); }
   function loadAll() { S.busy = true; render(); return Promise.all([api('oMonth', { month: S.month }), api('oDay', { date: S.date }), api('oPay', { from: S.pf, to: S.pt })]).then(function (r) { S.m = r[0]; S.d = r[1]; S.p = r[2]; S.busy = false; S.err = ''; render(); }).catch(function (e) { S.busy = false; S.err = errT(e); render(); }); }
   function loadMonth() { S.busy = true; render(); return api('oMonth', { month: S.month }).then(function (m) { S.m = m; S.busy = false; render(); }).catch(function (e) { S.busy = false; S.err = errT(e); render(); }); }
   function loadDay() { S.busy = true; render(); return api('oDay', { date: S.date }).then(function (d) { S.d = d; S.busy = false; render(); }).catch(function (e) { S.busy = false; S.err = errT(e); render(); }); }
@@ -431,7 +449,7 @@ tr.click:hover td { background: color-mix(in srgb, var(--sand) 18%, var(--card))
       bars += '<button title="' + i + ' · ' + baht(v) + '" data-day="' + key + '" class="' + (v ? 'has' : '') + (key === S.date ? ' sel' : '') + '" style="height:' + Math.max(4, Math.round(v / max * 100)) + '%" aria-label="วันที่ ' + i + ' ยอด ' + baht(v) + '"></button>'; }
     var head = '<div class="top"><div class="brand"><b>Lana</b><span>' + (S.tab === 'pay' ? 'ค่ามือพนักงาน' : 'สรุปยอดขาย') + (demo ? ' · ข้อมูลตัวอย่าง' : '') + '</span></div><select id="br" aria-label="สาขา">' + brOpts + '</select></div>' +
       '<div class="tabs" role="tablist"><button role="tab" data-tab="sales" aria-selected="' + (S.tab === 'sales') + '">ยอดขาย</button><button role="tab" data-tab="pay" aria-selected="' + (S.tab === 'pay') + '">ค่ามือ</button></div>';
-    if (S.tab === 'pay') { app.innerHTML = '<div class="' + (S.busy ? 'load' : '') + '">' + head + payHtml() + (S.err ? '<p class="err">' + esc(S.err) + '</p>' : '') + '</div>'; $('br').value = S.branch; return; }
+    if (S.tab === 'pay') { app.innerHTML = '<div class="' + (S.busy ? 'load' : '') + '">' + head + (S.person && S.pp ? personHtml() : payHtml()) + (S.err ? '<p class="err">' + esc(S.err) + '</p>' : '') + '</div>'; $('br').value = S.branch; return; }
     var h = '<div class="' + (S.busy ? 'load' : '') + '">' + head +
       '<section class="hero"><div class="pick"><button id="mprev" aria-label="เดือนก่อน">‹</button><b>' + monthTh(S.month) + '</b><button id="mnext" aria-label="เดือนถัดไป"' + (S.month >= nowM ? ' disabled' : '') + '>›</button></div>' +
       '<div class="lbl">ยอดขายรวม' + (S.month === nowM ? 'เดือนนี้' : 'ทั้งเดือน') + ' (ไม่รวมทิป)</div><div class="big">' + baht(sum.sales) + '</div>' +
@@ -465,6 +483,31 @@ tr.click:hover td { background: color-mix(in srgb, var(--sand) 18%, var(--card))
   var TMS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
   function shortTh(d) { var p = d.split('-'); return (+p[2]) + ' ' + TMS[+p[1] - 1]; }
   function rangeTh(a, b) { return a === b ? dayTh(a).replace(/^วัน\S+ที่ /, '') : shortTh(a) + ' – ' + shortTh(b) + ' ' + (+b.slice(0, 4) + 543); }
+  /* one person: pay, tips, late minutes and every job for a month or any date range */
+  function rangeBox() {
+    var t = S.init.today, mon = S.pf.slice(0, 7), last = mon + '-' + daysIn(mon), wholeMonth = S.pf === mon + '-01' && (S.pt === last || (mon === S.init.month && S.pt === t));
+    return '<div class="range"><div class="mpick"><button data-pmon="-1" aria-label="เดือนก่อน">‹</button><b>' + (wholeMonth ? monthTh(mon) : esc(rangeTh(S.pf, S.pt))) + '</b><button data-pmon="1" aria-label="เดือนถัดไป"' + (mon >= S.init.month ? ' disabled' : '') + '>›</button></div>' +
+      '<div class="dates"><label>ตั้งแต่<input type="date" id="pf" value="' + S.pf + '" max="' + t + '"></label><label>ถึง<input type="date" id="pt" value="' + S.pt + '" max="' + t + '"></label></div></div>';
+  }
+  function personHtml() {
+    var r = S.pp, ps = r.person;
+    var h = '<section class="day"><button class="back" id="pback">‹ กลับตารางค่ามือ</button>' +
+      '<div class="phead"><h2>' + esc(ps.name) + '</h2><span class="t">' + esc(ps.type) + ' · ' + (ps.start ? 'เวลาเข้างาน ' + esc(ps.start) : 'ไม่ได้ตั้งเวลาเข้างาน (ไม่นับมาสาย)') + '</span></div>' + rangeBox();
+    h += '<div class="pcards"><div><small>ค่ามือรวม</small><b>' + baht(r.fee) + '</b>' + (r.topup ? '<span>รวมเงินประกันขั้นต่ำ ' + baht(r.topup) + '</span>' : '') + '</div>' +
+      '<div><small>ทิปรวม</small><b>' + baht(r.tips) + '</b></div><div class="hi"><small>รวมต้องจ่าย</small><b>' + baht(r.total) + '</b>' + (r.held ? '<span>รอตรวจ ' + baht(r.held) + '</span>' : '') + '</div>' +
+      '<div' + (r.lateMin ? ' class="warn"' : '') + '><small>มาสายรวม</small><b>' + r.lateMin + ' นาที</b><span>' + r.lateDays + ' วัน</span></div>' +
+      '<div><small>มาทำงาน</small><b>' + r.worked + ' วัน</b><span>' + r.jobs + ' งาน</span></div></div>';
+    h += '<h2 class="ttl">เข้างาน · มาสาย</h2>' + (r.days.length ? '<div class="tbl"><table><thead><tr><th>วันที่</th><th class="num">เข้า</th><th class="num">ออก</th><th class="num hide">ชั่วโมง</th><th class="num">มาสาย</th></tr></thead><tbody>' +
+      r.days.map(function (d) { return '<tr' + (d.late ? ' class="late"' : '') + '><td>' + esc(dayTh(d.date).replace(/ \d{4}$/, '')) + '</td><td class="num">' + esc(d.inAt) + '</td><td class="num">' + esc(d.outAt || '–') + '</td><td class="num hide">' + d.hours + '</td><td class="num">' + (d.late ? '<b>' + d.late + ' นาที</b>' : '–') + '</td></tr>'; }).join('') +
+      '</tbody></table><div class="tfoot"><span>มาสาย ' + r.lateDays + ' วัน</span><b>' + r.lateMin + ' นาที</b></div></div>' : '<div class="tbl"><div class="empty">ไม่มีการเข้างานในช่วงนี้</div></div>');
+    h += '<h2 class="ttl">รายการที่ทำ ' + esc(rangeTh(r.from, r.to)) + '</h2>' + (r.list.length ? '<div class="tbl"><table><thead><tr><th class="num" style="width:1%">ลำดับ</th><th>รายการ</th><th class="num">ค่ามือ</th></tr></thead><tbody>' +
+      r.list.map(function (x, i) { var k = 'p' + i;
+        return '<tr class="click" data-row="' + k + '"><td class="num t">' + (i + 1) + '</td><td>' + esc(x.what) + (x.shared > 1 ? ' <span class="tag tk">ทำขั้น' + esc(x.steps) + '</span>' : '') + '<br><span class="t">' + esc(shortTh(x.date)) + ' · ' + esc(x.time) + (x.q ? ' · ' + esc(x.q) : '') + '</span>' + (x.held ? ' <span class="tag">รอตรวจ</span>' : '') +
+          (S.open[k] ? '<div class="lines">' + x.lines.map(function (l) { return '<div><span>' + esc(l.label) + '</span><span>' + (l.pending ? 'ยังไม่นับ' : baht(l.amount)) + '</span></div>'; }).join('') + '</div>' : '') + '</td>' +
+          '<td class="num"><b>' + baht(x.fee) + '</b>' + (x.tip ? '<span class="tip">+ทิป ' + baht(x.tip) + '</span>' : '') + '</td></tr>'; }).join('') +
+      '</tbody></table><div class="tfoot"><span>' + r.list.length + ' รายการ · แตะแถวเพื่อดูรายละเอียด</span><b>' + baht(r.total) + '</b></div></div>' : '<div class="tbl"><div class="empty">ไม่มีรายการ</div></div>');
+    return h + '<div class="foot"><span>มาสาย = เวลากดเข้างานครั้งแรกของวัน เทียบกับเวลาเข้างานในชีต Staff (ช่อง start) · ประจำที่ไม่ได้ตั้งไว้ใช้เวลาเปิดร้าน</span></div></section>';
+  }
   function payHtml() {
     var p = S.p, t = S.init.today, mon = S.init.month, pm = addMonth(mon, -1);
     var quick = [['วันนี้', t, t], ['เมื่อวาน', addDay(t, -1), addDay(t, -1)], ['เดือนนี้', mon + '-01', t], ['เดือนก่อน', pm + '-01', pm + '-' + daysIn(pm)]];
@@ -473,7 +516,7 @@ tr.click:hover td { background: color-mix(in srgb, var(--sand) 18%, var(--card))
     h += '<h2 class="ttl">ตารางค่ามือประจำวันที่ ' + esc(rangeTh(p.from, p.to)) + '</h2>';
     if (!p.people.length) h += '<div class="tbl"><div class="empty">ไม่มีงานในช่วงนี้</div></div>';
     else h += '<div class="tbl"><table><thead><tr><th>ชื่อพนักงาน</th><th class="num hide">งาน</th><th class="num">ค่ามือ</th><th class="num">ทิป</th><th class="num">รวม</th></tr></thead><tbody>' +
-      p.people.map(function (x) { return '<tr><td>' + esc(x.name) + '<br><span class="t">' + esc(x.type) + (x.held ? ' · รอตรวจ ' + baht(x.held) : '') + '</span></td><td class="num hide">' + x.jobs + '</td><td class="num">' + baht(x.fee) + '</td><td class="num">' + baht(x.tips) + '</td><td class="num"><b>' + baht(x.total) + '</b></td></tr>'; }).join('') +
+      p.people.map(function (x) { return '<tr class="click" data-person="' + esc(x.id) + '"><td><b class="plink">' + esc(x.name) + ' ›</b><br><span class="t">' + esc(x.type) + (x.held ? ' · รอตรวจ ' + baht(x.held) : '') + '</span></td><td class="num hide">' + x.jobs + '</td><td class="num">' + baht(x.fee) + '</td><td class="num">' + baht(x.tips) + '</td><td class="num"><b>' + baht(x.total) + '</b></td></tr>'; }).join('') +
       '</tbody></table><div class="tfoot"><span>รวมต้องจ่าย ' + p.people.length + ' คน</span><b>' + baht(p.total) + '</b></div></div>';
     h += '<h2 class="ttl">รายการค่ามือประจำวันที่ ' + esc(rangeTh(p.from, p.to)) + '</h2>';
     if (!p.list.length) h += '<div class="tbl"><div class="empty">ไม่มีรายการ</div></div>';
@@ -490,10 +533,13 @@ tr.click:hover td { background: color-mix(in srgb, var(--sand) 18%, var(--card))
     return h + '<div class="foot"><span>ค่ามือนับตามวันที่ทำงาน · ทิปและค่าต่อเวลานับเมื่อลูกค้าจ่ายแล้ว</span>' + (demo ? '' : '<button id="logout">ออกจากระบบ</button>') + '</div></section>';
   }
   document.addEventListener('click', function (e) {
+    var pr = e.target.closest('tr[data-person]'); if (pr && !S.busy) { S.person = pr.dataset.person; S.open = {}; window.scrollTo(0, 0); return loadPerson(); }
     var tr = e.target.closest('tr[data-row]'); if (tr && !e.target.closest('button')) { S.open[tr.dataset.row] = !S.open[tr.dataset.row]; return render(); }
     var b = e.target.closest('button'); if (!b || S.busy && b.id !== 'logout') return;
     if (b.dataset.tab) { S.tab = b.dataset.tab; try { localStorage.setItem('lana-owner-tab', S.tab); } catch (x) {} return render(); }
     if (b.dataset.pf) { S.pf = b.dataset.pf; S.pt = b.dataset.pt; S.open = {}; return loadPay(); }
+    if (b.id === 'pback') { S.person = ''; S.pp = null; S.open = {}; S.busy = true; render(); return api('oPay', { from: S.pf, to: S.pt }).then(function (p) { S.p = p; S.busy = false; render(); }).catch(function (x) { S.busy = false; S.err = errT(x); render(); }); }
+    if (b.dataset.pmon) { var mon = addMonth(S.pf.slice(0, 7), +b.dataset.pmon); S.pf = mon + '-01'; S.pt = mon === S.init.month ? S.init.today : mon + '-' + daysIn(mon); S.open = {}; return loadPerson(); }
     if (b.id === 'login') { var v = $('pw').value.trim(); if (!v) return; S.key = v; S.err = ''; try { localStorage.setItem('lana-owner-key', v); } catch (x) {} return start(); }
     if (b.id === 'logout') { S.key = ''; S.init = S.m = S.d = null; try { localStorage.removeItem('lana-owner-key'); } catch (x) {} return render(); }
     if (b.id === 'mprev') { S.month = addMonth(S.month, -1); return loadMonth(); }
@@ -535,7 +581,7 @@ tr.click:hover td { background: color-mix(in srgb, var(--sand) 18%, var(--card))
         if (walk) st.saveOrder({ id: 'OW' + b.id, kind: 'walkin', amount: prog.price, status: 'paid', prog: pid, count: 1, bookingId: b.id, items: [], paidAt: stamp(t - 5) });
         if (ext || tip) st.saveOrder({ id: 'OC' + b.id, kind: 'checkout', amount: (ext ? LANA.EXT_PRICE : 0) + tip, status: 'paid', bookingId: b.id, items: (ext ? [{ th: 'ต่อเวลา 30 นาที', en: 'Extra 30 min', amount: LANA.EXT_PRICE }] : []).concat(tip ? [{ th: 'ทิป', en: 'Tip', amount: tip }] : []), paidAt: stamp(m0 + 3) });
       }
-      staff.forEach(function (sf) { if (sf.id === 'S8' && rnd() < 0.3) return; st.addShift({ staffId: sf.id, date: date, branch: sf.branch, in: '0' + (9 + Math.floor(rnd() * 1)) + ':' + (40 + Math.floor(rnd() * 19)), out: back === 0 ? '' : '21:' + (10 + Math.floor(rnd() * 40)) }); });
+      staff.forEach(function (sf) { if (sf.id === 'S8' && rnd() < 0.3) return; st.addShift({ staffId: sf.id, date: date, branch: sf.branch, in: (rnd() < 0.25 ? '10:' + String(3 + Math.floor(rnd() * 22)).padStart(2, '0') : '09:' + (40 + Math.floor(rnd() * 19))), out: back === 0 ? '' : '21:' + (10 + Math.floor(rnd() * 40)) }); });
       if (rnd() < 0.3) { var cp = lnFind(LANA.PROGRAMS, pick(progs)), mid = 'MD' + back; st.saveMember({ id: mid, name: pick(names) }); st.saveOrder({ id: 'OB' + date, memberId: mid, kind: 'buy', amount: lnPack(cp, 5), status: 'paid', prog: cp.id, count: 5, items: [], paidAt: date + ' 12:10' }); }
     }
   }

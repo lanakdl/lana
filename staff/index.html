@@ -1134,23 +1134,42 @@ function ownerApi(req, store, now) {
         (b.live || []).forEach(function (r) { if (r.staffId === sid && did.indexOf(STEP[r.res]) < 0) did.push(STEP[r.res]); });
         list.push({ date: b.date, time: b.checkedAt || lnHM(+b.svcStart || 0), q: b.q || b.code, what: (p0.name_th || '') + (b.people.length > 1 ? ' × ' + b.people.length + ' คน' : ''),
           steps: p.shared > 1 ? did.join(' + ') : '', shared: p.shared || 1,
-          name: s.name, fee: fee, tip: tip, held: held, waiting: b.status === 'finished', early: !!b.earlyByStaff, lines: p.lines });
+          name: s.name, sid: s.id, fee: fee, tip: tip, held: held, waiting: b.status === 'finished', early: !!b.earlyByStaff, lines: p.lines });
       });
     });
     /* daily guarantee top-ups (days already over) */
     var dayFee = {};
-    list.forEach(function (x) { if (!x.held) { var k = x.date + '|' + x.name; dayFee[k] = (dayFee[k] || 0) + x.fee; } });
+    list.forEach(function (x) { if (!x.held) { var k = x.date + '|' + x.sid; dayFee[k] = (dayFee[k] || 0) + x.fee; } });
     store.shifts().forEach(function (r) {
       var s = lnFind(staff, r.staffId); if (!s || s.type === 'FT' || !inBr(s.branch) || r.date < from || r.date > to || r.date >= now.date) return;
-      var k = r.date + '|' + s.name; if (dayFee[k] === -1) return;
+      var k = r.date + '|' + s.id; if (dayFee[k] === -1) return;
       var tu = lnTopUp(store, s, r.date, dayFee[k] || 0); dayFee[k] = -1; if (!tu) return;
       var P = people[s.id] = people[s.id] || { id: s.id, name: s.name, type: 'พาร์ทไทม์', jobs: 0, fee: 0, tips: 0, held: 0 };
       P.fee += tu; P.topup = (P.topup || 0) + tu;
-      list.push({ date: r.date, time: '22:00', q: '', what: 'ประกันค่ามือขั้นต่ำ ' + LANA.DAILY_MIN + ' (ร้านเติมให้ครบ)', steps: '', shared: 1, name: s.name, fee: tu, tip: 0, held: false, waiting: false, early: false, topup: true, lines: [] });
+      list.push({ date: r.date, time: '22:00', q: '', what: 'ประกันค่ามือขั้นต่ำ ' + LANA.DAILY_MIN + ' (ร้านเติมให้ครบ)', steps: '', shared: 1, name: s.name, sid: s.id, fee: tu, tip: 0, held: false, waiting: false, early: false, topup: true, lines: [] });
     });
     list.sort(function (a, b) { return a.date === b.date ? (a.time < b.time ? -1 : 1) : a.date < b.date ? -1 : 1; });
     var ppl = Object.keys(people).map(function (k) { var x = people[k]; x.fee = Math.round(x.fee); x.total = Math.round(x.fee + x.tips); return x; }).sort(function (a, b) { return b.total - a.total; });
     return { from: from, to: to, people: ppl, list: list, total: ppl.reduce(function (t, x) { return t + x.total; }, 0) };
+  }
+  if (req.action === 'oPerson') {
+    /* one person over a period: pay, tips, days worked, minutes late (vs their start time), and every job */
+    var who = lnFind(staff, req.id); if (!who) throw new Error('NOT_FOUND');
+    var pf = String(req.from || now.date), pt = String(req.to || pf);
+    var all = ownerApi({ action: 'oPay', key: req.key, branch: req.branch, from: pf, to: pt }, store, now);
+    var me = all.people.filter(function (x) { return x.id === who.id; })[0] || { fee: 0, tips: 0, total: 0, jobs: 0, held: 0, topup: 0 };
+    var startAt = String(who.start || '').trim() ? toMinHM(who.start) : (who.type === 'FT' ? LANA.OPEN : null);
+    var byDay = {};
+    store.shifts().forEach(function (r) { if (r.staffId !== who.id || r.date < pf || r.date > pt) return;
+      var a = toMinHM(r.in), z = r.out ? toMinHM(r.out) : (r.date === now.date ? now.min : a), d = byDay[r.date] = byDay[r.date] || { date: r.date, inAt: r.in, first: a, mins: 0, outAt: '' };
+      if (a < d.first) { d.first = a; d.inAt = r.in; } d.mins += Math.max(0, z - a); d.outAt = r.out || d.outAt; });
+    var days = Object.keys(byDay).sort().map(function (k) { var d = byDay[k], late = startAt == null ? 0 : Math.max(0, d.first - startAt);
+      return { date: d.date, inAt: d.inAt, outAt: d.outAt, hours: Math.round(d.mins / 6) / 10, late: late }; });
+    var lateDays = days.filter(function (d) { return d.late > 0; });
+    return { from: pf, to: pt, person: { id: who.id, name: who.name, type: who.type === 'FT' ? 'ประจำ' : 'พาร์ทไทม์', start: startAt == null ? '' : lnHM(startAt) },
+      fee: me.fee, tips: me.tips, total: me.total, topup: Math.round(me.topup || 0), held: me.held, jobs: me.jobs,
+      worked: days.length, lateMin: lateDays.reduce(function (t, d) { return t + d.late; }, 0), lateDays: lateDays.length, days: days,
+      list: all.list.filter(function (x) { return x.sid === who.id; }) };
   }
   throw new Error('BAD_ACTION');
 }
