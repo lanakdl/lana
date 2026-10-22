@@ -385,6 +385,18 @@ body.real, body { background: var(--paper); }
 .bkchk input { width: 22px; height: 22px; }
 .bkrow { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
 .bkwho.new { background: color-mix(in srgb, var(--sand, #efe3cf) 70%, var(--card)); }
+.clockbox { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; margin: 10px 0; }
+.camwrap { aspect-ratio: 4 / 3; border-radius: 16px; overflow: hidden; background: #2b1b14; color: #f3e6d4; display: grid; place-items: center; text-align: center; padding: 8px; font-size: 14px; }
+.camwrap video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.pinpad { display: grid; gap: 10px; }
+.pindots { display: flex; gap: 12px; justify-content: center; padding: 6px 0; }
+.pindots i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--ink); }
+.pindots i.f { background: var(--ink); }
+.pkeys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pk { font: inherit; font-size: 24px; padding: 12px 0; border-radius: 14px; border: 1px solid var(--line); background: var(--card); }
+.pk.ok { font-size: 17px; font-weight: 600; background: var(--olive, #6b7046); color: #fff; border-color: transparent; }
+.pk.ok:disabled { opacity: .35; }
+@media (max-width: 700px) { .clockbox { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body class="real">
@@ -419,7 +431,7 @@ body.real, body { background: var(--paper); }
     return fetch(APP.API_URL, { method: 'POST', body: JSON.stringify(req) }).then(function (r) { return r.json(); }, function () { throw new Error('NET'); })
       .then(function (j) { if (!j.ok) throw new Error(j.error); return j.data; });
   }
-  var ERR = { NO_TICKET: 'ตั๋วของลูกค้าไม่พอ หรือใช้เวลานี้ไม่ได้', SLOT_TAKEN: 'เวลานี้เต็มแล้ว เลือกเวลาอื่น', NEED_NAME: 'ใส่ชื่อลูกค้า', BAD_PHONE: 'เบอร์โทรไม่ถูกต้อง', BAD_TIME: 'เลือกวันและเวลาใหม่', NOT_HERE: 'สาขานี้ไม่มีโปรแกรมนี้', NOT_FOUND: 'ไม่พบนัดนี้', KIOSK_KEY: 'รหัสแท็บเล็ตไม่ถูกต้อง', BAD_BRANCH: 'ไม่พบสาขานี้', NET: 'เชื่อมต่อไม่ได้ ลองใหม่', TAKEN: 'มีคนรับคิวนี้ไปแล้ว', SEAT_BUSY: 'เตียงที่ต้องใช้ยังไม่ว่าง (มีลูกค้าอยู่ หรือเพิ่งเลิก รอเก็บเตียง 10 นาที) ลองใหม่อีกสักครู่', HANDED_OFF: 'คิวนี้ส่งต่ออยู่ ให้คนรับต่อก่อนแล้วค่อยต่อเวลา',
+  var ERR = { BAD_PIN: 'PIN ไม่ถูกต้อง ลองใหม่', CLOCK_IN_FIRST: 'ต้องเข้างานก่อน (ใส่ PIN + ถ่ายรูป)', NO_TICKET: 'ตั๋วของลูกค้าไม่พอ หรือใช้เวลานี้ไม่ได้', SLOT_TAKEN: 'เวลานี้เต็มแล้ว เลือกเวลาอื่น', NEED_NAME: 'ใส่ชื่อลูกค้า', BAD_PHONE: 'เบอร์โทรไม่ถูกต้อง', BAD_TIME: 'เลือกวันและเวลาใหม่', NOT_HERE: 'สาขานี้ไม่มีโปรแกรมนี้', NOT_FOUND: 'ไม่พบนัดนี้', KIOSK_KEY: 'รหัสแท็บเล็ตไม่ถูกต้อง', BAD_BRANCH: 'ไม่พบสาขานี้', NET: 'เชื่อมต่อไม่ได้ ลองใหม่', TAKEN: 'มีคนรับคิวนี้ไปแล้ว', SEAT_BUSY: 'เตียงที่ต้องใช้ยังไม่ว่าง (มีลูกค้าอยู่ หรือเพิ่งเลิก รอเก็บเตียง 10 นาที) ลองใหม่อีกสักครู่', HANDED_OFF: 'คิวนี้ส่งต่ออยู่ ให้คนรับต่อก่อนแล้วค่อยต่อเวลา',
     NO_ROOM: 'ต่อเวลาไม่ได้ มีคิวต่อที่เตียงนี้', CLOSING: 'ต่อเวลาไม่ได้ ร้านใกล้ปิด', NOT_NOW: 'ทำตอนนี้ไม่ได้ ลองรีเฟรช', NO_NEXT_STEP: 'ขั้นนี้เป็นขั้นสุดท้ายแล้ว', BAD_STAFF: 'ไม่พบชื่อนี้ในสาขา', NOT_FOUND: 'ไม่พบคิวนี้', BAD_ACTION: 'ระบบยังไม่อัปเดต (ลง Code.gs ใหม่แล้ว Deploy เป็น New version)' };
   function errT(e) { var k = String(e && e.message || e); return ERR[k] || k; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -475,6 +487,8 @@ body.real, body { background: var(--paper); }
     h += '</div>';
     if (S.sheet) h += '<div class="sheet" id="sheet"><div class="spanel">' + sheetHtml() + '</div></div>';
     app.innerHTML = h;
+    if (S.cam && (!S.sheet || S.sheet.kind !== 'clock2')) stopCam();
+    var cv = $('cam'); if (cv && S.cam && cv.srcObject !== S.cam) cv.srcObject = S.cam;
   }
 
   function sheetHtml() {
@@ -489,7 +503,8 @@ body.real, body { background: var(--paper); }
       var w2 = b.waiting.filter(function (x) { return x.id === sh.id; })[0], who = b.staff.filter(function (s) { return s.id === sh.staff; })[0]; if (!w2 || !who) { S.sheet = null; return ''; }
       return '<h2>' + esc(who.name) + ' รับคิว ' + esc(w2.q) + '</h2><span class="sub">' + esc(w2.prog) + (w2.handoff ? ' · ทำขั้น' + esc(w2.next) : ' · ' + w2.min + ' นาที') + '<br>กดแล้วเริ่มนับเวลาทันที และปริ้นใบงานออกมา</span>' +
         (who.busy.length ? '<span class="serr">' + esc(who.name) + ' กำลังทำ ' + esc(who.busy.join(', ')) + ' อยู่ ใช่คนนี้แน่ใช่ไหม</span>' : '') +
-        '<div class="acts"><button class="sb olive" id="accept"' + (S.busy ? ' disabled' : '') + '>รับงาน + ปริ้นใบงาน</button><button class="sb ghost" data-back>‹ เปลี่ยนชื่อ</button></div>';
+        (who.on ? '<div class="acts"><button class="sb olive" id="accept"' + (S.busy ? ' disabled' : '') + '>รับงาน + ปริ้นใบงาน</button><button class="sb ghost" data-back>‹ เปลี่ยนชื่อ</button></div>'
+          : '<span class="serr">' + esc(who.name) + ' ยังไม่ได้เข้างานวันนี้ ต้องเข้างานก่อน (ใส่ PIN + ถ่ายรูป)</span><div class="acts"><button class="sb olive" data-clockfor="' + esc(who.id) + '">เข้างานก่อน แล้วรับงาน</button><button class="sb ghost" data-back>‹ เปลี่ยนชื่อ</button></div>');
     }
     if (sh.kind === 'live') {
       var v = b.live.filter(function (x) { return x.id === sh.id; })[0]; if (!v) { S.sheet = null; return ''; }
@@ -521,8 +536,14 @@ body.real, body { background: var(--paper); }
       '<div class="acts"><button class="sb olive" id="upsure">ยืนยัน</button><button class="sb ghost" data-live="' + sh.id + '">‹ กลับ</button></div>';
     if (sh.kind === 'clock') return '<h2>เข้างาน / ออกงาน</h2><span class="sub">แตะชื่อตัวเอง</span><div class="names">' + b.staff.map(function (s) { return '<button data-clock="' + s.id + '" class="' + (s.on ? 'on' : 'off') + '"><span class="av">' + esc(String(s.name).charAt(0)) + '</span><b>' + esc(s.name) + '</b><small>' + (s.on ? '<i class="dot"></i>เข้างาน ' + esc(s.inAt) : 'ยังไม่เข้างาน') + '</small></button>'; }).join('') + '</div><button class="sb ghost" data-close>ปิด</button>';
     if (sh.kind === 'clock2') { var cs = b.staff.filter(function (x) { return x.id === sh.staff; })[0]; if (!cs) { S.sheet = null; return ''; }
-      return '<h2>' + esc(cs.name) + '</h2><span class="sub">' + (cs.on ? 'เข้างานตั้งแต่ ' + esc(cs.inAt) + (cs.busy.length ? ' · กำลังทำ ' + esc(cs.busy.join(', ')) + ' (งานจะเดินต่อจนจบเอง)' : '') : 'ยังไม่ได้เข้างานวันนี้') + '</span><div class="acts">' +
-        (cs.on ? '<button class="sb warn" data-clockgo="0">ออกงาน ' + hm(nowMin()) + '</button>' : '<button class="sb olive" data-clockgo="1">เข้างาน ' + hm(nowMin()) + '</button>') + '<button class="sb ghost" data-close>ยกเลิก</button></div>'; }
+      /* own PIN (+ a photo when clocking in) so nobody clocks in for a friend */
+      if (!cs.on && !S.cam && !S.camTried) startCam();
+      var pin = sh.pin || '';
+      return '<h2>' + esc(cs.name) + '</h2><span class="sub">' + (cs.on ? 'เข้างานตั้งแต่ ' + esc(cs.inAt) + (cs.busy.length ? ' · กำลังทำ ' + esc(cs.busy.join(', ')) + ' (งานจะเดินต่อจนจบเอง)' : '') : 'ยังไม่ได้เข้างานวันนี้ · มองกล้อง แล้วใส่ PIN ของตัวเอง') + '</span>' +
+        '<div class="clockbox">' + (!cs.on ? '<div class="camwrap">' + (S.cam ? '<video id="cam" autoplay playsinline muted></video>' : '<span>' + (S.camTried === true ? 'เปิดกล้องไม่ได้ · เข้างานด้วย PIN อย่างเดียว (บันทึกว่าไม่มีรูป)' : 'กำลังเปิดกล้อง…') + '</span>') + '</div>' : '') +
+        '<div class="pinpad"><div class="pindots">' + [0, 1, 2, 3].map(function (i) { return '<i class="' + (i < pin.length ? 'f' : '') + '"></i>'; }).join('') + '</div><div class="pkeys">' +
+        ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'].map(function (k) { return k === 'ok' ? '<button class="pk ok" data-clockgo="' + (cs.on ? '0' : '1') + '"' + (pin.length < 4 || S.busy ? ' disabled' : '') + '>' + (cs.on ? 'ออกงาน' : 'เข้างาน') + '</button>' : '<button class="pk" data-pin="' + k + '">' + (k === 'del' ? 'ลบ' : k) + '</button>'; }).join('') + '</div></div></div>' +
+        '<div class="acts"><button class="sb ghost" ' + (sh.back ? 'data-clockback' : 'data-close') + '>ยกเลิก</button></div>'; }
     if (sh.kind === 'slip') return '<h2>ใบงาน (ตัวอย่าง)</h2><span class="sub">ในร้านจริง ใบนี้ออกจากเครื่องปริ้นใบเสร็จทันที</span><div class="slipview"><div class="slipbody">' + sh.html + '</div></div><button class="sb ghost" data-close>ปิด</button>';
     return '';
   }
@@ -565,6 +586,22 @@ body.real, body { background: var(--paper); }
     return h;
   }
 
+  /* front camera for the clock-in photo */
+  function startCam() {
+    S.camTried = false;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { S.camTried = true; return; }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 360 } }, audio: false })
+      .then(function (st) { if (!S.sheet || S.sheet.kind !== 'clock2') { st.getTracks().forEach(function (t) { t.stop(); }); return; } S.cam = st; render(); })
+      .catch(function () { S.camTried = true; render(); });
+    S.camTried = 'wait';
+  }
+  function stopCam() { if (S.cam) S.cam.getTracks().forEach(function (t) { t.stop(); }); S.cam = null; S.camTried = false; }
+  function snap() {
+    var v = $('cam'); if (!v || !v.videoWidth) return '';
+    var c = document.createElement('canvas'), w = 320, h = Math.round(320 * v.videoHeight / v.videoWidth); c.width = w; c.height = h;
+    c.getContext('2d').drawImage(v, 0, 0, w, h);
+    try { return c.toDataURL('image/jpeg', 0.6); } catch (e) { return ''; }
+  }
   function slipHtml(s) {
     var steps = s.steps.map(function (x) { return '<div class="r"><span>' + (s.people.length > 1 ? esc(x.who) + ' · ' : '') + esc(x.label) + '</span><span>' + hm(x.start) + '–' + hm(x.end) + '</span></div>'; }).join('');
     var ppl = s.people.map(function (p) {
@@ -611,7 +648,18 @@ body.real, body { background: var(--paper); }
     if (d.q) { S.sheet = { kind: 'pick', id: d.q }; return render(); }
     if (el.id === 'clockin') { S.sheet = { kind: 'clock' }; return render(); }
     if (d.clock) { S.sheet = { kind: 'clock2', staff: d.clock }; return render(); }
-    if (d.clockgo) { var on = d.clockgo === '1', sid = S.sheet.staff; return api('sClock', { staffId: sid, on: on }).then(function (b) { S.b = b; S.skew = Date.now(); S.sheet = null; render(); toast(on ? 'เข้างานแล้ว' : 'ออกงานแล้ว'); }).catch(function (x) { S.sheet = null; toast(errT(x)); load(true); }); }
+    if (d.pin) { var sp = S.sheet; sp.pin = d.pin === 'del' ? (sp.pin || '').slice(0, -1) : ((sp.pin || '') + d.pin).slice(0, 4);
+      /* update dots in place so the camera preview doesn't flicker */
+      var dots = document.querySelectorAll('.pindots i'), okb = document.querySelector('.pk.ok');
+      if (dots.length && okb) { for (var di = 0; di < dots.length; di++) dots[di].className = di < sp.pin.length ? 'f' : ''; okb.disabled = sp.pin.length < 4 || S.busy; return; }
+      return render(); }
+    if (d.clockfor) { S.sheet = { kind: 'clock2', staff: d.clockfor, back: { kind: 'confirm', id: S.sheet.id, staff: S.sheet.staff } }; return render(); }
+    if (d.clockback !== undefined) { S.sheet = S.sheet.back; stopCam(); return render(); }
+    if (d.clockgo) { var on = d.clockgo === '1', sh0 = S.sheet, sid = sh0.staff, photo = on ? snap() : '';
+      S.busy = true; render();
+      return api('sClock', { staffId: sid, on: on, pin: sh0.pin || '', photo: photo }).then(function (b) { S.busy = false; S.b = b; S.skew = Date.now(); stopCam(); S.sheet = sh0.back || null; render(); toast(on ? 'เข้างานแล้ว' + (photo ? '' : ' (ไม่มีรูป)') : 'ออกงานแล้ว'); })
+        .catch(function (x) { S.busy = false; if (String(x.message) === 'BAD_PIN') { sh0.pin = ''; render(); return toast(errT(x)); } stopCam(); S.sheet = null; toast(errT(x)); render(); });
+    }
     if (d.name) { S.sheet = { kind: 'confirm', id: S.sheet.id, staff: d.name }; return render(); }
     if (d.live) { S.sheet = { kind: 'live', id: d.live }; return render(); }
     if (el.id === 'accept') {
