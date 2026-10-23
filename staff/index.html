@@ -1125,6 +1125,7 @@ function ownerApi(req, store, now) {
   function brOf(o) { var b = o.bookingId ? lnFind(bks, o.bookingId) : null; return b ? b.branch : 'LINE'; }
   function inBr(id) { return br === 'ALL' || id === br; }
   function who(o, b) { var m = o && o.memberId ? lnFind(members, o.memberId) : b && b.memberId ? lnFind(members, b.memberId) : null; return m ? m.name : b ? b.people.map(function (p) { return p.name; }).join(', ') : ''; }
+  var PAYM = { cash: 'เงินสด', card: 'บัตร (เครื่องรูด)' };
   var KIND = { refund: 'คืนเงิน', walkin: 'หน้าร้าน', book: 'จองใน LINE', buy: 'ซื้อคอร์ส', upcourse: 'อัปเป็นคอร์ส', checkout: 'ส่วนเพิ่มตอนจบ' };
   function what(o, b) {
     var p = lnFind(LANA.PROGRAMS, o.prog || (b && b.people[0].prog)) || {}, n = +o.count || 1;
@@ -1157,7 +1158,7 @@ function ownerApi(req, store, now) {
       if (String(o.paidAt).slice(0, 10) !== date) return;
       var b = o.bookingId ? lnFind(bks, o.bookingId) : null, tip = tipOf(o);
       if (b && (o.kind === 'walkin' || o.kind === 'book')) paidVisit[b.id] = 1;
-      rows.push({ time: String(o.paidAt).slice(11, 16), name: who(o, b), what: what(o, b), kind: KIND[o.kind] || o.kind, branch: brOf(o), amount: +o.amount - tip, tip: tip, q: b ? b.q || '' : '' });
+      rows.push({ time: String(o.paidAt).slice(11, 16), name: who(o, b), what: what(o, b), kind: KIND[o.kind] || o.kind, branch: brOf(o), amount: +o.amount - tip, tip: tip, q: b ? b.q || '' : '', pay: o.kind === 'refund' ? 'คืนเงิน' : PAYM[o.method] || 'Beam', by: o.paidBy ? ((lnFind(staff, o.paidBy) || {}).name || o.paidBy) : '' });
     });
     /* visits paid earlier with a course ticket: no money today, listed so the day is complete */
     bks.forEach(function (b) {
@@ -1168,7 +1169,7 @@ function ownerApi(req, store, now) {
     });
     rows.sort(function (a, b) { return a.time < b.time ? -1 : 1; });
     var tot = { sales: 0, tips: 0, bills: 0, byKind: {} };
-    rows.forEach(function (r) { tot.sales += r.amount; tot.tips += r.tip; if (r.amount > 0 || r.tip) tot.bills++; tot.byKind[r.kind] = (tot.byKind[r.kind] || 0) + r.amount; });
+    tot.byPay = {}; rows.forEach(function (r) { tot.sales += r.amount; tot.tips += r.tip; if (r.amount > 0 || r.tip) tot.bills++; tot.byKind[r.kind] = (tot.byKind[r.kind] || 0) + r.amount; if (r.pay) tot.byPay[r.pay] = (tot.byPay[r.pay] || 0) + r.amount + r.tip; });
     var guests = 0; bks.forEach(function (b) { if (inBr(b.branch) && b.date === date && (b.status === 'finished' || b.status === 'done')) guests += b.people.length; });
     var dayPay = pay.filter(function (p) { return p.date === date; }).map(function (p) { return { name: p.name, jobs: p.jobs, fee: Math.round(p.fee), tips: p.tips, total: Math.round(p.fee + p.tips) }; });
     tot.payroll = dayPay.reduce(function (t, p) { return t + p.total; }, 0);
@@ -1414,6 +1415,24 @@ function stationApi(req, store, now) {
       store.log('', db.id, 'drop_' + mode, (db.q || '') + ' refund ' + refund + ' by ' + String(req.by || '').slice(0, 30));
       return stBoard(br, store, now);
     }
+    /* money taken at the counter (cash or the card machine): staff PIN says who took it */
+    if (a === 'sCounterPay') {
+      var po = lnFind(store.orders(), req.id); if (!po) throw new Error('NOT_FOUND');
+      var payer = lnFind(store.staff(), req.staffId); if (!payer || payer.branch !== br.id) throw new Error('BAD_STAFF');
+      if (!String(payer.pin || '').trim() || String(req.pin || '').trim() !== String(payer.pin).trim()) throw new Error('BAD_PIN');
+      if (po.status === 'paid') throw new Error('ALREADY_PAID');
+      if (po.status !== 'pending' && po.status !== 'expired' && po.status !== 'cancelled') throw new Error('NOT_NOW');
+      /* the guest may have paid on Beam a moment ago: check first so nobody pays twice */
+      var bst = ''; try { bst = String(store.beamStatus(po.beamId) || '').toUpperCase(); } catch (e) {}
+      if (bst === 'PAID') { cFulfil(store, po, now); return { paidBy: 'beam', board: stBoard(br, store, now) }; }
+      try { if (po.beamId) store.beamDisable(po.beamId); } catch (e) {}
+      var pb0 = po.bookingId ? lnFind(store.bookings(), po.bookingId) : null;
+      po.status = 'pending'; po.method = req.method === 'card' ? 'card' : 'cash'; po.paidBy = payer.id; store.saveOrder(po);
+      cFulfil(store, po, now);
+      store.log(payer.id, po.bookingId || '', 'paid_' + po.method, po.id + ' ' + po.amount);
+      var pbk = po.bookingId ? lnFind(store.bookings(), po.bookingId) : null;
+      return { paidBy: po.method, q: pbk ? pbk.q || '' : '', status: pbk ? pbk.status : '', board: stBoard(br, store, now) };
+    }
     if (a === 'sClock') {   /* clock in/out at the station tablet (for staff without the LINE app, e.g. part-timers called in) */
       var who = lnFind(store.staff(), req.staffId); if (!who || who.branch !== br.id) throw new Error('BAD_STAFF');
       /* own PIN (Staff sheet) so nobody clocks in for a friend; a photo from the tablet camera is kept for the owner to check */
@@ -1600,7 +1619,7 @@ function stSlip(b, br, store) {
     }), ext: +b.ext || 0 };
 }
 /* backend version: the station page warns when the Apps Script deployment is older than the page */
-var LN_BUILD = 60;
+var LN_BUILD = 61;
 /* a guest who booked ahead (LINE / phone) and whose time has come */
 function stBookedDue(b, now) { var t = +b.bookedFor || b.people[0].alloc[0].start; return b.status === 'checkedin' && (b.src === 'line' || !!b.fromPhone) && t <= now.min + 5 ? t : 0; }
 /* booked guest is here but no seat or nobody free for the first step: which running job to hurry */
@@ -1664,8 +1683,15 @@ function stBoard(br, store, now) {
       next: (function () { var n = b.live.filter(function (x) { return !x.scanned && x.i > 0; }).sort(function (x, y) { return x.start - y.start; })[0]; return n ? { label: LANA.RES[n.res][0], at: n.start, min: n.end - n.start } : null; })(), canExtend: r.ok, extBlock: r.ok ? '' : (r.res === 'close' ? 'ร้านใกล้ปิด' : LANA.RES[r.res][0] + ' มีคิวต่อ') };
   }).sort(function (x, y) { return x.end - y.end; });
   var finished = all.filter(function (b) { return b.status === 'finished'; }).map(function (b) { return { id: b.id, q: b.q || b.code, prog: progOf(b), staff: nm(b.staffId), at: +b.finishedAt }; });
+  /* orders still unpaid from the last hour at this branch (the guest may want to pay cash / card here) */
+  var since = now.min - 60, counter = store.orders().filter(function (o) {
+    if (o.status !== 'pending' || !o.bookingId) return false; var c = String(o.createdAt || ''); if (c.slice(0, 10) !== now.date || toMinHM(c.slice(11, 16)) < since) return false;
+    var b = lnFind(store.bookings(), o.bookingId); return !!b && b.branch === br.id;
+  }).map(function (o) { var b = lnFind(store.bookings(), o.bookingId), p = lnFind(LANA.PROGRAMS, b.people[0].prog) || {};
+    return { id: o.id, amount: +o.amount, kind: o.kind, ask: lnTrue(o.counter), at: String(o.createdAt).slice(11, 16), name: b.people.map(function (x) { return x.name; }).join(', '), prog: o.kind === 'checkout' ? 'ยอดค้าง / ทิป' : (p.name_th || '') + (b.people.length > 1 ? ' × ' + b.people.length : ''), q: b.q || '' };
+  }).sort(function (x, y) { return (y.ask ? 1 : 0) - (x.ask ? 1 : 0) || (x.at < y.at ? -1 : 1); });
   live.forEach(function (l) { l.rushFor = waiting.filter(function (w) { return w.booked && w.rush && w.rush.id === l.id; }).map(function (w) { return { q: w.q, at: w.booked }; }); });
-  return { ver: LN_BUILD, now: now, branch: { id: br.id, name: br.name_th || br.id }, staff: people, waiting: waiting, live: live, finished: finished, beds: apiBoard(br.id, store, now) };
+  return { ver: LN_BUILD, counter: counter, now: now, branch: { id: br.id, name: br.name_th || br.id }, staff: people, waiting: waiting, live: live, finished: finished, beds: apiBoard(br.id, store, now) };
 }
 /* phone / page bookings still to come (pay at the shop) */
 function stPhoneList(br, store, now) {
@@ -2422,6 +2448,15 @@ function cKiosk(a, req, store, now) {
     return r;
   }
   if (a === 'kStart') return cKioskStart(req, store, now, br);
+  /* guest prefers cash / card machine (or Beam is stuck): the order waits at the counter, the seat is held a little longer */
+  if (a === 'kCounter') {
+    var co = lnFind(store.orders(), req.id); if (!co || co.status !== 'pending') throw new Error('NOT_NOW');
+    co.counter = 'TRUE'; store.saveOrder(co);
+    var cb = co.bookingId ? lnFind(store.bookings(), co.bookingId) : null;
+    if (cb && cb.status === 'hold') { cb.holdUntil = cStamp({ date: now.date, min: now.min + LN_C.HOLD_MIN + 10 }); store.saveBooking(cb); }
+    store.log('', co.bookingId || '', 'pay_at_counter', co.id + ' ' + co.amount);
+    return { id: co.id, amount: +co.amount, status: co.status };
+  }
   if (a === 'kOut') return { list: store.bookings().filter(function (b) { return b.branch === br.id && b.date === now.date && b.status === 'finished'; }).map(function (b) { return { id: b.id, q: b.q || b.code, name: b.people[0].name, due: lnSum(b.due || []), view: cView(b, store, now, false) }; }) };
   if (a === 'kBoard') return { board: apiBoard(br.id, store, now) };
   throw new Error('UNKNOWN');
