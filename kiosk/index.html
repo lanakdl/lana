@@ -378,7 +378,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     return fetch(APP.API_URL, { method: 'POST', body: JSON.stringify(req) }).then(function (r) { return r.json(); }, function () { throw new Error('NET'); })
       .then(function (j) { if (!j.ok) throw new Error(j.error); return j.data; });
   }
-  var ERR = { ALREADY_PAID: ['จ่ายแล้ว', 'Already paid'], NET: ['เชื่อมต่อไม่ได้ ลองใหม่', 'Connection problem, try again'], KIOSK_KEY: ['รหัสแท็บเล็ตไม่ถูกต้อง', 'Wrong tablet password'], FULL: ['วันนี้เต็มแล้ว', 'Fully booked today'], TOO_LATE: ['โปรแกรมนี้ไม่ทันก่อนร้านปิด เลือกโปรแกรมที่สั้นกว่า', 'Not enough time before we close. Try a shorter treatment.'],
+  var ERR = { NET: ['เชื่อมต่อไม่ได้ ลองใหม่', 'Connection problem, try again'], KIOSK_KEY: ['รหัสแท็บเล็ตไม่ถูกต้อง', 'Wrong tablet password'], FULL: ['วันนี้เต็มแล้ว', 'Fully booked today'], TOO_LATE: ['โปรแกรมนี้ไม่ทันก่อนร้านปิด เลือกโปรแกรมที่สั้นกว่า', 'Not enough time before we close. Try a shorter treatment.'],
     CLOSED: ['ร้านปิดแล้ว เปิด 10:00–21:00', 'We are closed. Open 10:00–21:00'], PAY_FIRST: ['นัดนี้ยังไม่ได้จ่าย กดจ่ายและรับคิว', 'This booking is unpaid. Tap Pay to get your queue number'], NEED_NAME: ['ใส่ชื่อ', 'Enter your name'], BAD_PHONE: ['เบอร์ไม่ครบ หรือเว้นว่างไว้ก็ได้', 'Phone looks incomplete; you can leave it empty'],
     BAD_EMAIL: ['อีเมลไม่ถูกต้อง หรือเว้นว่างไว้ก็ได้', 'Email looks wrong; you can leave it empty'], NEED_HAIR: ['เลือกความยาวผมก่อน', 'Choose hair length first'], NO_TICKET: ['ตั๋วใช้เวลานี้ไม่ได้', 'No ticket usable now'],
     NOT_HERE: ['สาขานี้ไม่มีโปรแกรมนี้', 'Not available here'], NEED_STARS: ['ให้ดาวก่อน', 'Please rate first'], PAY_SETUP: ['ระบบจ่ายเงินยังไม่ได้ตั้งค่า', 'Payments are not set up yet'], PAY_FAILED: ['เปิดหน้าจ่ายเงินไม่ได้ ลองใหม่', 'Could not open payment, try again'], NOT_FOUND: ['ไม่พบรายการ', 'Not found'], NEED_CONTACT: ['ซื้อคอร์สต้องใส่เบอร์หรืออีเมล', 'Courses need a phone or email'], BAD_BRANCH: ['สาขานี้ยังไม่เปิด', 'This branch is not open'] };
@@ -480,16 +480,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
         kv(t('รวม', 'Total'), baht(total), 'total') + '<button class="btn block kb" data-kcheckout' + (c2.stars ? '' : ' disabled') + '>' + (total ? t('จ่าย ', 'Pay ') + baht(total) : t('ส่งดาว', 'Send rating')) + '</button></div></div>';
     }
     if (k.screen === 'thanks') return '<div class="khome"><h1>' + t('ขอบคุณค่ะ', 'Thank you') + '</h1><p class="hint">' + t('แล้วพบกันใหม่', 'See you soon') + '</p><button class="btn kb" data-k="home">' + t('กลับหน้าแรก', 'Home') + '</button></div>';
-    if (k.screen === 'wait') return '<div class="khome"><div class="spin"></div><p class="hint">' + t('กำลังยืนยันการชำระเงินกับ Beam…', 'Confirming your payment with Beam…') + '</p>' +
-      (k.id ? '<button class="btn kb ghost" data-paycounter="' + esc(k.id) + '">' + t('จ่ายไม่ผ่าน? จ่ายเงินสด / รูดบัตรที่เคาน์เตอร์', 'Card not working? Pay cash / card at the counter') + '</button>' : '') + '</div>';
-    if (k.screen === 'paychoice') { var pr = k.r || {};
-      return '<div class="khome"><span class="eyebrow">' + esc(k.label || '') + '</span><h1>' + t('ยอดชำระ ', 'Total ') + '฿' + Number(pr.amount || 0).toLocaleString('en-US') + '</h1><p class="hint">' + t('เลือกวิธีจ่าย', 'How would you like to pay?') + '</p>' +
-        '<button class="btn kb" data-paybeam>' + t('สแกน QR / บัตร (จ่ายบนจอนี้)', 'QR / card on this screen') + '</button>' +
-        '<button class="btn kb ghost" data-paycounter="' + esc(pr.orderId) + '">' + t('เงินสด / รูดบัตร ที่เคาน์เตอร์', 'Cash / card machine at the counter') + '</button>' +
-        '<button class="btn ghost" data-paycancelk="' + esc(pr.orderId) + '">' + t('ยกเลิก', 'Cancel') + '</button></div>'; }
-    if (k.screen === 'counter') return '<div class="khome"><span class="eyebrow">' + t('จ่ายที่เคาน์เตอร์', 'Pay at the counter') + '</span><h1>฿' + Number(k.amount || 0).toLocaleString('en-US') + '</h1>' +
-      '<p class="hint" style="font-size:20px">' + t('กรุณาชำระกับพนักงานที่เคาน์เตอร์ (เงินสด หรือ รูดบัตร)<br>จ่ายแล้วหน้าจอนี้จะขึ้นเลขคิวให้เอง', 'Please pay our staff at the counter (cash or card).<br>Your queue number appears here once paid.') + '</p>' +
-      '<div class="spin"></div><button class="btn ghost" data-paycancelk="' + esc(k.id) + '">' + t('ยกเลิก', 'Cancel') + '</button></div>';
+    if (k.screen === 'wait') return '<div class="khome"><div class="spin"></div><p class="hint">' + t('กำลังยืนยันการชำระเงินกับ Beam…', 'Confirming your payment with Beam…') + '</p></div>';
     return '';
   }
   /* the treatment menu shown to walk-in guests: what each one is, how long, what happens, and the price */
@@ -592,25 +583,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
   }
 
   /* ---------- payment ---------- */
-  /* choose how to pay: Beam (QR / card online) or cash / card machine at the counter */
-  function goPay(r, label) { go('paychoice', { r: r, label: label }); }
-  function goCounter(id, amount, label) {
-    return api('kCounter', { id: id }).then(function (o) { go('counter', { id: id, amount: o.amount || amount, label: label }); pollCounter(id, label); })
-      .catch(function (e) { toast(errT(e)); waitOrder(id, label); });
-  }
-  function pollCounter(id, label) {
-    var tries = 0;
-    (function poll() {
-      if (S.k.screen !== 'counter' || S.k.id !== id) return;
-      api('order', { id: id }).then(function (o) {
-        if (S.k.screen !== 'counter' || S.k.id !== id) return;
-        if (o.status === 'paid') { if (o.kind === 'checkout') return go('thanks'); return go('queue', { q: o.q, vkey: o.vkey, label: label }); }
-        if (o.status === 'cancelled' || o.status === 'expired' || ++tries > 450) { toast(t('หมดเวลารอชำระ ลองใหม่อีกครั้ง', 'Payment timed out, please start again')); return go('home'); }
-        setTimeout(poll, 4000);
-      }).catch(function () { setTimeout(poll, 6000); });
-    })();
-  }
-  function goBeam(r, label) {
+  function goPay(r, label, then) {
     if (demo) {
       $('beampanel').innerHTML = '<span class="note">' + t('หน้าจ่ายเงินจำลอง ระบบจริงเปิดหน้าของ Beam (บัตร · พร้อมเพย์)', 'Pretend checkout. The real tablet opens Beam (card · PromptPay).') + '</span><div><div class="note">' + esc(label) + '</div><div class="amt">' + baht(r.amount) + '</div></div>' +
         '<label><input type="radio" name="pm" checked> ' + t('บัตรเครดิต / เดบิต', 'Credit / debit card') + '</label><label><input type="radio" name="pm"> PromptPay</label><button class="pay" id="paygo">' + t('จ่าย ', 'Pay ') + baht(r.amount) + '</button><button class="linkbtn" id="paycancel" style="justify-self:center">' + t('ยกเลิก', 'Cancel') + '</button>';
@@ -627,11 +600,9 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
       .catch(function (e) { toast(errT(e)); go('home'); });
   }
   function waitOrder(id, label) {
-    go('wait', { id: id, label: label }); var tries = 0;
+    go('wait'); var tries = 0;
     (function poll() {
-      if (S.k.screen !== 'wait' || S.k.id !== id) return;
       api('order', { id: id }).then(function (o) {
-        if (S.k.screen !== 'wait' || S.k.id !== id) return;
         if (o.status === 'paid') { if (o.kind === 'checkout') return go('thanks'); return go('queue', { q: o.q, vkey: o.vkey, label: label }); }
         if (o.status === 'cancelled') { toast(t('ยกเลิกการจ่ายแล้ว', 'Payment cancelled')); return go('home'); }
         if (o.status !== 'pending' || ++tries > 40) { toast(t('ยังไม่ได้รับเงิน ลองอีกครั้ง หรือเรียกพนักงาน', 'Payment not confirmed. Try again or ask our staff.')); return go('home'); }
@@ -700,9 +671,6 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     var pc = e.target.closest('[data-kpic]'); if (pc && demo) { e.preventDefault(); e.stopPropagation(); picIn.dataset.id = pc.dataset.kpic; picIn.click(); return; }
     var el = e.target.closest('button'); if (!el) return;
     var d = el.dataset, k = S.k; idle();
-    if (d.paybeam !== undefined && k.r) return goBeam(k.r, k.label);
-    if (d.paycounter) return goCounter(d.paycounter, (k.r || {}).amount, k.label);
-    if (d.paycancelk) return kCancelPay(d.paycancelk);
     if (d.lang) { S.lang = d.lang; return render(); }
     if (d.setup !== undefined) {
       S.key = $('s-key').value.trim(); S.branch = $('s-br').value;
@@ -756,7 +724,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
   });
   $('tback').onclick = function () { go('home'); };
   /* back to the welcome screen after 90 s without a touch */
-  var idleT; function idle() { clearTimeout(idleT); idleT = setTimeout(function () { if (S.k.screen !== 'wait' && S.k.screen !== 'setup' && S.k.screen !== 'counter') { S.lang = 'th'; go('home'); } }, 90000); }
+  var idleT; function idle() { clearTimeout(idleT); idleT = setTimeout(function () { if (S.k.screen !== 'wait' && S.k.screen !== 'setup') { S.lang = 'th'; go('home'); } }, 90000); }
   document.addEventListener('pointerdown', idle);
 
   api('config').then(function (cfg) {

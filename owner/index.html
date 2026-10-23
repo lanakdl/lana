@@ -382,7 +382,6 @@ tr.late td { background: color-mix(in srgb, #a4502f 8%, var(--card)); }
 .insum { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin: 4px 0 10px; font-size: 14px; }
 .via { font-size: 12px; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--line, #ddd); white-space: nowrap; }
 .via.ipad { background: color-mix(in srgb, #6b7046 14%, transparent); }
-.tag.pm { background: color-mix(in srgb, #6b7046 16%, transparent); }
 </style>
 </head>
 <body class="real">
@@ -468,14 +467,13 @@ tr.late td { background: color-mix(in srgb, #a4502f 8%, var(--card)); }
       h += '<div class="tbl"><table><thead><tr><th class="hide">เวลา</th><th>ชื่อ</th><th>รายการ</th>' + (showBr ? '<th class="hide">สาขา</th>' : '') + '<th class="num">ยอดขาย</th></tr></thead><tbody>' +
         d.rows.map(function (r) {
           var brn = r.branch === 'LINE' ? 'LINE' : ((S.init.branches.filter(function (b) { return b.id === r.branch; })[0] || {}).name || r.branch);
-          return '<tr class="' + (r.amount ? '' : 'zero') + '"><td class="hide t">' + esc(r.time) + '</td><td>' + esc(r.name || '—') + (r.q ? ' <span class="t">' + esc(r.q) + '</span>' : '') + '<br><span class="tag' + (r.amount ? '' : ' tk') + '">' + esc(r.kind) + '</span>' + (r.pay && r.amount ? ' <span class="tag pm">' + esc(r.pay) + (r.by ? ' · รับโดย ' + esc(r.by) : '') + '</span>' : '') + '</td><td>' + esc(r.what) + '</td>' +
+          return '<tr class="' + (r.amount ? '' : 'zero') + '"><td class="hide t">' + esc(r.time) + '</td><td>' + esc(r.name || '—') + (r.q ? ' <span class="t">' + esc(r.q) + '</span>' : '') + '<br><span class="tag' + (r.amount ? '' : ' tk') + '">' + esc(r.kind) + '</span></td><td>' + esc(r.what) + '</td>' +
             (showBr ? '<td class="hide t">' + esc(brn) + '</td>' : '') + '<td class="num"><b>' + baht(r.amount) + '</b>' + (r.tip ? '<span class="tip">+ทิป ' + baht(r.tip) + '</span>' : '') + '</td></tr>';
         }).join('') + '</tbody></table><div class="tfoot"><span>รวม ' + d.rows.length + ' รายการ</span><b>' + baht(d.total.sales) + '</b></div></div>';
     }
     var kinds = Object.keys(d.total.byKind).filter(function (k) { return d.total.byKind[k]; });
     h += '<div class="sum"><div class="box"><h3>สรุปยอดขาย</h3>' + kinds.map(function (k) { return '<div class="row"><span>' + esc(k) + '</span><span>' + baht(d.total.byKind[k]) + '</span></div>'; }).join('') +
       '<div class="row tot"><span>ยอดขายรวม</span><span>' + baht(d.total.sales) + '</span></div><div class="row"><span>ทิป (ของหมอนวด)</span><span>' + baht(d.total.tips) + '</span></div>' +
-      (d.total.byPay ? '<h3 style="margin-top:12px">รับเงินทางไหน (รวมทิป)</h3>' + ['Beam', 'เงินสด', 'บัตร (เครื่องรูด)', 'คืนเงิน'].filter(function (k) { return d.total.byPay[k]; }).map(function (k) { return '<div class="row"><span>' + esc(k) + (k === 'เงินสด' ? ' (ต้องมีในลิ้นชัก)' : '') + '</span><span>' + baht(d.total.byPay[k]) + '</span></div>'; }).join('') : '') +
       '<div class="row"><span>ค่ามือ + ทิป ที่ต้องจ่าย</span><span>−' + baht(d.total.payroll) + '</span></div><div class="row tot"><span>คงเหลือ</span><span>' + baht(d.total.sales + d.total.tips - d.total.payroll) + '</span></div>' +
       '<div class="row"><span>ลูกค้าที่ทำเสร็จ</span><span>' + d.guests + ' คน</span></div></div>' +
       '<div class="box"><h3>ค่ามือวันนี้</h3>' + (d.staff.length ? d.staff.map(function (p) { return '<div class="row"><span>' + esc(p.name) + ' · ' + p.jobs + ' งาน</span><span>' + baht(p.total) + '</span></div>'; }).join('') +
