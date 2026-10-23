@@ -1258,6 +1258,8 @@ function lnFreeTable(store, br, date, now) {
   }
   return out;
 }
+/* 13:00 -> 1:00 PM (easier for foreign guests) */
+function lnAmPm(m) { var h = Math.floor(m / 60), x = m % 60, h12 = h % 12 || 12; return h12 + ':' + (x < 10 ? '0' : '') + x + (h < 12 ? ' AM' : ' PM'); }
 function lnQueueText(store, now, text, branchIds) {
   var t = String(text || '').toLowerCase(), tomorrow = /พรุ่งนี้|tomorrow/.test(t), date = tomorrow ? lnAddDays(now.date, 1) : now.date;
   lnDuty(store, now);
@@ -1268,7 +1270,7 @@ function lnQueueText(store, now, text, branchIds) {
     if (!tb.length) return head + '\n\nวันนี้ไม่มีรอบเหลือแล้วค่ะ / No more slots today';
     return head + '\n\n' + tb.map(function (r) {
       var n = r.free[0] ? r.free[0].n : 0, k = n >= 6 ? '6+' : n;
-      return lnHM(r.m) + '  ' + (n ? 'ว่าง ' + k + ' ที่ / ' + k + ' slot' + (n > 1 ? 's' : '') + ' available' : 'เต็ม / Full');
+      return lnAmPm(r.m) + '  ' + (n ? 'ว่าง ' + k + ' ที่ / ' + k + ' slot' + (n > 1 ? 's' : '') + ' available' : 'เต็ม / Full');
     }).join('\n');
   });
   return parts.join('\n\n') || 'ยังไม่มีสาขาที่เปิดค่ะ';
