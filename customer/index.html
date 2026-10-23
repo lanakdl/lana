@@ -290,6 +290,13 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
 .homebtn.dark span { color: var(--paper); opacity: .8; }
 .mailog { font-size: 12px; color: var(--ink-2); display: grid; gap: 4px; }
 .mailog div { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+body.netbusy button, body.netbusy a, body.netbusy [data-q], body.netbusy input[type=checkbox] { pointer-events: none !important; }
+body.netbusy { cursor: progress; }
+body.netbusy::before { content: ''; position: fixed; z-index: 9999; left: 0; top: 0; height: 3px; width: 40%; background: #a4502f; animation: netbar 1s ease-in-out infinite; }
+@keyframes netbar { 0% { left: -40%; } 100% { left: 100%; } }
+button.working { position: relative; opacity: .75; }
+button.working::after { content: ''; position: absolute; right: 10px; top: 50%; width: 16px; height: 16px; margin-top: -8px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body class="real">
@@ -330,7 +337,24 @@ body.real .lfoot { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     LANA.STAFF.forEach(function (x) { x.lineUserId = 'U-demo-' + x.id; });
     window.__DEMO = { store: DS, now: DNOW };
   }
+
+  /* one tap = one order: the same request is never sent twice while the first is on its way,
+     and while a change is being saved the buttons ignore taps (a slow connection made people tap twice) */
+  var INFLIGHT = {}, NETN = 0, READ_ACTIONS = /^(config|hello|me|slots|visit|order|feed|kFind|kBoard|kOut|sBoard|sSched|sBookInfo|sBookWho|sMoveSlots|sDropInfo|sSlip|oDay|oMonth|oPay|oPerson|oInit|seen)$/;
+  function netBusy(d) { NETN = Math.max(0, NETN + d); try { document.body.classList.toggle('netbusy', NETN > 0); if (d > 0 && LASTBTN && LASTBTN.isConnected && Date.now() - LASTTAP < 800) LASTBTN.classList.add('working'); } catch (e) {} }
+  /* the button just tapped shows a spinner right away, so nobody wonders whether the tap counted */
+  var LASTBTN = null, LASTTAP = 0;
+  document.addEventListener('click', function (e) { var b = e.target && e.target.closest && e.target.closest('button'); if (b) { LASTBTN = b; LASTTAP = Date.now(); } }, true);
   function api(action, data) {
+    var key = JSON.stringify([action, data]);
+    if (INFLIGHT[key]) return INFLIGHT[key];
+    var mut = !READ_ACTIONS.test(action), safety = null;
+    if (mut) { netBusy(1); safety = setTimeout(function () { if (safety) { safety = null; netBusy(-1); } }, 25000); }
+    var done = function () { delete INFLIGHT[key]; if (mut && safety) { clearTimeout(safety); safety = null; netBusy(-1); } };
+    var p = api0(action, data).then(function (r) { done(); return r; }, function (e) { done(); throw e; });
+    INFLIGHT[key] = p; return p;
+  }
+  function api0(action, data) {
     var req = Object.assign({ app: 'cust', action: action, token: S.token, vkey: S.vkey || undefined }, data || {});
     if (demo) return new Promise(function (res, rej) { setTimeout(function () { try { var r = custApi(JSON.parse(JSON.stringify(req)), DS, DNOW); if (window.__demoAfter) window.__demoAfter(); res(r); } catch (e) { rej(e); } }, 150); });
     return fetch(APP.API_URL, { method: 'POST', body: JSON.stringify(req) }).then(function (r) { return r.json(); }, function () { throw new Error('NET'); })

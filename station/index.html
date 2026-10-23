@@ -441,6 +441,13 @@ body.real, body { background: var(--paper); }
 .rushbar { grid-column: 1 / -1; background: #a4502f; color: #fff; font-size: 15px; font-weight: 600; padding: 6px 12px; border-radius: 10px; }
 .pmode { display: flex; gap: 8px; align-items: center; font-size: 15px; color: var(--ink-2); margin-top: 10px; }
 .pmode input { width: 22px; height: 22px; }
+body.netbusy button, body.netbusy a, body.netbusy [data-q], body.netbusy input[type=checkbox] { pointer-events: none !important; }
+body.netbusy { cursor: progress; }
+body.netbusy::before { content: ''; position: fixed; z-index: 9999; left: 0; top: 0; height: 3px; width: 40%; background: #a4502f; animation: netbar 1s ease-in-out infinite; }
+@keyframes netbar { 0% { left: -40%; } 100% { left: 100%; } }
+button.working { position: relative; opacity: .75; }
+button.working::after { content: ''; position: absolute; right: 10px; top: 50%; width: 16px; height: 16px; margin-top: -8px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body class="real">
@@ -472,7 +479,24 @@ body.real, body { background: var(--paper); }
       [['คุณมายด์', 'THAI60', t0, 1, 0], ['Emma', 'HEAD60', t0 + 30, 2, 0], ['คุณต้น', 'OIL90', t0 + 60, 1, 0], ['คุณฝ้าย', 'COMBO120', t0 + 120, 1, 0], ['คุณบี', 'FOOT60', 660, 1, 1]].forEach(function (x, i) {
         try { stationApi({ kiosk: 'demo-kiosk', branch: 'NIM', action: 'sBook', prog: x[1], date: x[4] ? lnAddDays(DNOW.date, 1) : DNOW.date, time: x[2], name: x[0], phone: '08' + (10000000 + i * 1111111), n: x[3] }, DS, Object.assign({}, DNOW)); } catch (e) {} }); }
   }
+
+  /* one tap = one order: the same request is never sent twice while the first is on its way,
+     and while a change is being saved the buttons ignore taps (a slow connection made people tap twice) */
+  var INFLIGHT = {}, NETN = 0, READ_ACTIONS = /^(config|hello|me|slots|visit|order|feed|kFind|kBoard|kOut|sBoard|sSched|sBookInfo|sBookWho|sMoveSlots|sDropInfo|sSlip|oDay|oMonth|oPay|oPerson|oInit|seen)$/;
+  function netBusy(d) { NETN = Math.max(0, NETN + d); try { document.body.classList.toggle('netbusy', NETN > 0); if (d > 0 && LASTBTN && LASTBTN.isConnected && Date.now() - LASTTAP < 800) LASTBTN.classList.add('working'); } catch (e) {} }
+  /* the button just tapped shows a spinner right away, so nobody wonders whether the tap counted */
+  var LASTBTN = null, LASTTAP = 0;
+  document.addEventListener('click', function (e) { var b = e.target && e.target.closest && e.target.closest('button'); if (b) { LASTBTN = b; LASTTAP = Date.now(); } }, true);
   function api(action, data) {
+    var key = JSON.stringify([action, data]);
+    if (INFLIGHT[key]) return INFLIGHT[key];
+    var mut = !READ_ACTIONS.test(action), safety = null;
+    if (mut) { netBusy(1); safety = setTimeout(function () { if (safety) { safety = null; netBusy(-1); } }, 25000); }
+    var done = function () { delete INFLIGHT[key]; if (mut && safety) { clearTimeout(safety); safety = null; netBusy(-1); } };
+    var p = api0(action, data).then(function (r) { done(); return r; }, function (e) { done(); throw e; });
+    INFLIGHT[key] = p; return p;
+  }
+  function api0(action, data) {
     var req = Object.assign({ app: 'station', action: action, kiosk: S.key, branch: S.branch }, data || {});
     if (demo) return new Promise(function (res, rej) { setTimeout(function () { try { res(stationApi(JSON.parse(JSON.stringify(req)), DS, Object.assign({}, DNOW))); } catch (e) { rej(e); } }, 120); });
     return fetch(APP.API_URL, { method: 'POST', body: JSON.stringify(req) }).then(function (r) { return r.json(); }, function () { throw new Error('NET'); })
@@ -871,9 +895,11 @@ body.real, body { background: var(--paper); }
     if (d.name) { S.sheet = { kind: 'confirm', id: S.sheet.id, staff: d.name }; return render(); }
     if (d.live) { S.sheet = { kind: 'live', id: d.live }; return render(); }
     if (el.id === 'accept') {
-      S.busy = true; render();
-      return api('sAccept', { id: S.sheet.id, staffId: S.sheet.staff }).then(function (r) { S.busy = false; S.b = r.board; S.skew = Date.now(); S.sheet = null; render(); toast('รับงานแล้ว เริ่มนับเวลา · ปริ้นใบงาน'); printSlip(r.slip); })
-        .catch(function (x) { S.busy = false; S.sheet = null; toast(errT(x)); load(true); });
+      /* feels instant: the card leaves the queue now, the server confirms in the background */
+      var aid = S.sheet.id, ast = S.sheet.staff, aw = (S.b.waiting || []).filter(function (w) { return w.id === aid; })[0];
+      S.sheet = null; S.b.waiting = (S.b.waiting || []).filter(function (w) { return w.id !== aid; }); render(); toast('รับงาน ' + (aw ? aw.q : '') + ' แล้ว · กำลังบันทึก…');
+      return api('sAccept', { id: aid, staffId: ast }).then(function (r) { S.b = r.board; S.skew = Date.now(); render(); toast('รับงานแล้ว เริ่มนับเวลา · ปริ้นใบงาน'); printSlip(r.slip); })
+        .catch(function (x) { toast(errT(x)); load(true); });
     }
     if (d.up) { var up = d.up.split('|'), lv2 = S.b.live.filter(function (x) { return x.id === S.sheet.id; })[0];
       var it = lv2 && lv2.upsell ? (up[0] === 'addon' ? lv2.upsell.addons : lv2.upsell.styles).filter(function (x) { return x.id === up[1]; })[0] : null; if (!it) return;
@@ -885,7 +911,8 @@ body.real, body { background: var(--paper); }
     if (d.act) { S.sheet = { kind: 'sure', id: S.sheet.id, act: d.act }; return render(); }
     if (el.id === 'sure') {
       var act = S.sheet.act, id = S.sheet.id, map = { extend: 'sExtend', handoff: 'sHandoff', finish: 'sFinish', next: 'sNext', undo: 'sUndo' };
-      return api(map[act], { id: id }).then(function (b) { S.b = b; S.skew = Date.now(); S.sheet = null; render(); toast({ extend: 'ต่อเวลาแล้ว 30 นาที', handoff: 'ส่งเข้าคิวรอแล้ว ให้คนอื่นจิ้มรับ', finish: 'จบงานแล้ว', next: 'ย้ายแล้ว เริ่มนับเวลาขั้นต่อไป', undo: 'คืนคิวแล้ว' }[act]); })
+      S.sheet = null; if (act === 'finish') S.b.live = (S.b.live || []).filter(function (l) { return l.id !== id; }); render(); toast('กำลังบันทึก…');
+      return api(map[act], { id: id }).then(function (b) { S.b = b; S.skew = Date.now(); render(); toast({ extend: 'ต่อเวลาแล้ว 30 นาที', handoff: 'ส่งเข้าคิวรอแล้ว ให้คนอื่นจิ้มรับ', finish: 'จบงานแล้ว', next: 'ย้ายแล้ว เริ่มนับเวลาขั้นต่อไป', undo: 'คืนคิวแล้ว' }[act]); })
         .catch(function (x) { S.sheet = null; toast(errT(x)); load(true); });
     }
     if (el.id === 'd-walk') { var pr = ['HEAD60', 'COCO120', 'THAI120', 'FOOT90', 'NECK60', 'COMBO120'], nm = ['Kenji', 'คุณมิ้นท์', 'Anna', 'คุณต้น', 'Lucas'];
@@ -894,8 +921,8 @@ body.real, body { background: var(--paper); }
     if (el.id === 'd-plus60') { DNOW.min += 60; return load(true); }
   });
   load();
-  if (!demo) setInterval(function () { if (document.visibilityState === 'visible' && !S.sheet && S.tab !== 'book') { load(true); if (S.tab === 'sched' && S.sc) loadSched(true); } }, 15000);
-  else setInterval(function () { if (!S.sheet && S.tab !== 'book') { load(true); if (S.tab === 'sched' && S.sc) loadSched(true); } }, 2000);   /* demo: pick up guests checked in on the other screen */
+  if (!demo) setInterval(function () { if (document.visibilityState === 'visible' && !S.sheet && S.tab !== 'book' && !NETN) { load(true); if (S.tab === 'sched' && S.sc) loadSched(true); } }, 15000);
+  else setInterval(function () { if (!S.sheet && S.tab !== 'book' && !NETN) { load(true); if (S.tab === 'sched' && S.sc) loadSched(true); } }, 2000);   /* demo: pick up guests checked in on the other screen */
   setInterval(function () { if (S.b && !S.sheet && S.tab !== 'book') render(); }, 30000);
 })();
 </script>
