@@ -432,6 +432,13 @@ body.real, body { background: var(--paper); }
 .askov { position: fixed; inset: 0; z-index: 60; background: rgba(40, 24, 16, .45); display: grid; place-items: center; padding: 16px; }
 .askbox { background: var(--paper); border-radius: 20px; padding: 22px; max-width: 460px; width: 100%; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
 .askbox p { font-size: 19px; margin: 0 0 14px; line-height: 1.45; }
+.oldsrv { display: grid; gap: 4px; margin-bottom: 14px; padding: 14px 16px; border-radius: 14px; background: #f3c9b5; border: 2px solid #a4502f; color: #5a2410; font-size: 15px; }
+.oldsrv b { font-size: 17px; }
+.qcard.booked { border-color: #a4502f; }
+.qcard .tag.bk { background: #a4502f; color: #fff; }
+.qcard .rush { justify-self: start; font-size: 15px; font-weight: 600; color: #a4502f; }
+.lcard.rushme { border-color: #a4502f; box-shadow: 0 0 0 2px #f3c9b5; }
+.rushbar { grid-column: 1 / -1; background: #a4502f; color: #fff; font-size: 15px; font-weight: 600; padding: 6px 12px; border-radius: 10px; }
 </style>
 </head>
 <body class="real">
@@ -457,7 +464,7 @@ body.real, body { background: var(--paper); }
     p.forEach(function (x) { g[x.type] = x.value; });
     var shared = (function () { try { return window.parent !== window && window.parent.__LANA_SHARED || null; } catch (e) { return null; } })();
     DNOW = shared ? shared.now : { date: g.year + '-' + g.month + '-' + g.day, min: 13 * 60 }; DS = shared ? shared.store : memStore(); S.key = 'demo-kiosk'; S.branch = 'NIM';
-    if (!DS.shifts().length) [['S1', '09:52'], ['S2', '10:05']].forEach(function (x) { DS.addShift({ staffId: x[0], date: DNOW.date, branch: 'NIM', in: x[1], out: '' }); });
+    if (!DS.shifts().length) [['S1', '09:52'], ['S2', '10:05'], ['S4', '09:58'], ['S5', '10:02']].forEach(function (x) { DS.addShift({ staffId: x[0], date: DNOW.date, branch: 'NIM', in: x[1], out: '' }); });
     if (!DS.bookings().length) ['HEAD60', 'COMBO120', 'FOOT90'].forEach(function (pid, i) { var v = makeVisit(DS, DNOW, 'NIM', pid, ['คุณแพร', 'Sophie', 'คุณบอส'][i], { hair: 'mid', pressure: ['light', 'medium', 'firm'][i], addons: i === 0 ? ['VIT'] : [], quiet: i === 1, focus: i === 2 ? ['หลัง', 'บ่า'] : [] }); if (v) { v.checkedAt = lnHM(DNOW.min - 4 - i * 3); DS.saveBooking(v); } });
     if (!DS.bookings().some(function (x) { return x.src === 'phone'; })) { var t0 = Math.ceil((DNOW.min + 30) / 30) * 30;   /* demo: a few appointments later today and tomorrow for the grid */
       [['คุณมายด์', 'THAI60', t0, 1, 0], ['Emma', 'HEAD60', t0 + 30, 2, 0], ['คุณต้น', 'OIL90', t0 + 60, 1, 0], ['คุณฝ้าย', 'COMBO120', t0 + 120, 1, 0], ['คุณบี', 'FOOT60', 660, 1, 1]].forEach(function (x, i) {
@@ -501,6 +508,7 @@ body.real, body { background: var(--paper); }
       '<button role="tab" data-tab="beds" aria-selected="' + (S.tab === 'beds') + '">สถานะเตียง' + (b.live.length ? ' (' + b.live.length + ')' : '') + '</button>' +
       '<button role="tab" data-tab="sched" aria-selected="' + (S.tab === 'sched') + '">ตารางนัด</button>' +
       '<button role="tab" data-tab="book" aria-selected="' + (S.tab === 'book') + '">จองแทนลูกค้า</button></div><div class="sbody">';
+    if (!demo && !(b.ver >= 60)) h += '<div class="oldsrv"><b>ระบบหลังบ้าน (Apps Script) ยังเป็นรุ่นเก่า</b><span>หน้านี้รุ่น 60 แต่หลังบ้านรุ่น ' + (b.ver || 'ก่อน 58') + ' · ตารางนัด เข้างานด้วย PIN และปุ่มลูกค้าไม่ทำแล้ว จะยังใช้ไม่ได้ · วาง Code.gs ใหม่ แล้ว Deploy › Manage deployments › ✏️ › New version (ห้ามกด New deployment)</span></div>';
     if (S.tab === 'book') h += bookHtml();
     else if (S.tab === 'sched') h += schedHtml();
     else if (S.tab === 'queue') {
@@ -510,14 +518,15 @@ body.real, body { background: var(--paper); }
         if (w.handoff) return '<button class="qcard hand" data-q="' + w.id + '"><span class="tag">ส่งต่อ' + (w.from ? 'จาก ' + esc(w.from) : '') + '</span><span class="qn">' + esc(w.q) + '</span><span class="qp">' + esc(w.prog) + '</span>' +
           '<span class="qm"><b>ขั้นที่เหลือ:</b> ' + w.rest.map(function (r) { return esc(r.label) + ' ' + r.min + ' นาที'; }).join(' → ') + '</span>' +
           '<span class="qm">ลูกค้ารออยู่ที่ ' + esc(w.at) + '</span><span class="qw' + (wait >= 10 ? ' long' : '') + '">รอ ' + wait + ' นาที</span><span class="go">แตะเพื่อรับทำต่อ</span></button>';
-        return '<button class="qcard" data-q="' + w.id + '"><span class="qn">' + esc(w.q) + '</span><span class="qp">' + esc(w.prog) + (w.people > 1 ? ' · ' + w.people + ' คน' : '') + '</span>' +
+        var rush = w.rush ? '<span class="rush">' + (w.rush.why === 'seat' ? 'รอเตียงว่าง' : 'รอคนว่าง') + (w.rush.q ? (w.booked ? ' · เร่งปิด ' : ' · ถัดไปว่างจาก ') + esc(w.rush.q) + (w.rush.staff ? ' (' + esc(w.rush.staff) + ')' : '') + (w.rush.end > now ? ' จบ ' + hm(w.rush.end) : ' เลยเวลาแล้ว') : '') + '</span>' : '';
+        return '<button class="qcard' + (w.booked ? ' booked' : '') + '" data-q="' + w.id + '">' + (w.booked ? '<span class="tag bk">จองไว้ ' + hm(w.booked) + ' · ถึงเวลาแล้ว</span>' : '') + rush + '<span class="qn">' + esc(w.q) + '</span><span class="qp">' + esc(w.prog) + (w.people > 1 ? ' · ' + w.people + ' คน' : '') + '</span>' +
           '<span class="qm">' + w.min + ' นาที' + (w.hair ? ' · ผม' + esc(w.hair) : '') + '</span><span class="qw' + (wait >= 15 ? ' long' : '') + '">' + (w.start > now + 10 ? 'นัด ' + hm(w.start) : 'รอ ' + wait + ' นาที') + '</span><span class="go">แตะเพื่อรับงาน</span></button>';
       }).join('') + '</div>';
     } else {
       if (!b.live.length) h += '<div class="sempty"><b>ยังไม่มีลูกค้าในเตียง</b></div>';
       else h += '<div class="live">' + b.live.map(function (v) {
         var left = v.end - now, pct = Math.max(0, Math.min(100, (now - v.start) / Math.max(1, v.end - v.start) * 100));
-        return '<button class="lcard" data-live="' + v.id + '" style="text-align:left"><span class="qn">' + esc(v.q) + '</span><span><span class="who">' + esc(v.staff) + '</span> <span class="pg">· ' + esc(v.prog) + (v.ext ? ' · ต่อ ' + v.ext * 30 + ' นาที' : '') + '</span>' +
+        return '<button class="lcard' + (v.rushFor && v.rushFor.length ? ' rushme' : '') + '" data-live="' + v.id + '" style="text-align:left">' + (v.rushFor && v.rushFor.length ? '<span class="rushbar">ลูกค้าจองรออยู่ ' + v.rushFor.map(function (r) { return esc(r.q) + ' (นัด ' + hm(r.at) + ')'; }).join(', ') + ' · ช่วยจบให้ตรงเวลา ไม่ต่อเวลา</span>' : '') + '<span class="qn">' + esc(v.q) + '</span><span><span class="who">' + esc(v.staff) + '</span> <span class="pg">· ' + esc(v.prog) + (v.ext ? ' · ต่อ ' + v.ext * 30 + ' นาที' : '') + '</span>' +
           '<span class="ssteps">' + v.steps.map(function (s) { return '<span class="' + (s.done ? 'done' : s.now ? 'now' : '') + '">' + esc(s.label) + (s.by && s.by !== v.staff ? ' · ' + esc(s.by) : '') + '</span>'; }).join('') + '</span></span>' +
           '<span class="left' + (left < 0 ? ' over' : '') + '"><b>' + (left < 0 ? '+' + (-left) : left) + '</b><span>' + (left < 0 ? 'นาที เลยเวลา' : 'นาที · จบ ' + hm(v.end)) + '</span></span><span class="sprog"><i style="width:' + pct + '%"></i></span></button>';
       }).join('') + '</div>';
