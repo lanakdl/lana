@@ -439,6 +439,8 @@ body.real, body { background: var(--paper); }
 .qcard .rush { justify-self: start; font-size: 15px; font-weight: 600; color: #a4502f; }
 .lcard.rushme { border-color: #a4502f; box-shadow: 0 0 0 2px #f3c9b5; }
 .rushbar { grid-column: 1 / -1; background: #a4502f; color: #fff; font-size: 15px; font-weight: 600; padding: 6px 12px; border-radius: 10px; }
+.pmode { display: flex; gap: 8px; align-items: center; font-size: 15px; color: var(--ink-2); margin-top: 10px; }
+.pmode input { width: 22px; height: 22px; }
 </style>
 </head>
 <body class="real">
@@ -606,7 +608,12 @@ body.real, body { background: var(--paper); }
         '<div class="pinpad"><div class="pindots">' + [0, 1, 2, 3].map(function (i) { return '<i class="' + (i < pin.length ? 'f' : '') + '"></i>'; }).join('') + '</div><div class="pkeys">' +
         ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'].map(function (k) { return k === 'ok' ? '<button class="pk ok" data-clockgo="' + (cs.on ? '0' : '1') + '"' + (pin.length < 4 || S.busy || (!cs.on && !S.cam) ? ' disabled' : '') + '>' + (cs.on ? 'ออกงาน' : 'เข้างาน') + '</button>' : '<button class="pk" data-pin="' + k + '">' + (k === 'del' ? 'ลบ' : k) + '</button>'; }).join('') + '</div></div></div>' +
         '<div class="acts"><button class="sb ghost" ' + (sh.back ? 'data-clockback' : 'data-close') + '>ยกเลิก</button></div>'; }
-    if (sh.kind === 'slip') return '<h2>ใบงาน (ตัวอย่าง)</h2><span class="sub">ในร้านจริง ใบนี้ออกจากเครื่องปริ้นใบเสร็จทันที</span><div class="slipview"><div class="slipbody">' + sh.html + '</div></div><button class="sb ghost" data-close>ปิด</button>';
+    if (sh.kind === 'slip') { var pm = printMode();
+      return '<h2>ใบงาน</h2><span class="sub">' + (pm === 'app' ? (IOS ? 'กด "ส่งไปแอปปริ้น" แล้วเลือกแอป Dlabel (หรือบันทึกรูป แล้วเปิดในแอป)' : 'กด "ส่งไปแอปปริ้น" แล้วเลือก RawBT (ปริ้นออกทันที) หรือ Dlabel') : demo ? 'ในร้านจริง ใบนี้ออกเครื่องปริ้นทันที (AirPrint)' : 'ส่งไปเครื่องปริ้นแล้ว (AirPrint)') + '</span>' +
+        '<div class="slipview"><div class="slipbody">' + sh.html + '</div></div>' +
+        '<div class="acts"><button class="sb olive" data-slipshare>ส่งไปแอปปริ้น (' + (IOS ? 'Dlabel' : 'RawBT / Dlabel') + ')</button><button class="sb ghost" data-slipair>' + (IOS ? 'ปริ้น AirPrint' : 'ปริ้นผ่านระบบเครื่อง') + '</button><button class="sb ghost" data-close>ปิด</button></div>' +
+        '<label class="pmode"><input type="checkbox" id="pmode"' + (pm === 'app' ? ' checked' : '') + '> เครื่องปริ้นร้านนี้ใช้ผ่านแอป (ไม่ต้องเปิด AirPrint เอง)</label>'; }
+    if (sh.kind === 'slipimg') return '<h2>รูปใบงาน</h2><span class="sub">แตะค้างที่รูป › บันทึกรูปภาพ แล้วเปิดแอป Dlabel › เลือกรูปจากอัลบั้ม › ปริ้น</span><div class="slipview"><img src="' + sh.src + '" alt="ใบงาน" style="width:100%;max-width:384px;display:block;margin:0 auto;border:1px solid #ddd"></div><div class="acts"><button class="sb ghost" data-close>ปิด</button></div>';
     return '';
   }
 
@@ -731,17 +738,77 @@ body.real, body { background: var(--paper); }
     return '<div class="c">LANA · ' + esc(s.branch) + '</div><div class="q">' + esc(s.q) + '</div><div class="c">หมอนวด: <b>' + esc(s.therapist) + '</b></div>' + (s.partial ? '<div class="c">ทำต่อ' + (s.from ? 'จาก ' + esc(s.from) : '') + '</div>' : '') + '<hr>' + ppl + '<hr><div class="k">' + (s.partial ? 'ขั้นตอนที่เหลือ' : 'ขั้นตอน') + '</div>' + steps + '<hr>' +
       '<div class="c">เริ่ม ' + hm(s.partial && s.steps.length ? s.steps[0].start : s.start) + '</div><div class="end">จบ ' + hm(s.end) + '</div><div class="c" style="font-size:11px;margin-top:6px">ปริ้น ' + hm(nowMin()) + '</div>';
   }
+  /* the same slip as a picture (58 mm printer = 384 dots wide), for printer apps on iPad such as Dlabel */
+  function slipLines(s) {
+    var L = [['c', 'LANA · ' + s.branch], ['q', s.q], ['c', 'หมอนวด: ' + s.therapist]];
+    if (s.partial) L.push(['c', 'ทำต่อ' + (s.from ? 'จาก ' + s.from : '')]);
+    L.push(['hr']);
+    s.people.forEach(function (p, i) {
+      if (i) L.push(['hr']);
+      L.push(['k', p.name]);
+      [['โปรแกรม', p.prog + ' ' + p.min + ' นาที'], p.hair ? ['ผมยาว', p.hair] : null, p.style ? ['ทรงเป่า', p.style] : null, p.addons.length ? ['เพิ่ม', p.addons.join(', ')] : null,
+        ['น้ำหนักมือ', p.pressure + (p.elbow ? ' · ' + p.elbow : '')], p.focus.length ? ['เน้น', p.focus.join(', ')] : null, p.nostretch ? ['', '★ ไม่ต้องปลุก ไม่บิด ไม่ดัดตัว (ปล่อยหลับ)'] : null,
+        p.quiet ? ['', 'ขอพักเงียบๆ'] : null, (p.alerts || []).length ? ['⚠ ระวัง', p.alerts.join(', ')] : null, p.note ? ['ลูกค้าเขียน', p.note] : null].filter(Boolean).forEach(function (r) { L.push(['r', r[0], r[1]]); });
+    });
+    L.push(['hr']);
+    s.steps.forEach(function (x) { L.push(['r', (s.people.length > 1 ? x.who + ' · ' : '') + x.label, hm(x.start) + '–' + hm(x.end)]); });
+    L.push(['hr'], ['c', 'เริ่ม ' + hm(s.partial && s.steps.length ? s.steps[0].start : s.start)], ['end', 'จบ ' + hm(s.end)], ['small', 'ปริ้น ' + hm(nowMin())]);
+    return L;
+  }
+  function slipCanvas(s) {
+    var W = 384, pad = 8, F = '-apple-system, "Sukhumvit Set", "Noto Sans Thai", "Anuphan", sans-serif';
+    var c = document.createElement('canvas'), x = c.getContext('2d'), out = [], y = pad;
+    var font = function (px, bold) { x.font = (bold ? '700 ' : '400 ') + px + 'px ' + F; };
+    var cut = function (l, maxW) { var acc = []; while (x.measureText(l).width > maxW && l.length > 1) { var k = l.length; while (k > 1 && x.measureText(l.slice(0, k)).width > maxW) k--; acc.push(l.slice(0, k)); l = l.slice(k); } acc.push(l); return acc; };
+    var wrap = function (t, maxW) { var words = String(t).split(/(\s+)/), lines = [], cur = '';
+      words.forEach(function (w) { var n = cur + w; if (x.measureText(n).width > maxW && cur.trim()) { lines.push(cur.trim()); cur = w.trim(); } else cur = n; });
+      if (cur.trim()) lines.push(cur.trim());
+      return lines.reduce(function (acc, l) { return acc.concat(cut(l, maxW)); }, []); };
+    c.width = W; c.height = 100; x.textBaseline = 'top';
+    slipLines(s).forEach(function (l) {
+      var k = l[0];
+      if (k === 'hr') { out.push({ hr: y + 6 }); y += 14; return; }
+      if (k === 'r') {
+        font(22, false); var lw = l[1] ? Math.min(150, x.measureText(l[1]).width + 12) : 0, rl = wrap(l[2], W - pad * 2 - lw);
+        if (l[1]) out.push({ t: l[1], x: pad, y: y, px: 22, b: false, al: 'left' });
+        rl.forEach(function (t, i) { out.push({ t: t, x: W - pad, y: y + i * 28, px: 22, b: false, al: 'right' }); }); y += Math.max(1, rl.length) * 28; return;
+      }
+      var px = k === 'q' ? 72 : k === 'end' ? 34 : k === 'small' ? 18 : k === 'k' ? 26 : 22, bold = k === 'q' || k === 'end' || k === 'k';
+      font(px, bold);
+      wrap(l[1], W - pad * 2).forEach(function (t) { out.push({ t: t, x: k === 'k' ? pad : W / 2, y: y, px: px, b: bold, al: k === 'k' ? 'left' : 'center' }); y += Math.round(px * 1.3); });
+    });
+    var H = y + pad + 30, c2 = document.createElement('canvas'); c2.width = W; c2.height = H; x = c2.getContext('2d'); x.textBaseline = 'top';
+    x.fillStyle = '#fff'; x.fillRect(0, 0, W, H); x.fillStyle = '#000'; x.strokeStyle = '#000';
+    out.forEach(function (o) {
+      if (o.hr != null) { x.setLineDash([6, 5]); x.lineWidth = 2; x.beginPath(); x.moveTo(pad, o.hr); x.lineTo(W - pad, o.hr); x.stroke(); x.setLineDash([]); return; }
+      font(o.px, o.b); x.textAlign = o.al; x.fillText(o.t, o.x, o.y); });
+    return c2;
+  }
+  function shareSlip(s) {
+    var c = slipCanvas(s), name = 'lana-' + String(s.q || 'slip').replace(/[^A-Za-z0-9-]/g, '') + '.png';
+    c.toBlob(function (blob) {
+      var file = null; try { file = new File([blob], name, { type: 'image/png' }); } catch (e) {}
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file] }).catch(function (e) { if (e && e.name !== 'AbortError') showSlipImg(c); });
+      } else showSlipImg(c);
+    }, 'image/png');
+  }
+  function showSlipImg(c) { S.sheet = { kind: 'slipimg', src: c.toDataURL('image/png') }; render(); }
+  var IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  function printMode() { try { return localStorage.getItem('lana-print') || 'air'; } catch (e) { return 'air'; } }
   function printSlip(s) {
     var html = slipHtml(s);
-    if (demo) { S.sheet = { kind: 'slip', html: html }; return render(); }
-    $('slip').innerHTML = '<div class="slipbody">' + html + '</div>';
-    setTimeout(function () { try { window.print(); } catch (e) {} }, 60);
+    S.lastSlip = s;
+    S.sheet = { kind: 'slip', html: html };
+    render();
+    if (!demo && printMode() === 'air') { $('slip').innerHTML = '<div class="slipbody">' + html + '</div>'; setTimeout(function () { try { window.print(); } catch (e) {} }, 60); }
   }
 
   document.addEventListener('input', function (e) { var id = e.target.id; if (id === 'bk-name') S.bk.name = e.target.value; if (id === 'bk-phone') S.bk.phone = e.target.value; if (id === 'bk-note') S.bk.note = e.target.value; });
   document.addEventListener('change', function (e) {
     if (e.target.id === 'bk-prog') { S.bk.prog = e.target.value; S.bk.time = null; if (S.bk.who) S.bk.useT = (S.bk.who.tickets || []).some(function (x) { return x.prog === S.bk.prog; }); render(); loadBook(); }
     if (e.target.id === 'bk-uset') { S.bk.useT = e.target.checked; }
+    if (e.target.id === 'pmode') { try { localStorage.setItem('lana-print', e.target.checked ? 'app' : 'air'); } catch (x) {} render(); }
     if (e.target.id === 'bk-phone') findWho(e.target.value);
   });
   document.addEventListener('click', function (e) {
@@ -760,6 +827,8 @@ body.real, body { background: var(--paper); }
         toast('จองแล้ว ' + (r.booking.n > 1 ? r.booking.n + ' คน ' : '') + dayStr(r.booking.date) + ' ' + hm(r.booking.start) + ' · บอกลูกค้าว่ามาถึงแล้วใส่เบอร์ที่แท็บเล็ตหน้าร้าน' + (r.booking.n > 1 ? ' (จ่ายทีละคน)' : ''));
         bk.name = ''; bk.phone = ''; bk.note = ''; bk.time = null; bk.n = 1; bk.who = null; bk.useT = false; return loadBook();
       }).catch(function (x) { el.disabled = false; toast(errT(x)); loadBook(); }); }
+    if (d.slipshare !== undefined && S.lastSlip) return shareSlip(S.lastSlip);
+    if (d.slipair !== undefined && S.sheet && S.sheet.html) { $('slip').innerHTML = '<div class="slipbody">' + S.sheet.html + '</div>'; return setTimeout(function () { try { window.print(); } catch (e) {} }, 60); }
     if (d.askyes !== undefined) { var af = S.ask && S.ask.fn; S.ask = null; render(); return af && af(); }
     if (d.askno !== undefined) { S.ask = null; return render(); }
     if (d.bkcancel) { var bkc = d.bkcancel; return ask('ยกเลิกนัดนี้ใช่ไหม?', 'ยกเลิกนัด', function () { return api('sBookCancel', { id: bkc }).then(function () { toast('ยกเลิกแล้ว'); loadBook(); }).catch(function (x) { toast(errT(x)); }); }); }

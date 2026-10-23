@@ -270,7 +270,7 @@ LANA.ADDONS = [
   { id: 'NANO', name_th: 'สปานาโน', name_en: 'Nano mist spa', price: 200, fee: 15, min: 10, seat: 'wash', for: 'HAIR', rec: 'FALSE',
     desc_th: 'อบไอน้ำนาโนให้ทรีตเมนต์ซึมลึกถึงแกนผม ผมนุ่มชุ่มชื่น', desc_en: 'A fine nano mist that helps the treatment soak deep into the hair. Soft, moist hair.' },
   /* no longer sold: kept so older visits and vouchers still show their names */
-  { id: 'VIT', name_th: 'วิตามินบำรุงผม', name_en: 'Hair vitamin boost', price: 190, min: 0, seat: '', for: '', rec: 'FALSE', desc_th: '', desc_en: '' },
+  { id: 'VIT', name_th: 'วิตามินบำรุงผม', name_en: 'Hair vitamin boost', price: 190, min: 0, seat: '', for: '', rec: 'FALSE', desc_th: 'เติมวิตามินให้เส้นผมและหนังศีรษะ ช่วยให้ผมนุ่ม ชุ่มชื้น ไม่แห้งกระด้าง ดูมีสุขภาพดี', desc_en: 'A vitamin boost for hair and scalp. Softer, well-moisturised, healthy-looking hair.' },
   { id: 'HERB', name_th: 'ลูกประคบสมุนไพรอุ่น', name_en: 'Warm herbal compress', price: 150, min: 0, seat: '', for: '', rec: 'FALSE', desc_th: '', desc_en: '' },
   { id: 'EXT30', name_th: 'เพิ่มเวลานวด 30 นาที', name_en: 'Add 30 minutes', price: 290, min: 30, seat: 'first', for: '', rec: 'FALSE', desc_th: '', desc_en: '' }
 ];
@@ -1247,6 +1247,31 @@ function stDropInfo(store, b) {
   var m = b.memberId ? lnFind(store.members(), b.memberId) : null, fromWallet = !!(b.tix || []).length && !prog;
   return { id: b.id, q: b.q || '', name: b.people[0].name || (m && m.name) || '', prog: (lnFind(LANA.PROGRAMS, b.people[0].prog) || {}).name_th || '', n: b.people.length,
     paid: paid, extras: Math.max(0, paid - prog), fromWallet: fromWallet, canKeep: !!m && prog > 0, member: !!m };
+}
+/* ---------- "ขอคิววันนี้" typed in the staff LINE OA: free places per hour, ready to copy to a customer ---------- */
+var LN_ASK_PROGS = [['HEAD60', 'สปาผม', 'Head spa']];   /* ads are for the head spa only */
+function lnFreeTable(store, br, date, now) {
+  var out = [], progs = LN_ASK_PROGS.map(function (x) { var p = lnFind(LANA.PROGRAMS, x[0]); return p && lnProgAt(p, br) ? { p: p, th: x[1], en: x[2], ch: lnChain(p, { hair: 'short', style: 'normal', addons: [] }) } : null; }).filter(Boolean);
+  var rows = cRows(store, date, null), from = date === now.date ? Math.ceil(now.min / 60) * 60 : LANA.OPEN;
+  for (var m = Math.max(LANA.OPEN, from); m + 60 <= LANA.CLOSE; m += 60) {
+    out.push({ m: m, free: progs.map(function (x) { var n = 0; while (n < 6 && lnAllocate(br, date, m, Array.apply(null, Array(n + 1)).map(function () { return x.ch; }), rows)) n++; return { th: x.th, en: x.en, n: n }; }) });
+  }
+  return out;
+}
+function lnQueueText(store, now, text, branchIds) {
+  var t = String(text || '').toLowerCase(), tomorrow = /พรุ่งนี้|tomorrow/.test(t), date = tomorrow ? lnAddDays(now.date, 1) : now.date;
+  lnDuty(store, now);
+  var brs = store.branches().filter(function (b) { return lnTrue(b.active) && (!branchIds || branchIds.indexOf(b.id) >= 0); });
+  var parts = brs.map(function (br) {
+    var tb = lnFreeTable(store, br, date, now);
+    var head = (tomorrow ? 'ตารางคิวพรุ่งนี้ค่ะ' : 'ตารางคิววันนี้ค่ะ') + ' · ' + (br.name_th || br.id) + '\n' + (tomorrow ? 'Available booking tomorrow' : 'Available booking today') + (br.name_en ? ' · ' + br.name_en : '');
+    if (!tb.length) return head + '\n\nวันนี้ไม่มีรอบเหลือแล้วค่ะ / No more slots today';
+    return head + '\n\n' + tb.map(function (r) {
+      var n = r.free[0] ? r.free[0].n : 0, k = n >= 6 ? '6+' : n;
+      return lnHM(r.m) + '  ' + (n ? 'ว่าง ' + k + ' ที่ / ' + k + ' slot' + (n > 1 ? 's' : '') + ' available' : 'เต็ม / Full');
+    }).join('\n');
+  });
+  return parts.join('\n\n') || 'ยังไม่มีสาขาที่เปิดค่ะ';
 }
 /* ---------- appointment grid at the station tablet ---------- */
 function stDays(now) { var out = []; for (var i = 0; i < LN_C.DAYS; i++) out.push(lnAddDays(now.date, i)); return out; }
