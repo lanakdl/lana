@@ -532,8 +532,8 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
   }
   function menu(list, useT, owned) {
     var cat = function (p) { return p.cat || (p.hair ? 'hair' : 'massage'); };
-    var groups = [[t('สปาศีรษะ สระไดร์', 'Head spa'), t('นวดศีรษะ สระ และไดร์ผม จบในที่เดียว', 'Head massage, wash and blow-dry'), list.filter(function (p) { return cat(p) === 'hair'; })],
-      [t('เซ็ตคุ้ม', 'Sets'), t('นวด + สปาศีรษะ ในรอบเดียว', 'Massage and head spa in one visit'), list.filter(function (p) { return cat(p) === 'set'; })],
+    var groups = [[t('สปาผม', 'Hair'), t('นวดศีรษะ สระ และไดร์ผม จบในที่เดียว', 'Head massage, wash and blow-dry'), list.filter(function (p) { return cat(p) === 'hair'; })],
+      [t('คอมโบ', 'Combo'), t('นวด + สปาผม ในรอบเดียว', 'Massage + head spa in one visit'), list.filter(function (p) { return cat(p) === 'set'; })],
       [t('นวด', 'Massage'), t('ผ่อนคลายร่างกาย ไม่ต้องสระผม เลือกเวลาได้', 'For the body, no hair wash, choose your time'), list.filter(function (p) { return cat(p) === 'massage'; })]].filter(function (g) { return g[2].length; });
     return '<div class="kmenu"><div class="mtitle"><h2>' + (useT ? t('เลือกโปรแกรมที่จะใช้ตั๋ว', 'Choose a treatment for your ticket') : t('เมนูวันนี้', 'Today\'s menu')) + '</h2><span class="hint">' + t('แตะโปรแกรมที่สนใจ แล้วเลือกรายละเอียดต่อได้', 'Tap a treatment to choose the details') + '</span></div>' +
       groups.map(function (g) { return '<section class="mgroup"><div class="mglabel"><b>' + g[0] + '</b><span>' + g[1] + '</span></div><div class="mgrid">' + bundle(g[2]).map(function (items) { return groupCard(items, useT, owned); }).join('') + '</div></section>'; }).join('') + '</div>';

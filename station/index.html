@@ -481,9 +481,9 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     var shared = (function () { try { return window.parent !== window && window.parent.__LANA_SHARED || null; } catch (e) { return null; } })();
     DNOW = shared ? shared.now : { date: g.year + '-' + g.month + '-' + g.day, min: 13 * 60 }; DS = shared ? shared.store : memStore(); S.key = 'demo-kiosk'; S.branch = 'NIM';
     if (!DS.shifts().length) [['S1', '09:52'], ['S2', '10:05'], ['S4', '09:58'], ['S5', '10:02']].forEach(function (x) { DS.addShift({ staffId: x[0], date: DNOW.date, branch: 'NIM', in: x[1], out: '' }); });
-    if (!DS.bookings().length) ['HEAD60', 'COMBO120', 'FOOT90'].forEach(function (pid, i) { var v = makeVisit(DS, DNOW, 'NIM', pid, ['คุณแพร', 'Sophie', 'คุณบอส'][i], { hair: 'mid', pressure: ['light', 'medium', 'firm'][i], addons: i === 0 ? ['VIT'] : [], quiet: i === 1, focus: i === 2 ? ['หลัง', 'บ่า'] : [] }); if (v) { v.checkedAt = lnHM(DNOW.min - 4 - i * 3); DS.saveBooking(v); } });
+    if (!DS.bookings().length) ['HEAD60', 'SFOOT120', 'FOOT90'].forEach(function (pid, i) { var v = makeVisit(DS, DNOW, 'NIM', pid, ['คุณแพร', 'Sophie', 'คุณบอส'][i], { hair: 'mid', pressure: ['light', 'medium', 'firm'][i], addons: i === 0 ? ['VIT'] : [], quiet: i === 1, focus: i === 2 ? ['หลัง', 'บ่า'] : [] }); if (v) { v.checkedAt = lnHM(DNOW.min - 4 - i * 3); DS.saveBooking(v); } });
     if (!DS.bookings().some(function (x) { return x.src === 'phone'; })) { var t0 = Math.ceil((DNOW.min + 30) / 30) * 30;   /* demo: a few appointments later today and tomorrow for the grid */
-      [['คุณมายด์', 'THAI60', t0, 1, 0], ['Emma', 'HEAD60', t0 + 30, 2, 0], ['คุณต้น', 'OIL90', t0 + 60, 1, 0], ['คุณฝ้าย', 'COMBO120', t0 + 120, 1, 0], ['คุณบี', 'FOOT60', 660, 1, 1]].forEach(function (x, i) {
+      [['คุณมายด์', 'NECK60', t0, 1, 0], ['Emma', 'HEAD60', t0 + 30, 2, 0], ['คุณต้น', 'SNECK120', t0 + 60, 1, 0], ['คุณฝ้าย', 'SFOOT120', t0 + 120, 1, 0], ['คุณบี', 'FOOT60', 660, 1, 1]].forEach(function (x, i) {
         try { stationApi({ kiosk: 'demo-kiosk', branch: 'NIM', action: 'sBook', prog: x[1], date: x[4] ? lnAddDays(DNOW.date, 1) : DNOW.date, time: x[2], name: x[0], phone: '08' + (10000000 + i * 1111111), n: x[3] }, DS, Object.assign({}, DNOW)); } catch (e) {} }); }
   }
 
@@ -957,7 +957,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
       return api(map[act], { id: id }).then(function (b) { S.b = b; S.skew = Date.now(); render(); toast({ extend: 'ต่อเวลาแล้ว 30 นาที', handoff: 'ส่งเข้าคิวรอแล้ว ให้คนอื่นจิ้มรับ', finish: 'จบงานแล้ว', next: 'ย้ายแล้ว เริ่มนับเวลาขั้นต่อไป', undo: 'คืนคิวแล้ว' }[act]); })
         .catch(function (x) { S.sheet = null; toast(errT(x)); load(true); });
     }
-    if (el.id === 'd-walk') { var pr = ['HEAD60', 'COCO120', 'THAI120', 'FOOT90', 'NECK60', 'COMBO120'], nm = ['Kenji', 'คุณมิ้นท์', 'Anna', 'คุณต้น', 'Lucas'];
+    if (el.id === 'd-walk') { var pr = ['HEAD60', 'COCO120', 'FACE80', 'FOOT90', 'NECK60', 'SFOOT120'], nm = ['Kenji', 'คุณมิ้นท์', 'Anna', 'คุณต้น', 'Lucas'];
       var v = makeVisit(DS, DNOW, 'NIM', pr[Math.floor(Math.random() * pr.length)], nm[Math.floor(Math.random() * nm.length)], { hair: 'mid', pressure: 'medium' }); if (v) { v.checkedAt = lnHM(DNOW.min); DS.saveBooking(v); } else toast('วันนี้ไม่มีที่ว่างแล้ว'); return load(true); }
     if (el.id === 'd-plus') { DNOW.min += 15; return load(true); }
     if (el.id === 'd-plus60') { DNOW.min += 60; return load(true); }
