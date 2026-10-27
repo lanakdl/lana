@@ -441,6 +441,12 @@ body.real, body { background: var(--paper); }
 .rushbar { grid-column: 1 / -1; background: #a4502f; color: #fff; font-size: 15px; font-weight: 600; padding: 6px 12px; border-radius: 10px; }
 .pmode { display: flex; gap: 8px; align-items: center; font-size: 15px; color: var(--ink-2); margin-top: 10px; }
 .pmode input { width: 22px; height: 22px; }
+.pmodes { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; align-items: center; font-size: 14px; color: var(--ink-2); }
+.pmodes button { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 7px 14px; font-size: 14px; }
+.pmodes button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.btstat { display: flex; gap: 8px; align-items: center; font-size: 15px; margin: 8px 0 2px; }
+.btstat i { width: 10px; height: 10px; border-radius: 50%; background: #c9b9a8; flex: none; }
+.btstat.on i { background: #4a8a3a; } .btstat.err i { background: #c0392b; }
 body.netbusy button, body.netbusy a, body.netbusy [data-q], body.netbusy input[type=checkbox] { pointer-events: none !important; }
 body.netbusy { cursor: progress; }
 body.netbusy::before { content: ''; position: fixed; z-index: 9999; left: 0; top: 0; height: 3px; width: 40%; background: #a4502f; animation: netbar 1s ease-in-out infinite; }
@@ -660,11 +666,25 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
         '<div class="pinpad"><div class="pindots">' + [0, 1, 2, 3].map(function (i) { return '<i class="' + (i < pin.length ? 'f' : '') + '"></i>'; }).join('') + '</div><div class="pkeys">' +
         ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'].map(function (k) { return k === 'ok' ? '<button class="pk ok" data-clockgo="' + (cs.on ? '0' : '1') + '"' + (pin.length < 4 || S.busy || (!cs.on && !S.cam) ? ' disabled' : '') + '>' + (cs.on ? 'ออกงาน' : 'เข้างาน') + '</button>' : '<button class="pk" data-pin="' + k + '">' + (k === 'del' ? 'ลบ' : k) + '</button>'; }).join('') + '</div></div></div>' +
         '<div class="acts"><button class="sb ghost" ' + (sh.back ? 'data-clockback' : 'data-close') + '>ยกเลิก</button></div>'; }
+    if (sh.kind === 'slip' && printMode() === 'lana') {
+      return '<h2>ใบงาน</h2><span class="sub">' + (IOS ? 'แอป Lana Print ใช้ได้กับแท็บเล็ต Android เท่านั้น · iPad เลือกวิธีอื่นด้านล่าง' : 'ใบงานส่งไปแอป Lana Print แล้ว ถ้ายังไม่ออก กดปุ่มปริ้นด้านล่าง') + '</span>' +
+        '<div class="slipview"><div class="slipbody">' + sh.html + '</div></div>' +
+        '<div class="acts"><button class="sb olive" data-lanaprint>ปริ้น</button><button class="sb ghost" data-close>ปิด</button></div>' +
+        '<span class="sub">ยังไม่มีแอป? <a href="' + LANA_APK + '">โหลด Lana Print</a> แล้วกดติดตั้ง (ถ้าเครื่องถาม ให้อนุญาต "ติดตั้งจากแหล่งที่ไม่รู้จัก")</span>' +
+        pmodes('lana'); }
+    if (sh.kind === 'slip' && printMode() === 'bt') {
+      var bst = BT.err ? 'err' : BT.ch ? 'on' : '';
+      return '<h2>ใบงาน</h2><div class="btstat ' + bst + '"><i></i><span>' + esc(BT.msg || (BT.ch ? 'เชื่อมกับ ' + (BT.name || 'เครื่องปริ้น') + ' แล้ว' : 'ยังไม่ได้เชื่อมเครื่องปริ้น')) + '</span></div>' +
+        (!navigator.bluetooth ? '<span class="sub">' + (IOS ? 'Safari / Chrome บน iPad ใช้บลูทูธจากเว็บไม่ได้ · โหลดแอป <b>Bluefy</b> (ฟรีใน App Store) แล้วเปิดหน้านี้ในแอปนั้นแทน' : 'เบราว์เซอร์นี้ใช้บลูทูธไม่ได้ · ใช้ Chrome') + '</span>' : '') +
+        '<div class="slipview"><div class="slipbody">' + sh.html + '</div></div>' +
+        '<div class="acts">' + (BT.ch ? '<button class="sb olive" data-btprint' + (BT.busy ? ' disabled' : '') + '>' + (BT.busy ? 'กำลังปริ้น…' : 'ปริ้นอีกครั้ง') + '</button><button class="sb ghost" data-btpair>เปลี่ยนเครื่อง</button>' : '<button class="sb olive" data-btpair' + (navigator.bluetooth ? '' : ' disabled') + '>เชื่อมเครื่องปริ้น แล้วปริ้น</button>') + '<button class="sb ghost" data-close>ปิด</button></div>' +
+        '<div class="pmodes">ภาษาเครื่อง: <button data-btlang="esc" aria-pressed="' + (btLang() === 'esc') + '">ใบเสร็จ (ESC/POS)</button><button data-btlang="tspl" aria-pressed="' + (btLang() === 'tspl') + '">สติกเกอร์ (TSPL)</button></div>' +
+        pmodes('bt'); }
     if (sh.kind === 'slip') { var pm = printMode();
       return '<h2>ใบงาน</h2><span class="sub">' + (pm === 'app' ? (IOS ? 'กด "ส่งไปแอปปริ้น" แล้วเลือกแอป Dlabel (หรือบันทึกรูป แล้วเปิดในแอป)' : 'กด "ส่งไปแอปปริ้น" แล้วเลือก RawBT (ปริ้นออกทันที) หรือ Dlabel') : demo ? 'ในร้านจริง ใบนี้ออกเครื่องปริ้นทันที (AirPrint)' : 'ส่งไปเครื่องปริ้นแล้ว (AirPrint)') + '</span>' +
         '<div class="slipview"><div class="slipbody">' + sh.html + '</div></div>' +
-        '<div class="acts"><button class="sb olive" data-slipshare>ส่งไปแอปปริ้น (' + (IOS ? 'Dlabel' : 'RawBT / Dlabel') + ')</button><button class="sb ghost" data-slipair>' + (IOS ? 'ปริ้น AirPrint' : 'ปริ้นผ่านระบบเครื่อง') + '</button><button class="sb ghost" data-close>ปิด</button></div>' +
-        '<label class="pmode"><input type="checkbox" id="pmode"' + (pm === 'app' ? ' checked' : '') + '> เครื่องปริ้นร้านนี้ใช้ผ่านแอป (ไม่ต้องเปิด AirPrint เอง)</label>'; }
+        '<div class="acts"><button class="sb olive" data-slipshare>ส่งไปแอปปริ้น (รูป)</button><button class="sb olive" data-sliptext>ส่งไปแอปปริ้น (ตัวหนังสือ)</button><button class="sb ghost" data-slipair>' + (IOS ? 'ปริ้น AirPrint' : 'ปริ้นผ่านระบบเครื่อง') + '</button><button class="sb ghost" data-close>ปิด</button></div>' +
+        pmodes(pm); }
     if (sh.kind === 'slipimg') return '<h2>รูปใบงาน</h2><span class="sub">แตะค้างที่รูป › บันทึกรูปภาพ แล้วเปิดแอป Dlabel › เลือกรูปจากอัลบั้ม › ปริ้น</span><div class="slipview"><img src="' + sh.src + '" alt="ใบงาน" style="width:100%;max-width:384px;display:block;margin:0 auto;border:1px solid #ddd"></div><div class="acts"><button class="sb ghost" data-close>ปิด</button></div>';
     return '';
   }
@@ -845,14 +865,101 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
       } else showSlipImg(c);
     }, 'image/png');
   }
+  function slipText(s) {   /* the same slip as plain text, for printer apps that print typed text */
+    return slipLines(s).map(function (l) { var k = l[0];
+      if (k === 'hr') return '--------------------------------';
+      if (k === 'r') return (l[1] ? l[1] + ': ' : '') + l[2];
+      if (k === 'q') return '*** ' + l[1] + ' ***';
+      if (k === 'k') return '[' + l[1] + ']';
+      return l[1]; }).join('\n') + '\n\n\n';
+  }
+  function shareText(s) {
+    var txt = slipText(s);
+    if (navigator.share) return navigator.share({ text: txt }).catch(function (e) { if (e && e.name !== 'AbortError') copyText(txt); });
+    copyText(txt);
+  }
+  function copyText(txt) { try { navigator.clipboard.writeText(txt).then(function () { toast('ก๊อปข้อความใบงานแล้ว · ไปวางในแอปปริ้น'); }); } catch (e) { toast('แชร์ไม่ได้'); } }
   function showSlipImg(c) { S.sheet = { kind: 'slipimg', src: c.toDataURL('image/png') }; render(); }
   var IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  function printMode() { try { return localStorage.getItem('lana-print') || 'air'; } catch (e) { return 'air'; } }
+  function printMode() { try { if (localStorage.getItem('lana-print-v') !== '2') { localStorage.setItem('lana-print-v', '2'); localStorage.setItem('lana-print', 'lana'); } return localStorage.getItem('lana-print') || 'lana'; } catch (e) { return 'lana'; } }
+  /* Lana Print: our own Android app (no ads). The page hands it the slip, the app prints over Bluetooth */
+  var LANA_APK = 'https://github.com/lanakdl/lana/releases/download/print-app/lana-print.apk';
+  function lanaIntent(s) {
+    var txt = '#LANA1\n' + slipLines(s).map(function (l) { return l.map(function (x) { return String(x == null ? '' : x).replace(/[|\n]/g, ' '); }).join('|'); }).join('\n');
+    return 'intent:#Intent;action=android.intent.action.SEND;type=text/plain;package=th.lana.print;S.android.intent.extra.TEXT=' + encodeURIComponent(txt) + ';S.browser_fallback_url=' + encodeURIComponent(LANA_APK) + ';end';
+  }
+  function lanaPrint(s) { if (!s) return; try { window.location.href = lanaIntent(s); } catch (e) {} }
+  function pmodes(pm) { return '<div class="pmodes">ร้านนี้ปริ้นผ่าน: ' + [['lana', 'แอป Lana Print'], ['bt', 'บลูทูธ (ต่อตรง)'], ['air', IOS ? 'AirPrint' : 'ระบบเครื่อง'], ['app', 'ส่งไปแอป']].map(function (m) { return '<button data-pmode="' + m[0] + '" aria-pressed="' + (pm === m[0]) + '">' + m[1] + '</button>'; }).join('') + '</div>'; }
+  /* ---- Bluetooth printer straight from the page (Web Bluetooth: Chrome on Android / computer, Bluefy on iPad) ---- */
+  var BT = { dev: null, ch: null, name: '', msg: '', err: false, busy: false, noResp: false };
+  var BT_SERVICES = ['000018f0-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '49535343-fe7d-4ae5-8fa9-9fafd205e455', '0000ff00-0000-1000-8000-00805f9b34fb', '0000ae30-0000-1000-8000-00805f9b34fb', '0000fee7-0000-1000-8000-00805f9b34fb', '0000ffe0-0000-1000-8000-00805f9b34fb', '0000ae3a-0000-1000-8000-00805f9b34fb', '0000ff80-0000-1000-8000-00805f9b34fb', '0000ffb0-0000-1000-8000-00805f9b34fb', '0000fff0-0000-1000-8000-00805f9b34fb'];
+  function btLang() { try { return localStorage.getItem('lana-bt-lang') || 'esc'; } catch (e) { return 'esc'; } }
+  function btSay(msg, err) { BT.msg = msg; BT.err = !!err; if (S.sheet && S.sheet.kind === 'slip') render(); }
+  function btFind(dev) {
+    return dev.gatt.connect().then(function (srv) { return srv.getPrimaryServices(); }).then(function (svs) {
+      var tryAt = function (i) { if (i >= svs.length) throw new Error('NO_WRITE');
+        return svs[i].getCharacteristics().then(function (cs) { var c = cs.filter(function (c) { return c.properties.writeWithoutResponse || c.properties.write; })[0]; return c || tryAt(i + 1); }).catch(function (e) { if (e.message === 'NO_WRITE') throw e; return tryAt(i + 1); }); };
+      return tryAt(0); }).then(function (ch) {
+      BT.dev = dev; BT.ch = ch; BT.name = dev.name || ''; BT.noResp = !!ch.properties.writeWithoutResponse && !ch.properties.write; BT.err = false; BT.msg = '';
+      try { localStorage.setItem('lana-bt-name', BT.name); } catch (e) {}
+      if (!dev._lanaHook) { dev._lanaHook = 1; dev.addEventListener('gattserverdisconnected', function () { BT.ch = null; btSay('เครื่องปริ้นหลุด · จะต่อใหม่ตอนปริ้นครั้งหน้า', false); }); }
+      return ch; });
+  }
+  function btPair() {   /* must run from a tap: shows the phone's Bluetooth list */
+    if (!navigator.bluetooth) { btSay(IOS ? 'iPad ต้องเปิดหน้านี้ในแอป Bluefy ถึงจะใช้บลูทูธได้' : 'เบราว์เซอร์นี้ใช้บลูทูธไม่ได้', true); return Promise.reject(new Error('NO_BT')); }
+    btSay('เลือกเครื่องปริ้นจากรายการ…');
+    return navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: BT_SERVICES })
+      .then(function (dev) { btSay('กำลังเชื่อม ' + (dev.name || '') + '…'); return btFind(dev); })
+      .then(function (ch) { btSay('เชื่อมกับ ' + (BT.name || 'เครื่องปริ้น') + ' แล้ว'); return ch; })
+      .catch(function (e) { btSay(e && e.name === 'NotFoundError' ? 'ยังไม่ได้เลือกเครื่อง' : e && e.message === 'NO_WRITE' ? 'เครื่องนี้ไม่รับคำสั่งปริ้นผ่านบลูทูธ BLE (อาจเป็นบลูทูธรุ่นเก่า) · ลองเปลี่ยนเครื่องหรือใช้วิธีส่งไปแอป' : 'เชื่อมไม่ได้ · เปิดเครื่องปริ้น แล้วลองใหม่', true); throw e; });
+  }
+  function btReconnect() {   /* same printer as last time, no list needed (when the browser allows it) */
+    if (BT.ch) return Promise.resolve(BT.ch);
+    if (BT.dev) return btFind(BT.dev);
+    if (!navigator.bluetooth || !navigator.bluetooth.getDevices) return Promise.reject(new Error('NEED_PAIR'));
+    var want = ''; try { want = localStorage.getItem('lana-bt-name') || ''; } catch (e) {}
+    return navigator.bluetooth.getDevices().then(function (ds) { var d = ds.filter(function (x) { return !want || x.name === want; })[0]; if (!d) throw new Error('NEED_PAIR'); return btFind(d); });
+  }
+  function btBytes(c) {   /* the slip picture as printer commands (Thai prints as a picture, so any font works) */
+    var W = c.width, H = c.height, bw = Math.ceil(W / 8), px = c.getContext('2d').getImageData(0, 0, W, H).data, rows = [];
+    for (var y = 0; y < H; y++) { var row = new Uint8Array(bw); for (var x = 0; x < W; x++) { var i = (y * W + x) * 4, l = px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11; if (l < 150) row[x >> 3] |= 0x80 >> (x & 7); } rows.push(row); }
+    var out = [], push = function (a) { for (var i = 0; i < a.length; i++) out.push(a[i]); }, str = function (t) { for (var i = 0; i < t.length; i++) out.push(t.charCodeAt(i) & 255); };
+    if (btLang() === 'tspl') {
+      var mm = Math.ceil(H / 8) + 4;   /* 203 dpi: 8 dots per mm */
+      str('SIZE 48 mm,' + mm + ' mm\r\nGAP 2 mm,0 mm\r\nDIRECTION 0\r\nCLS\r\nBITMAP 0,0,' + bw + ',' + H + ',0,');
+      rows.forEach(function (r) { for (var i = 0; i < r.length; i++) out.push(~r[i] & 255); });   /* TSPL: 0 = black */
+      str('\r\nPRINT 1,1\r\n');
+    } else {
+      push([0x1b, 0x40]);
+      for (var y0 = 0; y0 < H; y0 += 128) { var n = Math.min(128, H - y0); push([0x1d, 0x76, 0x30, 0, bw & 255, bw >> 8, n & 255, n >> 8]); for (var k = 0; k < n; k++) push(rows[y0 + k]); }
+      push([0x1b, 0x64, 4, 0x1d, 0x56, 0x42, 0]);   /* feed + cut (ignored by printers without a cutter) */
+    }
+    return new Uint8Array(out);
+  }
+  function btSend(bytes) {
+    var ch = BT.ch, size = 180, i = 0;
+    var next = function () {
+      if (i >= bytes.length) return Promise.resolve();
+      var part = bytes.slice(i, i + size); i += size;
+      var w = BT.noResp && ch.writeValueWithoutResponse ? ch.writeValueWithoutResponse(part).then(function () { return new Promise(function (r) { setTimeout(r, 12); }); })
+        : ch.writeValueWithResponse ? ch.writeValueWithResponse(part) : ch.writeValue(part);
+      return w.then(next);
+    };
+    return next();
+  }
+  function btPrint(s, fromTap) {
+    if (!s || BT.busy) return;
+    var go = function () { BT.busy = true; btSay('กำลังปริ้น…'); return btSend(btBytes(slipCanvas(s))).then(function () { BT.busy = false; btSay('ปริ้นแล้ว · ' + (BT.name || 'เครื่องปริ้น')); }); };
+    return btReconnect().catch(function (e) { if (fromTap) return btPair(); throw e; }).then(go)
+      .catch(function (e) { BT.busy = false; if (e && e.message === 'NEED_PAIR') return btSay('แตะ "เชื่อมเครื่องปริ้น แล้วปริ้น" (ทำครั้งแรกครั้งเดียว)'); if (!BT.err) btSay('ปริ้นไม่ออก · เช็กว่าเครื่องเปิดอยู่และกระดาษไม่หมด แล้วกดปริ้นอีกครั้ง', true); BT.ch = null; });
+  }
   function printSlip(s) {
     var html = slipHtml(s);
     S.lastSlip = s;
     S.sheet = { kind: 'slip', html: html };
     render();
+    if (printMode() === 'lana') { if (!demo) lanaPrint(s); return; }
+    if (printMode() === 'bt') { BT.msg = ''; BT.err = false; render(); return btPrint(s, false); }
     if (!demo && printMode() === 'air') { $('slip').innerHTML = '<div class="slipbody">' + html + '</div>'; setTimeout(function () { try { window.print(); } catch (e) {} }, 60); }
   }
 
@@ -860,7 +967,6 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
   document.addEventListener('change', function (e) {
     if (e.target.id === 'bk-prog') { S.bk.prog = e.target.value; S.bk.time = null; if (S.bk.who) S.bk.useT = (S.bk.who.tickets || []).some(function (x) { return x.prog === S.bk.prog; }); render(); loadBook(); }
     if (e.target.id === 'bk-uset') { S.bk.useT = e.target.checked; }
-    if (e.target.id === 'pmode') { try { localStorage.setItem('lana-print', e.target.checked ? 'app' : 'air'); } catch (x) {} render(); }
     if (e.target.id === 'bk-phone') findWho(e.target.value);
   });
   document.addEventListener('click', function (e) {
@@ -894,6 +1000,12 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
           toast(r.paidBy === 'beam' ? 'ลูกค้าจ่ายผ่าน Beam แล้ว ไม่ต้องรูดซ้ำ' : 'รูดบัตรแล้ว' + (r.q ? ' · คิว ' + r.q : '') + (r.status && r.status !== 'checkedin' && r.status !== 'done' ? ' (เช็กสถานะในคิวรอ)' : '')); })
         .catch(function (x) { S.busy = false; if (String(x.message) === 'BAD_PIN') { cps.pin = ''; render(); return toast(errT(x)); } S.sheet = null; toast(errT(x)); load(true); }); }
     if (d.slipshare !== undefined && S.lastSlip) return shareSlip(S.lastSlip);
+    if (d.sliptext !== undefined && S.lastSlip) return shareText(S.lastSlip);
+    if (d.lanaprint !== undefined && S.lastSlip) return demo ? toast('ในร้านจริง ปุ่มนี้เปิดแอป Lana Print แล้วปริ้นทันที') : lanaPrint(S.lastSlip);
+    if (d.pmode) { try { localStorage.setItem('lana-print', d.pmode); } catch (x) {} BT.msg = ''; BT.err = false; return render(); }
+    if (d.btlang) { try { localStorage.setItem('lana-bt-lang', d.btlang); } catch (x) {} return render(); }
+    if (d.btprint !== undefined && S.lastSlip) return btPrint(S.lastSlip, true);
+    if (d.btpair !== undefined) { BT.ch = null; BT.dev = null; return btPair().then(function () { if (S.lastSlip) btPrint(S.lastSlip, true); }).catch(function () {}); }
     if (d.slipair !== undefined && S.sheet && S.sheet.html) { $('slip').innerHTML = '<div class="slipbody">' + S.sheet.html + '</div>'; return setTimeout(function () { try { window.print(); } catch (e) {} }, 60); }
     if (d.askyes !== undefined) { var af = S.ask && S.ask.fn; S.ask = null; render(); return af && af(); }
     if (d.askno !== undefined) { S.ask = null; return render(); }
