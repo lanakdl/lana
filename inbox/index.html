@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lana Inbox</title>
+<meta name="theme-color" content="#3c2219">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600&family=Gilda+Display&family=Noto+Serif+Thai:wght@500;600&display=swap">
+<style>
+
+/* Layout: a phone showing the shop's LINE OA, with a "shop side" control panel beside it (above it on phones) */
+:root {
+  --paper: #f7eedf; --card: #fffaf1; --ink: #3c2219; --ink-2: #7b6352; --olive: #6c7454; --olive-ink: #fffaf1;
+  --sand: #ead6b6; --line: #e2d1b6; --mute: #b9a993; --ok: #5e7a45; --warn: #a3542f; --chat: #e9e2d4; --bubble: #ffffff; --me: #d9e2c4;
+  --stage: #efe6d6;
+  --f-display: 'Gilda Display', 'Noto Serif Thai', Georgia, serif;
+  --f-thai: 'Noto Serif Thai', 'Gilda Display', Georgia, serif;
+  --f-body: 'Anuphan', 'Noto Sans Thai', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #1d1612; --card: #29201a; --ink: #f2e4cf; --ink-2: #bba58c; --olive: #a7b287; --olive-ink: #1d1612;
+  --sand: #4a3a2a; --line: #3b2f25; --mute: #6c5d4d; --ok: #9cbf7c; --warn: #e39a72; --chat: #231b16; --bubble: #2f2520; --me: #3c4430; --stage: #141009; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #1d1612; --card: #29201a; --ink: #f2e4cf; --ink-2: #bba58c; --olive: #a7b287; --olive-ink: #1d1612;
+  --sand: #4a3a2a; --line: #3b2f25; --mute: #6c5d4d; --ok: #9cbf7c; --warn: #e39a72; --chat: #231b16; --bubble: #2f2520; --me: #3c4430; --stage: #141009; color-scheme: dark }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--stage); color: var(--ink); font-family: var(--f-body); font-size: 14.5px; line-height: 1.5; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--olive); outline-offset: 2px; }
+input, select, textarea { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%; }
+h1, h2, h3 { margin: 0; font-weight: 400; text-wrap: balance; }
+:lang(th) h2, :lang(th) h3 { font-family: var(--f-thai); font-weight: 600; }
+
+/* Layout: chat inbox — conversation list on the left, the open chat on the right (one at a time on phones) */
+body.real, body { background: var(--paper); }
+.ib { height: 100dvh; display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
+html, body { overflow: hidden; }
+.bar { display: flex; align-items: center; gap: 10px; padding: 10px max(14px, env(safe-area-inset-right, 0px)) 10px max(14px, env(safe-area-inset-left, 0px)); background: var(--ink); color: var(--paper); }
+.bar .brand { font-family: var(--f-display); font-size: 22px; }
+.bar .brand small { font-family: var(--f-body); font-size: 13px; opacity: .75; margin-left: 6px; }
+.bar .sp { flex: 1; }
+.bar button { background: transparent; border: 1px solid color-mix(in srgb, var(--paper) 35%, transparent); color: var(--paper); border-radius: 99px; padding: 6px 12px; font-size: 13px; }
+.bar .tot { background: var(--warn); border-radius: 99px; padding: 1px 9px; font-size: 13px; font-weight: 600; }
+.main { display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); min-height: 0; min-width: 0; }
+.list { border-right: 1px solid var(--line); display: grid; grid-template-rows: auto 1fr; min-height: 0; min-width: 0; background: var(--card); }
+.filters { display: flex; gap: 6px; padding: 10px 10px 6px; overflow-x: auto; }
+.filters button { flex: 0 0 auto; border: 1px solid var(--line); background: var(--paper); border-radius: 99px; padding: 5px 11px; font-size: 13px; }
+.filters button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.search { padding: 0 10px 8px; }
+.search input { padding: 8px 12px; border-radius: 99px; }
+.threads { overflow-y: auto; }
+.th { display: grid; grid-template-columns: 46px 1fr auto; gap: 10px; align-items: center; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--line); background: transparent; padding: 10px 12px; }
+.th[aria-current="true"] { background: color-mix(in srgb, var(--olive) 14%, transparent); }
+.av { position: relative; width: 46px; height: 46px; border-radius: 50%; background: var(--sand); display: grid; place-items: center; font-weight: 600; font-size: 17px; overflow: visible; }
+.av img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.ch { position: absolute; right: -3px; bottom: -3px; width: 19px; height: 19px; border-radius: 50%; border: 2px solid var(--card); display: grid; place-items: center; font-size: 9px; font-weight: 700; color: #fff; }
+.ch.line { background: #06c755; } .ch.fb { background: #1877f2; } .ch.ig { background: linear-gradient(45deg, #f58529, #dd2a7b, #8134af); } .ch.tiktok { background: #111; }
+.th .nm { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.th .lt { color: var(--ink-2); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.th .rt { display: grid; justify-items: end; gap: 4px; font-size: 12px; color: var(--ink-2); }
+.th .un { background: var(--warn); color: #fff; border-radius: 99px; min-width: 20px; padding: 0 6px; text-align: center; font-weight: 600; }
+.tagchip { display: inline-block; font-size: 11px; padding: 0 7px; border-radius: 99px; background: var(--sand); color: var(--ink); margin-left: 4px; vertical-align: 1px; }
+.chat { display: grid; grid-template-rows: auto auto 1fr auto auto; min-height: 0; background: var(--chat); }
+.chead { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--card); border-bottom: 1px solid var(--line); }
+.chead .back { display: none; border: 0; background: transparent; font-size: 22px; padding: 0 6px; }
+.chead .who { flex: 1; min-width: 0; }
+.chead .who b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chead .who span { font-size: 12px; color: var(--ink-2); }
+.tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.tags button { border: 1px solid var(--line); background: var(--paper); border-radius: 99px; padding: 3px 9px; font-size: 12px; }
+.tags button[aria-pressed="true"] { background: var(--olive); color: var(--olive-ink); border-color: var(--olive); }
+.warnbar { padding: 6px 12px; font-size: 12.5px; background: color-mix(in srgb, var(--warn) 14%, var(--card)); color: var(--ink); border-bottom: 1px solid var(--line); }
+.msgs { overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 6px; }
+.day { align-self: center; font-size: 11.5px; color: var(--ink-2); background: var(--card); border-radius: 99px; padding: 2px 10px; margin: 6px 0; }
+.bub { max-width: min(78%, 520px); padding: 8px 11px; border-radius: 16px; background: var(--bubble); white-space: pre-wrap; word-wrap: break-word; line-height: 1.45; box-shadow: 0 1px 1px rgba(0,0,0,.04); }
+.bub.out { align-self: flex-end; background: var(--me); border-bottom-right-radius: 6px; }
+.bub.in { align-self: flex-start; border-bottom-left-radius: 6px; }
+.bub.ev { align-self: center; background: transparent; box-shadow: none; color: var(--ink-2); font-size: 12px; }
+.bub img { display: block; max-width: 240px; max-height: 320px; border-radius: 10px; }
+.bub .tm { display: block; font-size: 10.5px; color: var(--ink-2); margin-top: 3px; text-align: right; }
+.quick { display: flex; gap: 6px; padding: 8px 10px 0; overflow-x: auto; background: var(--card); border-top: 1px solid var(--line); }
+.quick button { flex: 0 0 auto; border: 1px solid var(--line); background: var(--paper); border-radius: 99px; padding: 6px 12px; font-size: 13px; }
+.compose { display: flex; gap: 8px; align-items: flex-end; padding: 8px 10px max(10px, env(safe-area-inset-bottom, 0px)); background: var(--card); }
+.compose textarea { resize: none; min-height: 44px; max-height: 160px; border-radius: 18px; }
+.compose .send { flex: 0 0 auto; border: 0; background: var(--ink); color: var(--paper); border-radius: 99px; padding: 11px 18px; font-weight: 600; }
+.empty { display: grid; place-items: center; text-align: center; color: var(--ink-2); padding: 40px 20px; }
+.setup { max-width: 440px; margin: 40px auto; padding: 0 18px; display: grid; gap: 12px; }
+.setup h1 { font-family: var(--f-display); font-size: 30px; }
+.setup label { display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
+.setup .go { border: 0; background: var(--ink); color: var(--paper); border-radius: 12px; padding: 12px; font-weight: 600; }
+.setup .err { color: var(--warn); }
+.toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 12px; font-size: 14px; max-width: 90vw; z-index: 50; }
+.demo-note { padding: 6px 12px; background: var(--sand); font-size: 12.5px; text-align: center; }
+@media (max-width: 760px) {
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .main.open .list { display: none; } .main:not(.open) .chat { display: none; }
+  .chead .back { display: block; }
+  .list { border-right: 0; }
+}
+</style>
+</head>
+<body class="real">
+
+<div id="app"></div>
+<div class="toast" id="toast" hidden></div>
+<script src="../config.js"></script>
+<script>var C = window.LANA_CONFIG || {}; var APP = { WORKER: C.INBOX_URL || '' };</script>
+<script>
+
+(function () {
+  'use strict';
+  var demo = !!window.INBOX_DEMO, $ = function (id) { return document.getElementById(id); };
+  var C = window.LANA_CONFIG || {};
+  var S = { url: '', key: '', threads: [], cur: null, msgs: {}, filter: 'all', q: '', lastId: {}, unread: 0, cfg: null, by: '' };
+  try { S.url = localStorage.getItem('lana-inbox-url') || APP.WORKER || ''; S.key = localStorage.getItem('lana-inbox-key') || ''; S.by = localStorage.getItem('lana-inbox-by') || ''; } catch (e) {}
+  var CH = { line: ['LINE', 'L'], fb: ['Facebook', 'f'], ig: ['Instagram', 'IG'], tiktok: ['TikTok', 'T'] };
+  var TAGS = ['รอตอบ', 'สนใจ', 'จองแล้ว'];
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function toast(m) { var t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { t.hidden = true; }, 3400); }
+  function ago(ms) { var d = (Date.now() - ms) / 60000; if (d < 1) return 'เมื่อกี้'; if (d < 60) return Math.floor(d) + ' นาที'; var t = new Date(ms), n = new Date(); if (t.toDateString() === n.toDateString()) return pad(t.getHours()) + ':' + pad(t.getMinutes()); return t.getDate() + '/' + (t.getMonth() + 1); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function hm(ms) { var t = new Date(ms); return pad(t.getHours()) + ':' + pad(t.getMinutes()); }
+
+  /* ---------- server (Cloudflare worker) or the demo stand-in ---------- */
+  function call(path, body) {
+    if (demo) return DEMO.call(path, body);
+    return fetch(S.url.replace(/\/+$/, '') + path, { method: body ? 'POST' : 'GET', headers: { Authorization: 'Bearer ' + S.key, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined })
+      .then(function (r) { return r.json(); }, function () { throw new Error('NET'); })
+      .then(function (j) { if (!j.ok) throw new Error(j.error || 'ERR'); return j; });
+  }
+  /* Lana backend (Apps Script): free-slot table and menu, using the station tablet's settings on this device */
+  function lana(app, action, data) {
+    if (demo) return Promise.resolve(DEMO.lana(app, action, data));
+    if (!C.API_URL) return Promise.reject(new Error('NO_LANA'));
+    var k = '', br = ''; try { k = localStorage.getItem('lana-kiosk-key') || ''; br = localStorage.getItem('lana-kiosk-branch') || ''; } catch (e) {}
+    return fetch(C.API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ app: app, action: action, kiosk: k, branch: br }, data || {})) })
+      .then(function (r) { return r.json(); }).then(function (j) { if (!j.ok) throw new Error(j.error); return j.data; });
+  }
+  var ERR = { KEY: 'รหัสผ่าน Inbox ไม่ถูกต้อง', NET: 'เชื่อมต่อไม่ได้ ลองใหม่', WINDOW_24H: 'เกิน 24 ชั่วโมงหลังลูกค้าทักล่าสุด Facebook/IG ไม่ให้ส่งแล้ว ต้องรอลูกค้าทักมาใหม่',
+    LINE_QUOTA: 'โควตาข้อความ LINE OA เดือนนี้หมดแล้ว ตอบในแอป LINE OA แทน หรืออัปแพ็กเกจ', CHANNEL_OFF: 'ช่องทางนี้ยังไม่ได้เปิดส่ง', KIOSK_KEY: 'ยังไม่ได้ตั้งรหัสแท็บเล็ตในเครื่องนี้ (ตั้งที่หน้ารับงานก่อน)', NO_LANA: 'ยังไม่ได้ตั้งลิงก์ระบบ Lana' };
+  function errT(e) { var k = String(e && e.message || e); return ERR[k] || (/^META_SEND/.test(k) ? 'Facebook/IG ส่งไม่ได้: ' + k.slice(10) : /^LINE_SEND/.test(k) ? 'LINE ส่งไม่ได้ (' + k.slice(10) + ')' : k); }
+
+  /* ---------- render ---------- */
+  function render() {
+    var app = $('app');
+    if (!demo && (!S.url || !S.key)) return setupView(app);
+    var list = S.threads.filter(function (t) {
+      if (S.filter === 'unread' && !t.unread) return false;
+      if (CH[S.filter] && t.channel !== S.filter) return false;
+      if (S.q && (t.name + ' ' + (t.last_text || '') + ' ' + (t.tag || '')).toLowerCase().indexOf(S.q.toLowerCase()) < 0) return false;
+      return true; });
+    var cur = S.threads.filter(function (t) { return t.id === S.cur; })[0];
+    var keepScroll = $('msgs') ? $('msgs').scrollHeight - $('msgs').scrollTop - $('msgs').clientHeight < 40 : true, draft = $('txt') ? $('txt').value : (S.draft || ''), focused = document.activeElement && document.activeElement.id;
+    var h = '<div class="ib">' +
+      '<div class="bar"><span class="brand">Lana<small>Inbox</small></span>' + (S.unread ? '<span class="tot">' + S.unread + '</span>' : '') + '<span class="sp"></span>' +
+      (('Notification' in window) && Notification.permission !== 'granted' ? '<button id="bell">เปิดแจ้งเตือน</button>' : '') + (demo ? '' : '<button id="gear">ตั้งค่า</button>') + '</div>' +
+      '<div class="main' + (cur ? ' open' : '') + '"><div class="list">' +
+      '<div>' + (demo ? '<div class="demo-note">ตัวอย่าง (ข้อมูลจำลอง) · จะมีแชทใหม่เด้งเข้ามาเรื่อยๆ</div>' : '') + '<div class="filters">' + [['all', 'ทั้งหมด'], ['unread', 'ยังไม่อ่าน'], ['line', 'LINE'], ['fb', 'Facebook'], ['ig', 'Instagram'], ['tiktok', 'TikTok']].map(function (f) {
+        var n = f[0] === 'all' ? 0 : f[0] === 'unread' ? S.threads.filter(function (t) { return t.unread; }).length : S.threads.filter(function (t) { return t.channel === f[0] && t.unread; }).length;
+        return '<button data-f="' + f[0] + '" aria-pressed="' + (S.filter === f[0]) + '">' + f[1] + (n ? ' · ' + n : '') + '</button>'; }).join('') + '</div>' +
+      '<div class="search"><input id="q" placeholder="ค้นหาชื่อ ข้อความ หรือป้าย" value="' + esc(S.q) + '"></div></div>' +
+      '<div class="threads">' + (list.length ? list.map(function (t) {
+        return '<button class="th" data-c="' + esc(t.id) + '" aria-current="' + (t.id === S.cur) + '">' + avatar(t) +
+          '<span style="min-width:0"><span class="nm">' + esc(t.name || 'ลูกค้า') + (t.tag ? '<span class="tagchip">' + esc(t.tag) + '</span>' : '') + '</span><br><span class="lt">' + esc(t.last_text || '') + '</span></span>' +
+          '<span class="rt"><span>' + ago(+t.last_at) + '</span>' + (t.unread ? '<span class="un">' + t.unread + '</span>' : '') + '</span></button>'; }).join('')
+        : '<div class="empty">' + (S.threads.length ? 'ไม่มีแชทตรงกับที่เลือก' : 'ยังไม่มีแชท<br>พอลูกค้าทักมาที่ LINE / Facebook / IG จะขึ้นที่นี่') + '</div>') + '</div></div>' +
+      '<div class="chat">' + (cur ? chatView(cur) : '<div></div><div></div><div class="empty">เลือกแชทด้านซ้าย</div><div></div><div></div>') + '</div></div></div>';
+    app.innerHTML = h;
+    var m = $('msgs'); if (m && (keepScroll || S.jump)) { m.scrollTop = m.scrollHeight; S.jump = false; }
+    if ($('txt')) { $('txt').value = draft; grow($('txt')); if (focused === 'txt') { $('txt').focus(); } }
+    if (focused === 'q' && $('q')) { $('q').focus(); $('q').setSelectionRange(S.q.length, S.q.length); }
+    document.title = (S.unread ? '(' + S.unread + ') ' : '') + 'Lana Inbox';
+  }
+  function avatar(t) { var c = CH[t.channel] || ['?', '?']; return '<span class="av">' + (t.pic ? '<img src="' + esc(t.pic) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : esc(String(t.name || '?').charAt(0).toUpperCase())) + '<span class="ch ' + esc(t.channel) + '" title="' + c[0] + '">' + c[1] + '</span></span>'; }
+  function chatView(t) {
+    var ms = S.msgs[t.id] || [], lastDay = '', h = '';
+    var left = t.channel === 'fb' || t.channel === 'ig' ? 24 * 3600000 - (Date.now() - (+t.last_in_at || 0)) : null;
+    var warn = left != null ? (left <= 0 ? 'เกิน 24 ชม. หลังลูกค้าทักล่าสุด: Facebook/IG ไม่ให้ส่งข้อความแล้ว รอลูกค้าทักมาใหม่' : left < 3 * 3600000 ? 'ต้องตอบภายใน ' + Math.ceil(left / 3600000) + ' ชม. (กติกา Facebook/IG 24 ชม.)' : '')
+      : t.channel === 'line' ? 'LINE: ตอบภายใน 1 นาทีหลังลูกค้าทักไม่เสียโควตา ช้ากว่านั้นนับเป็นข้อความ push' : '';
+    ms.forEach(function (m) {
+      var d = new Date(+m.at).toDateString(); if (d !== lastDay) { lastDay = d; h += '<div class="day">' + new Date(+m.at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }) + '</div>'; }
+      if (m.kind === 'event') { h += '<div class="bub ev">' + esc(m.text) + ' · ' + hm(+m.at) + '</div>'; return; }
+      var body = m.kind === 'image' ? (m.media ? '<img src="' + esc(mediaUrl(m.media)) + '" alt="รูปจากลูกค้า" loading="lazy">' : '[รูปภาพ]') : m.kind === 'sticker' ? '[สติกเกอร์]' : m.kind !== 'text' ? '[' + esc(m.kind) + ']' + (m.media ? ' <a href="' + esc(mediaUrl(m.media)) + '" target="_blank" rel="noopener">เปิด</a>' : '') : esc(m.text);
+      h += '<div class="bub ' + (m.dir === 'out' ? 'out' : 'in') + '">' + body + '<span class="tm">' + (m.dir === 'out' && m.by ? esc(m.by) + ' · ' : '') + hm(+m.at) + '</span></div>';
+    });
+    var c = CH[t.channel] || [t.channel];
+    return '<div class="chead"><button class="back" data-back aria-label="กลับ">‹</button>' + avatar(t) + '<span class="who"><b>' + esc(t.name || 'ลูกค้า') + '</b><span>' + esc(c[0]) + '</span></span>' +
+      '<span class="tags">' + TAGS.map(function (g) { return '<button data-tag="' + g + '" aria-pressed="' + (t.tag === g) + '">' + g + '</button>'; }).join('') + '</span></div>' +
+      (warn ? '<div class="warnbar">' + esc(warn) + '</div>' : '<div></div>') +
+      '<div class="msgs" id="msgs">' + (h || '<div class="empty">กำลังโหลด…</div>') + '</div>' +
+      '<div class="quick">' + [['q-today', 'คิวว่างวันนี้'], ['q-tmr', 'คิวว่างพรุ่งนี้'], ['menu', 'เมนูราคา'], ['book', 'ลิงก์จอง'], ['pay', 'วิธีจ่าย'], ['hi', 'ทักทาย']].map(function (q) { return '<button data-qr="' + q[0] + '">' + q[1] + '</button>'; }).join('') + '</div>' +
+      '<div class="compose"><textarea id="txt" rows="1" placeholder="พิมพ์ข้อความ… (แก้ได้ก่อนส่ง)"></textarea><button class="send" id="send"' + (left != null && left <= 0 ? ' disabled' : '') + '>ส่ง</button></div>';
+  }
+  function mediaUrl(m) { if (/^https?:/.test(m)) return m; if (demo) return ''; return S.url.replace(/\/+$/, '') + '/api/media?m=' + encodeURIComponent(m) + '&k=' + encodeURIComponent(S.key); }
+  function grow(t) { t.style.height = 'auto'; t.style.height = Math.min(160, t.scrollHeight + 2) + 'px'; }
+  function setupView(app) {
+    app.innerHTML = '<div class="setup"><h1>Lana Inbox</h1><p>ตั้งค่าครั้งแรกในเครื่องนี้ (ดูค่าในคู่มือ)</p>' +
+      '<label>ลิงก์ Worker (Cloudflare)<input id="s-url" placeholder="https://lana-inbox.xxxx.workers.dev" value="' + esc(S.url) + '"></label>' +
+      '<label>รหัสผ่าน Inbox<input id="s-key" type="password" value=""></label>' +
+      '<label>ชื่อคนตอบในเครื่องนี้ (ไม่ใส่ก็ได้)<input id="s-by" placeholder="เช่น แอน" value="' + esc(S.by) + '"></label>' +
+      (S.err ? '<span class="err">' + esc(S.err) + '</span>' : '') + '<button class="go" id="s-go">เข้าใช้งาน</button></div>';
+  }
+
+  /* ---------- data loading ---------- */
+  var beeped = 0;
+  function loadThreads() {
+    return call('/api/threads').then(function (r) {
+      var sig = JSON.stringify(r.threads); if (sig === S.sig && !S.err) return; S.sig = sig;
+      var before = S.unread; S.threads = r.threads; S.unread = r.threads.reduce(function (s, t) { return s + (+t.unread || 0); }, 0);
+      if (S.unread > before && beeped) notify(r.threads.filter(function (t) { return t.unread; })[0]);
+      beeped = 1;
+      if (S.cur && !S.threads.some(function (t) { return t.id === S.cur; })) S.cur = null;
+      render();
+    }).catch(function (e) { if (String(e.message) === 'KEY') { S.key = ''; S.err = errT(e); try { localStorage.removeItem('lana-inbox-key'); } catch (x) {} render(); } });
+  }
+  function loadMsgs(full) {
+    var c = S.cur; if (!c) return Promise.resolve();
+    var after = full ? 0 : (S.lastId[c] || 0);
+    return call('/api/msgs?c=' + encodeURIComponent(c) + (after ? '&after=' + after : '')).then(function (r) {
+      if (S.cur !== c) return;
+      var have = {}; (full ? [] : (S.msgs[c] || [])).forEach(function (m) { have[m.id] = 1; });
+      var add = r.msgs.filter(function (m) { return !have[m.id]; });   /* two polls in flight can bring the same message */
+      S.msgs[c] = full ? r.msgs : (S.msgs[c] || []).concat(add);
+      if (r.msgs.length) S.lastId[c] = Math.max(S.lastId[c] || 0, r.msgs[r.msgs.length - 1].id);
+      if (add.length || full) render();
+      var t = S.threads.filter(function (x) { return x.id === c; })[0];
+      if (t && t.unread && !document.hidden) { S.unread -= t.unread; t.unread = 0; call('/api/read', { c: c }).catch(function () {}); render(); }
+    }).catch(function (e) { toast(errT(e)); });
+  }
+  function notify(t) {
+    try { var a = new (window.AudioContext || window.webkitAudioContext)(), o = a.createOscillator(), g = a.createGain(); o.frequency.value = 880; g.gain.value = .08; o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + .18); } catch (e) {}
+    if (t && document.hidden && ('Notification' in window) && Notification.permission === 'granted') {
+      try { var n = new Notification((CH[t.channel] || ['แชท'])[0] + ' · ' + (t.name || 'ลูกค้า'), { body: t.last_text || '', tag: t.id, icon: 'icon-192.png' }); n.onclick = function () { window.focus(); open(t.id); n.close(); }; } catch (e) {}
+    }
+  }
+  function open(id) { S.cur = id; S.jump = true; if (!S.msgs[id]) S.msgs[id] = null; render(); loadMsgs(true); }
+
+  /* ---------- quick replies (filled into the box, edit before sending) ---------- */
+  function quick(kind) {
+    var put = function (txt) { var t = $('txt'); if (!t) return; t.value = (t.value ? t.value.replace(/\s+$/, '') + '\n\n' : '') + txt; grow(t); t.focus(); };
+    if (kind === 'q-today' || kind === 'q-tmr') return lana('station', 'sQueueText', { tomorrow: kind === 'q-tmr' }).then(function (r) { put(r.text); }).catch(function (e) { toast(errT(e)); });
+    if (kind === 'menu') return menuText().then(put).catch(function (e) { toast(errT(e)); });
+    if (kind === 'book') return put(C.CUST_LIFF_ID ? 'จองคิวและดูเวลาว่างได้ที่ลิงก์นี้เลยค่ะ\nBook online here:\nhttps://liff.line.me/' + C.CUST_LIFF_ID : 'จองคิวได้ที่ LINE ของร้านเลยค่ะ หรือแจ้งวันเวลาที่สะดวกได้เลยนะคะ\nYou can book through our LINE, or just tell us the day and time.');
+    if (kind === 'pay') return put('ร้านรับชำระด้วย QR พร้อมเพย์ หรือบัตรเครดิต/เดบิตค่ะ (ไม่รับเงินสด)\nWe accept Thai QR (PromptPay) or credit/debit card. Cashless shop.');
+    if (kind === 'hi') return put('สวัสดีค่ะ Lana Sleep Salon & Massage ยินดีให้บริการค่ะ 😊\nHello from Lana Sleep Salon & Massage! How can we help?');
+  }
+  function menuText() {
+    var mk = function (cfg) {
+      var ps = (cfg.programs || []).filter(function (p) { return !p.hidden && (p.cat === 'hair' || p.cat === 'set'); });
+      var row = function (p) { return '• ' + p.name_th + ' ' + Number(p.price).toLocaleString('en-US') + '.-' + (p.name_en ? '\n  ' + p.name_en : ''); };
+      return 'เมนูสปาผม · Head spa menu\n' + ps.filter(function (p) { return p.cat === 'hair'; }).map(row).join('\n') +
+        (ps.some(function (p) { return p.cat === 'set'; }) ? '\n\nเซ็ต นวด + สปาผม · Massage + head spa\n' + ps.filter(function (p) { return p.cat === 'set'; }).map(row).join('\n') : '') +
+        '\n\nผมยาวคิดเพิ่มตามความยาว · Long hair: small extra';
+    };
+    if (S.cfg) return Promise.resolve(mk(S.cfg));
+    return lana('cust', 'config').then(function (cfg) { S.cfg = cfg; return mk(cfg); });
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest('button'); if (!el) return; var d = el.dataset;
+    if (el.id === 's-go') {
+      S.url = $('s-url').value.trim(); S.key = $('s-key').value.trim(); S.by = $('s-by').value.trim(); S.err = '';
+      try { localStorage.setItem('lana-inbox-url', S.url); localStorage.setItem('lana-inbox-key', S.key); localStorage.setItem('lana-inbox-by', S.by); } catch (x) {}
+      return loadThreads();
+    }
+    if (el.id === 'gear') { S.key = ''; S.err = ''; return render(); }
+    if (el.id === 'bell') { try { Notification.requestPermission().then(function () { render(); }); } catch (x) {} return; }
+    if (d.f) { S.filter = d.f; return render(); }
+    if (d.c) return open(d.c);
+    if (d.back !== undefined) { S.cur = null; return render(); }
+    if (d.tag) { var t = S.threads.filter(function (x) { return x.id === S.cur; })[0]; if (!t) return; t.tag = t.tag === d.tag ? '' : d.tag; render(); return call('/api/tag', { c: t.id, tag: t.tag }).catch(function (x) { toast(errT(x)); }); }
+    if (d.qr) return quick(d.qr);
+    if (el.id === 'send') return send();
+  });
+  function send() {
+    var t = $('txt'), text = t.value.trim(), c = S.cur; if (!text || !c) return;
+    var b = $('send'); b.disabled = true;
+    call('/api/send', { c: c, text: text, by: S.by }).then(function (r) {
+      t.value = ''; grow(t); b.disabled = false; if (r.paid) toast('ส่งแล้ว (LINE นับเป็นข้อความ push)'); loadMsgs(false); loadThreads();
+    }).catch(function (e) { b.disabled = false; toast(errT(e)); });
+  }
+  document.addEventListener('input', function (e) { if (e.target.id === 'q') { S.q = e.target.value; render(); } if (e.target.id === 'txt') grow(e.target); });
+  document.addEventListener('keydown', function (e) { if (e.target.id === 'txt' && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); } });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && S.cur) loadMsgs(false); });
+
+  if (!demo && 'serviceWorker' in navigator) { try { navigator.serviceWorker.register('sw.js'); } catch (e) {} }
+  render();
+  if (demo || (S.url && S.key)) loadThreads();
+  setInterval(function () { if (demo || (S.url && S.key)) loadThreads(); }, 6000);
+  setInterval(function () { if (S.cur && !document.hidden) loadMsgs(false); }, 3000);
+})();
+</script>
+
+</body>
+</html>

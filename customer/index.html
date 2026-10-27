@@ -297,6 +297,9 @@ body.netbusy::before { content: ''; position: fixed; z-index: 9999; left: 0; top
 button.working { position: relative; opacity: .75; }
 button.working::after { content: ''; position: absolute; right: 10px; top: 50%; width: 16px; height: 16px; margin-top: -8px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.addon.top { border: 2px solid #a4502f; background: color-mix(in srgb, #a4502f 7%, var(--card, #fff)); margin-bottom: 12px; }
+.addon.top .t { font-weight: 700; }
+.addon.top .badge { background: #a4502f; color: #fff; }
 </style>
 </head>
 <body class="real">
@@ -652,13 +655,17 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
       u.people.forEach(function (pe, i) {
         h += '<div class="person"><b>' + (i === 0 ? t('คุณ', 'You') : t('คนที่ ', 'Guest ') + (i + 1)) + '</b>';
         if (i > 0) h += '<input data-pn="' + i + '" placeholder="' + t('ชื่อ', 'Name') + '" value="' + esc(pe.name) + '">';
+        /* upgrades first, in a big recommended box (defined below, hoisted as var) */
+        h += '<!--UP' + i + '-->';
         if (p.hair) h += '<span class="hint">' + t('ผมยาวแค่ไหน', 'How long is the hair?') + '</span><div class="hair">' + S.cfg.hair.map(function (x) {
           return '<button class="opt" data-hair="' + i + ':' + x.id + '" aria-pressed="' + (pe.hair === x.id) + '">' + hairSvg(x.id) + '<span class="t" style="font-size:13px">' + esc(nm(x)) + '</span><span class="s">' + (x.price && !p.hairFree ? '+' + baht(x.price) : t('ไม่เพิ่ม', 'no extra')) + '</span></button>'; }).join('') + '</div>';
-        h += opts.map(function (a) {
-          var tf = i === 0 && tierFree().indexOf(a.id) >= 0, v = tf || (i === 0 && free.indexOf(a.id) >= 0), on = pe.addons.indexOf(a.id) >= 0;
-          return '<label class="addon"><input type="checkbox" data-addon="' + i + ':' + a.id + '"' + (on ? ' checked' : '') + '><span><span class="t">' + esc(nm(a)) + '</span>' + (a.rec ? ' <span class="badge">' + t('ลูกค้าส่วนใหญ่เลือก', 'Most popular') + '</span>' : '') +
+        var addonH = function (a) {
+          var top = /^UP/.test(a.id), tf = i === 0 && tierFree().indexOf(a.id) >= 0, v = tf || (i === 0 && free.indexOf(a.id) >= 0), on = pe.addons.indexOf(a.id) >= 0;
+          return '<label class="addon' + (top ? ' top' : '') + '"><input type="checkbox" data-addon="' + i + ':' + a.id + '"' + (on ? ' checked' : '') + '><span><span class="t">' + esc(nm(a)) + '</span>' + (top ? ' <span class="badge">' + t('แนะนำ', 'Recommended') + '</span>' : a.rec ? ' <span class="badge">' + t('ลูกค้าส่วนใหญ่เลือก', 'Most popular') + '</span>' : '') +
             '<br><span class="s">' + esc(S.lang === 'en' ? a.desc_en : a.desc_th) + (a.min ? ' · +' + a.min + ' ' + t('นาที', 'min') : '') + '</span></span><span class="p">' + (v ? '<span class="strike">' + baht(a.price) + '</span><br>' + (tf ? esc(tierName()) : t('ฟรี', 'Free')) : '+' + baht(a.price)) + '</span></label>';
-        }).join('');
+        };
+        h += opts.filter(function (a) { return !/^UP/.test(a.id); }).map(addonH).join('');
+        h = h.replace('<!--UP' + i + '-->', opts.filter(function (a) { return /^UP/.test(a.id); }).map(addonH).join(''));
         h += prefsHtml(p, pe, String(i));
         h += '</div>';
       });

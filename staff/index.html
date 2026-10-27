@@ -243,8 +243,8 @@ LANA.PROGRAMS = [
     desc_th: 'เวอร์ชันเต็มของเรา นวดนานเกือบเท่าตัว และบำรุงให้ผมแห้งเสียกลับมานุ่มลื่น หลายคนหลับไปตั้งแต่ครึ่งทาง', desc_en: 'Our full version: nearly twice the massage, plus a treatment that brings dry hair back to soft. Many guests fall asleep halfway.' }
 ];
 LANA.HAIR = [
-  { id: 'short', name_th: 'ไม่เกินสะบัก', name_en: 'Above shoulder blades', price: 0, min: 0 },
-  { id: 'blade', name_th: 'ใต้สะบัก ถึงกลางหลัง', name_en: 'Below blades to mid-back', price: 20, min: 5 },
+  { id: 'short', name_th: 'ไม่เกินหน้าอก', name_en: 'Up to the chest', price: 0, min: 0 },
+  { id: 'blade', name_th: 'ใต้หน้าอก ถึงกลางหลัง', name_en: 'Below the chest to mid-back', price: 20, min: 5 },
   { id: 'mid', name_th: 'กลางหลัง ถึงเอว', name_en: 'Mid-back to waist', price: 40, min: 10 },
   { id: 'waist', name_th: 'ยาวกว่าเอว', name_en: 'Below waist', price: 60, min: 15 }
 ];
@@ -252,18 +252,23 @@ LANA.HAIR = [
 LANA.ALERTS = [
   ['PREG', 'ตั้งครรภ์', 'Pregnant'], ['BP', 'ความดันสูง', 'High blood pressure'], ['OIL', 'แพ้น้ำมัน/ครีม', 'Allergic to oil or cream'],
   ['SCALP', 'หนังศีรษะแพ้ง่าย', 'Sensitive scalp'], ['SURG', 'เพิ่งผ่าตัด', 'Recent surgery'], ['NECK', 'ห้ามกดแรงที่คอ', 'No strong pressure on the neck'],
-  ['BACKP', 'ปวดหลัง/หมอนรองกระดูก', 'Back pain / disc problem'], ['TICK', 'จั๊กจี้ง่าย', 'Very ticklish']
+  ['BACKP', 'ปวดหลัง/หมอนรองกระดูก', 'Back pain / disc problem'], ['TICK', 'จั๊กจี้ง่าย', 'Very ticklish'],
+  ['HEART', 'โรคหัวใจ', 'Heart condition'], ['DIAB', 'เบาหวาน', 'Diabetes'], ['EPI', 'ลมชัก', 'Epilepsy'], ['MIGR', 'ไมเกรน/ปวดหัวบ่อย', 'Migraine'],
+  ['BLOOD', 'ทานยาละลายลิ่มเลือด', 'On blood thinners'], ['VEIN', 'เส้นเลือดขอด', 'Varicose veins'], ['BONE', 'กระดูกพรุน', 'Osteoporosis'],
+  ['SKIN', 'มีแผล/ผื่น/โรคผิวหนัง', 'Wound, rash or skin condition'], ['FEVER', 'มีไข้/ไม่สบาย', 'Fever or unwell']
 ];
 LANA.STYLES = [
   { id: 'normal', name_th: 'เป่าแห้งธรรมดา', name_en: 'Simple blow-dry', price: 0, min: 0 },
   { id: 'dstraight', name_th: 'ไดร์หนีบตรง ด้วย Dyson', name_en: 'Straight blow-dry with Dyson', price: 59, fee: 10, min: 5 },
   { id: 'dcurls', name_th: 'ไดร์ผมลอนสั้น ด้วย Dyson (ประบ่า)', name_en: 'Short curls with Dyson (shoulder length)', price: 69, fee: 10, min: 10 },
   { id: 'dcurll', name_th: 'ไดร์ผมลอนยาว ด้วย Dyson', name_en: 'Long curls with Dyson', price: 89, fee: 15, min: 15 },
-  { id: 'dvolume', name_th: 'ไดร์เพิ่มโวลุ่ม', name_en: 'Volume blow-dry', price: 59, fee: 10, min: 5 },
-  { id: 'dfarrah', name_th: 'ไดร์ลอนฟาร่า', name_en: 'Farrah curls blow-dry', price: 99, fee: 15, min: 15 }
+  { id: 'dvolume', name_th: 'ไดร์เพิ่มโวลุ่ม', name_en: 'Volume blow-dry', price: 59, fee: 10, min: 5 }
 ];
 /* for: programs that can take this add-on. seat: where the extra minutes go (wash / first seat / none) */
 LANA.ADDONS = [
+  /* partner free ticket (45 min) -> the full 60-min head spa for 200 more; the technician gets 20 (10%) on top of the partner fee */
+  { id: 'UP60', name_th: 'อัปเกรดเป็นสปาศีรษะ 60 นาทีเต็ม (โปร 399)', name_en: 'Upgrade to the full 60-min head spa', price: 200, fee: 20, min: 15, seat: 'wash', for: 'PART45', rec: 'TRUE',
+    desc_th: 'จาก 45 นาที เป็น 60 นาที นวดศีรษะนานขึ้น ได้ครบเหมือนโปร 399 จ่ายเพิ่มแค่ 200', desc_en: 'From 45 to 60 minutes: a longer head massage, the full ฿399 treatment for just ฿200 more.' },
   { id: 'KERA', name_th: 'เคราติน', name_en: 'Keratin', price: 100, fee: 10, min: 0, seat: '', for: 'HAIR', rec: 'TRUE',
     desc_th: 'ช่วยฟื้นฟูบำรุงผมเสีย ผมแห้งเสีย ลดความชี้ฟู ทำให้ผมนุ่มลื่น มีน้ำหนัก เงางามขึ้นอย่างเป็นธรรมชาติ', desc_en: 'Repairs dry, damaged hair and calms frizz. Soft, smooth hair with natural weight and shine.' },
   { id: 'GLASS', name_th: 'เคลือบแก้ว', name_en: 'Glass gloss', price: 150, fee: 15, min: 0, seat: '', for: 'HAIR', rec: 'FALSE',
@@ -965,7 +970,7 @@ function apiFinish(me, req, store, now) {
   if (req.skip && now.min < end) lnDropExt(b, (b.live || []).filter(function (r) { return r.pi === 0 && r.end > now.min; }), now.min);   /* unused extra time is not charged */
   if (req.skip) { b.earlyByStaff = true; store.log(me.id, b.id, 'early_by_staff', lnHM(now.min) + ' / end ' + lnHM(end) + (left.length ? ' / skip ' + left.map(function (r) { return r.res + r.unit; }).join(',') : '')); }
   b.status = 'finished'; b.finishedAt = now.min;
-  store.saveBooking(b); store.log(me.id, b.id, 'finish', lnHM(now.min) + ' / end ' + lnHM(end));
+  store.saveBooking(b); store.log(me.id, b.id, 'finish', lnHM(now.min) + ' / end ' + lnHM(end)); lnAutoDone(store, now);
   return apiFeed(me, store, now);
 }
 /* guaranteed minimum per day for part-timers on days they clocked in: the shop tops their pay (without tips) up to DAILY_MIN */
@@ -1010,7 +1015,7 @@ function lnAutoClockOut(store, now) {
 }
 function staffTick(store, now) {
   lnAutoClockOut(store, now);
-  lnStationTick(store, now);
+  lnStationTick(store, now); lnAutoDone(store, now);
   /* a job from an earlier day that nobody ended (therapist forgot to press finish): close it so it does not block anyone */
   store.bookings().forEach(function (b) {
     if (b.date >= now.date) return;
@@ -1125,6 +1130,7 @@ function ownerApi(req, store, now) {
   function brOf(o) { var b = o.bookingId ? lnFind(bks, o.bookingId) : null; return b ? b.branch : 'LINE'; }
   function inBr(id) { return br === 'ALL' || id === br; }
   function who(o, b) { var m = o && o.memberId ? lnFind(members, o.memberId) : b && b.memberId ? lnFind(members, b.memberId) : null; return m ? m.name : b ? b.people.map(function (p) { return p.name; }).join(', ') : ''; }
+  var PAYM = { cash: 'เงินสด', card: 'บัตร (เครื่องรูด)' };
   var KIND = { refund: 'คืนเงิน', walkin: 'หน้าร้าน', book: 'จองใน LINE', buy: 'ซื้อคอร์ส', upcourse: 'อัปเป็นคอร์ส', checkout: 'ส่วนเพิ่มตอนจบ' };
   function what(o, b) {
     var p = lnFind(LANA.PROGRAMS, o.prog || (b && b.people[0].prog)) || {}, n = +o.count || 1;
@@ -1157,7 +1163,7 @@ function ownerApi(req, store, now) {
       if (String(o.paidAt).slice(0, 10) !== date) return;
       var b = o.bookingId ? lnFind(bks, o.bookingId) : null, tip = tipOf(o);
       if (b && (o.kind === 'walkin' || o.kind === 'book')) paidVisit[b.id] = 1;
-      rows.push({ time: String(o.paidAt).slice(11, 16), name: who(o, b), what: what(o, b), kind: KIND[o.kind] || o.kind, branch: brOf(o), amount: +o.amount - tip, tip: tip, q: b ? b.q || '' : '' });
+      rows.push({ time: String(o.paidAt).slice(11, 16), name: who(o, b), what: what(o, b), kind: KIND[o.kind] || o.kind, branch: brOf(o), amount: +o.amount - tip, tip: tip, q: b ? b.q || '' : '', pay: o.kind === 'refund' ? 'คืนเงิน' : PAYM[o.method] || 'Beam', by: o.paidBy ? ((lnFind(staff, o.paidBy) || {}).name || o.paidBy) : '' });
     });
     /* visits paid earlier with a course ticket: no money today, listed so the day is complete */
     bks.forEach(function (b) {
@@ -1168,7 +1174,7 @@ function ownerApi(req, store, now) {
     });
     rows.sort(function (a, b) { return a.time < b.time ? -1 : 1; });
     var tot = { sales: 0, tips: 0, bills: 0, byKind: {} };
-    rows.forEach(function (r) { tot.sales += r.amount; tot.tips += r.tip; if (r.amount > 0 || r.tip) tot.bills++; tot.byKind[r.kind] = (tot.byKind[r.kind] || 0) + r.amount; });
+    tot.byPay = {}; rows.forEach(function (r) { tot.sales += r.amount; tot.tips += r.tip; if (r.amount > 0 || r.tip) tot.bills++; tot.byKind[r.kind] = (tot.byKind[r.kind] || 0) + r.amount; if (r.pay) tot.byPay[r.pay] = (tot.byPay[r.pay] || 0) + r.amount + r.tip; });
     var guests = 0; bks.forEach(function (b) { if (inBr(b.branch) && b.date === date && (b.status === 'finished' || b.status === 'done')) guests += b.people.length; });
     var dayPay = pay.filter(function (p) { return p.date === date; }).map(function (p) { return { name: p.name, jobs: p.jobs, fee: Math.round(p.fee), tips: p.tips, total: Math.round(p.fee + p.tips) }; });
     tot.payroll = dayPay.reduce(function (t, p) { return t + p.total; }, 0);
@@ -1325,7 +1331,7 @@ function stationApi(req, store, now) {
   var br = lnFind(store.branches(), String(req.branch || '').toUpperCase()); if (!br) throw new Error('BAD_BRANCH');
   var a = req.action;
   return store.lock(function () {
-    lnStationTick(store, now); lnDuty(store, now);
+    lnStationTick(store, now); lnAutoDone(store, now); lnDuty(store, now);
     if (a === 'sBoard') return stBoard(br, store, now);
     /* booking taken by phone / Facebook page: seats are held, the guest pays at the counter tablet when they arrive */
     if (a === 'sBookInfo') {
@@ -1376,6 +1382,8 @@ function stationApi(req, store, now) {
     }
     /* appointment grid: beds across the top, time down the side; tap a booking to move or cancel it */
     if (a === 'sSched') return stSched(br, store, now, String(req.date || now.date));
+    /* the same free-slot table as "ขอคิววันนี้" in LINE, for the chat inbox's quick reply */
+    if (a === 'sQueueText') return { text: lnQueueText(store, now, req.tomorrow ? 'พรุ่งนี้' : 'วันนี้', [br.id]) };
     if (a === 'sMoveSlots') {
       var mb = stOwnBooking(store, br, req.id), md = String(req.date || mb.date);
       if (!cDateOK(md, now)) throw new Error('BAD_TIME');
@@ -1413,6 +1421,30 @@ function stationApi(req, store, now) {
         items: JSON.stringify([{ th: 'คืนเงิน ' + (db.q || '') + (mode === 'keep' ? ' (ค่าของเพิ่ม)' : ''), en: 'Refund', amount: -refund }]), label: 'Refund ' + (db.q || ''), createdAt: cStamp(now), paidAt: cStamp(now) });
       store.log('', db.id, 'drop_' + mode, (db.q || '') + ' refund ' + refund + ' by ' + String(req.by || '').slice(0, 30));
       return stBoard(br, store, now);
+    }
+    /* money taken at the counter (cash or the card machine): staff PIN says who took it */
+    if (a === 'sCounterPay') {
+      var po = null;
+      if (/^B:/.test(String(req.id))) {   /* balance of a finished visit (upgrade / extras) paid at the counter */
+        var db0 = lnFind(store.bookings(), String(req.id).slice(2)); if (!db0 || db0.branch !== br.id || db0.status !== 'finished') throw new Error('NOT_NOW');
+        var due0 = lnSum(db0.due || []); if (!(due0 > 0)) throw new Error('NOT_NOW');
+        po = { id: 'O' + lnId(9), memberId: db0.memberId || '', kind: 'checkout', amount: due0, status: 'pending', prog: '', count: 1, bookingId: db0.id, beamId: '', beamUrl: '', items: JSON.stringify(db0.due || []), label: 'Lana balance', createdAt: cStamp(now), paidAt: '' };
+      } else po = lnFind(store.orders(), req.id);
+      if (!po) throw new Error('NOT_FOUND');
+      var payer = lnFind(store.staff(), req.staffId); if (!payer || payer.branch !== br.id) throw new Error('BAD_STAFF');
+      if (!String(payer.pin || '').trim() || String(req.pin || '').trim() !== String(payer.pin).trim()) throw new Error('BAD_PIN');
+      if (po.status === 'paid') throw new Error('ALREADY_PAID');
+      if (po.status !== 'pending' && po.status !== 'expired' && po.status !== 'cancelled') throw new Error('NOT_NOW');
+      /* the guest may have paid on Beam a moment ago: check first so nobody pays twice */
+      var bst = ''; try { if (po.beamId) bst = String(store.beamStatus(po.beamId) || '').toUpperCase(); } catch (e) {}
+      if (bst === 'PAID') { cFulfil(store, po, now); return { paidBy: 'beam', board: stBoard(br, store, now) }; }
+      try { if (po.beamId) store.beamDisable(po.beamId); } catch (e) {}
+      var pb0 = po.bookingId ? lnFind(store.bookings(), po.bookingId) : null;
+      po.status = 'pending'; po.method = 'card';   /* cashless shop: the counter takes cards only */ po.paidBy = payer.id; store.saveOrder(po);
+      cFulfil(store, po, now);
+      store.log(payer.id, po.bookingId || '', 'paid_' + po.method, po.id + ' ' + po.amount);
+      var pbk = po.bookingId ? lnFind(store.bookings(), po.bookingId) : null;
+      return { paidBy: po.method, q: pbk ? pbk.q || '' : '', status: pbk ? pbk.status : '', board: stBoard(br, store, now) };
     }
     if (a === 'sClock') {   /* clock in/out at the station tablet (for staff without the LINE app, e.g. part-timers called in) */
       var who = lnFind(store.staff(), req.staffId); if (!who || who.branch !== br.id) throw new Error('BAD_STAFF');
@@ -1455,6 +1487,19 @@ function stationApi(req, store, now) {
       return stBoard(br, store, now);
     }
     /* sell an add-on or a Dyson style during the visit (hair treatments): added to the bill, paid at checkout. Tap again to take it off */
+    if (a === 'sChangeProg') {   /* pressed the wrong treatment, or the guest switched: price difference is collected at the end */
+      if (['inservice', 'finished', 'done'].indexOf(b.status) < 0) throw new Error('NOT_NOW');
+      var np = lnFind(LANA.PROGRAMS, req.prog); if (!np || !lnOnSale(np) || !lnProgAt(np, br)) throw new Error('NOT_HERE');
+      var p0 = b.people[0], from = lnFind(LANA.PROGRAMS, p0.fromProg || p0.prog) || {}, n = b.people.length;
+      b.due = (b.due || []).filter(function (d) { return d.kind !== 'prog'; });
+      b.people.forEach(function (pe) { if (!pe.fromProg) pe.fromProg = pe.prog; pe.prog = np.id; pe.value = +np.price; });
+      if (np.id === from.id) b.people.forEach(function (pe) { delete pe.fromProg; });
+      var diff = (+np.price - (+from.price || 0)) * n;
+      if (diff > 0) b.due.push({ kind: 'prog', id: np.id, th: 'เปลี่ยนเป็น ' + np.name_th, en: 'Changed to ' + (np.name_en || np.name_th), amount: diff });
+      if (b.status === 'done' && diff > 0) { b.status = 'finished'; b.paidDue = false; }   /* reopened so the difference can be paid */
+      store.saveBooking(b); store.log(String(req.by || b.staffId || ''), b.id, 'change_prog', (from.id || '') + ' -> ' + np.id + ' diff ' + diff);
+      return { diff: diff, board: stBoard(br, store, now) };
+    }
     if (a === 'sUpsell') {
       if (b.status !== 'inservice') throw new Error('NOT_NOW');
       var pe = b.people[0], pg = lnFind(LANA.PROGRAMS, pe.prog) || {}; b.due = b.due || [];
@@ -1484,7 +1529,7 @@ function stationApi(req, store, now) {
       if (now.min < end) lnDropExt(b, (b.live || []).filter(function (r) { return r.pi === 0 && r.end > now.min; }), now.min);   /* unused extra time is not charged */
       if (!b.staffId && b.handoff) { var last = (b.live || []).filter(function (x) { return x.staffId; }).pop(); if (last) b.staffId = last.staffId; }
       b.handoff = false; b.status = 'finished'; b.finishedAt = now.min; b.earlyByStaff = now.min < end;
-      store.saveBooking(b); store.log(b.staffId || '', b.id, 'finish_station', lnHM(now.min) + ' / end ' + lnHM(end));
+      store.saveBooking(b); store.log(b.staffId || '', b.id, 'finish_station', lnHM(now.min) + ' / end ' + lnHM(end)); lnAutoDone(store, now);
       return stBoard(br, store, now);
     }
     if (a === 'sUndo') {   /* taken by mistake / not started yet: put the guest back in the queue, no pay */
@@ -1509,7 +1554,16 @@ function stationApi(req, store, now) {
   });
 }
 /* the clock moves station visits along: next step when its time comes, finished at the end (not while handed back) */
+/* finished with nothing more to pay: close it at once (no need to stop at the kiosk to rate and tip) */
+function lnAutoDone(store, now) {
+  store.bookings().forEach(function (b) {
+    if (b.status !== 'finished' || lnSum(b.due || []) > 0) return;
+    var o = b.orderId ? lnFind(store.orders(), b.orderId) : null; if (o && o.kind === 'checkout' && o.status === 'pending') return;
+    cCheckoutDone(store, b, now); b.autoClosed = true; store.saveBooking(b);
+  });
+}
 function lnStationTick(store, now) {
+  lnAutoDone(store, now);
   store.bookings().forEach(function (b) {
     if (b.date !== now.date || b.status !== 'inservice' || !b.auto || b.handoff) return;
     var changed = false;
@@ -1600,7 +1654,7 @@ function stSlip(b, br, store) {
     }), ext: +b.ext || 0 };
 }
 /* backend version: the station page warns when the Apps Script deployment is older than the page */
-var LN_BUILD = 60;
+var LN_BUILD = 61;
 /* a guest who booked ahead (LINE / phone) and whose time has come */
 function stBookedDue(b, now) { var t = +b.bookedFor || b.people[0].alloc[0].start; return b.status === 'checkedin' && (b.src === 'line' || !!b.fromPhone) && t <= now.min + 5 ? t : 0; }
 /* booked guest is here but no seat or nobody free for the first step: which running job to hurry */
@@ -1664,8 +1718,20 @@ function stBoard(br, store, now) {
       next: (function () { var n = b.live.filter(function (x) { return !x.scanned && x.i > 0; }).sort(function (x, y) { return x.start - y.start; })[0]; return n ? { label: LANA.RES[n.res][0], at: n.start, min: n.end - n.start } : null; })(), canExtend: r.ok, extBlock: r.ok ? '' : (r.res === 'close' ? 'ร้านใกล้ปิด' : LANA.RES[r.res][0] + ' มีคิวต่อ') };
   }).sort(function (x, y) { return x.end - y.end; });
   var finished = all.filter(function (b) { return b.status === 'finished'; }).map(function (b) { return { id: b.id, q: b.q || b.code, prog: progOf(b), staff: nm(b.staffId), at: +b.finishedAt }; });
+  /* orders still unpaid from the last hour at this branch (the guest may want to pay cash / card here) */
+  var since = now.min - 60, counter = store.orders().filter(function (o) {
+    if (o.status !== 'pending' || !o.bookingId) return false; var c = String(o.createdAt || ''); if (c.slice(0, 10) !== now.date || toMinHM(c.slice(11, 16)) < since) return false;
+    var b = lnFind(store.bookings(), o.bookingId); return !!b && b.branch === br.id;
+  }).map(function (o) { var b = lnFind(store.bookings(), o.bookingId), p = lnFind(LANA.PROGRAMS, b.people[0].prog) || {};
+    return { id: o.id, bookingId: o.bookingId, amount: +o.amount, kind: o.kind, ask: lnTrue(o.counter), at: String(o.createdAt).slice(11, 16), name: b.people.map(function (x) { return x.name; }).join(', '), prog: o.kind === 'checkout' ? 'ยอดค้าง / ทิป' : (p.name_th || '') + (b.people.length > 1 ? ' × ' + b.people.length : ''), q: b.q || '' };
+  }).sort(function (x, y) { return (y.ask ? 1 : 0) - (x.ask ? 1 : 0) || (x.at < y.at ? -1 : 1); });
+  all.forEach(function (b) {   /* finished with a balance and no payment link open: can be paid here too */
+    if (b.status !== 'finished') return; var due = lnSum(b.due || []); if (!(due > 0)) return;
+    if (counter.some(function (c) { return c.bookingId === b.id; }) || store.orders().some(function (o) { return o.bookingId === b.id && o.kind === 'checkout' && o.status === 'pending'; })) return;
+    counter.push({ id: 'B:' + b.id, bookingId: b.id, amount: due, kind: 'checkout', ask: true, at: lnHM(+b.finishedAt || now.min), name: b.people.map(function (x) { return x.name; }).join(', '), prog: 'ยอดค้างตอนจบ: ' + (b.due || []).map(function (d) { return d.th; }).join(', '), q: b.q || '' });
+  });
   live.forEach(function (l) { l.rushFor = waiting.filter(function (w) { return w.booked && w.rush && w.rush.id === l.id; }).map(function (w) { return { q: w.q, at: w.booked }; }); });
-  return { ver: LN_BUILD, now: now, branch: { id: br.id, name: br.name_th || br.id }, staff: people, waiting: waiting, live: live, finished: finished, beds: apiBoard(br.id, store, now) };
+  return { ver: LN_BUILD, counter: counter, now: now, branch: { id: br.id, name: br.name_th || br.id }, staff: people, waiting: waiting, live: live, finished: finished, beds: apiBoard(br.id, store, now) };
 }
 /* phone / page bookings still to come (pay at the shop) */
 function stPhoneList(br, store, now) {
@@ -2422,6 +2488,15 @@ function cKiosk(a, req, store, now) {
     return r;
   }
   if (a === 'kStart') return cKioskStart(req, store, now, br);
+  /* guest prefers cash / card machine (or Beam is stuck): the order waits at the counter, the seat is held a little longer */
+  if (a === 'kCounter') {
+    var co = lnFind(store.orders(), req.id); if (!co || co.status !== 'pending') throw new Error('NOT_NOW');
+    co.counter = 'TRUE'; store.saveOrder(co);
+    var cb = co.bookingId ? lnFind(store.bookings(), co.bookingId) : null;
+    if (cb && cb.status === 'hold') { cb.holdUntil = cStamp({ date: now.date, min: now.min + LN_C.HOLD_MIN + 10 }); store.saveBooking(cb); }
+    store.log('', co.bookingId || '', 'pay_at_counter', co.id + ' ' + co.amount);
+    return { id: co.id, amount: +co.amount, status: co.status };
+  }
   if (a === 'kOut') return { list: store.bookings().filter(function (b) { return b.branch === br.id && b.date === now.date && b.status === 'finished'; }).map(function (b) { return { id: b.id, q: b.q || b.code, name: b.people[0].name, due: lnSum(b.due || []), view: cView(b, store, now, false) }; }) };
   if (a === 'kBoard') return { board: apiBoard(br.id, store, now) };
   throw new Error('UNKNOWN');
@@ -2855,7 +2930,7 @@ function makeVisit(store, now, branchId, progId, name, person) {
   function afterBed(code) {
     var j = S.feed.mine, p = j.people[0], prog = lnFind(LANA.PROGRAMS, p.progId);
     if (prog && String(prog.hair).toUpperCase() === 'TRUE') {
-      $('panel').innerHTML = '<h2>ความยาวผมตรงกับที่ลูกค้าเลือกไหม?</h2><p class="hint">ลูกค้าเลือก: <b>' + esc(p.hair || 'ไม่เกินสะบัก') + '</b></p><div class="choices">' +
+      $('panel').innerHTML = '<h2>ความยาวผมตรงกับที่ลูกค้าเลือกไหม?</h2><p class="hint">ลูกค้าเลือก: <b>' + esc(p.hair || 'ไม่เกินหน้าอก') + '</b></p><div class="choices">' +
         '<button class="choice" data-hair="ok" data-code="' + esc(code) + '">ตรงตามที่เลือก</button>' +
         LANA.HAIR.filter(function (h) { return LANA.HAIR.indexOf(h) > LANA.HAIR.map(function (x) { return x.id; }).indexOf(p.hairId || 'short'); }).map(function (h) {
           return '<button class="choice" data-hair="' + h.id + '" data-code="' + esc(code) + '">ยาวกว่า: ' + esc(h.name_th) + '<small>ระบบส่งลิงก์อัปเกรดให้ลูกค้าตัดสินใจเอง คุณไม่ต้องคุยเรื่องเงิน</small></button>'; }).join('') + '</div>';
