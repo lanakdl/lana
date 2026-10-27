@@ -1,0 +1,24 @@
+name: Lana Print app
+on:
+  push:
+    paths: ['printapp/**', '.github/workflows/printapp.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Build the app
+        run: bash printapp/build.sh
+      - name: Put it on the download link
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete print-app --yes --cleanup-tag || true
+            gh release create print-app printapp/build/lana-print.apk --title "Lana Print" --notes "Download lana-print.apk and install on the Android tablet"
