@@ -271,6 +271,9 @@ LANA.ADDONS = [
   /* partner free ticket (45 min) -> the full 60-min head spa for 200 more; the technician gets 20 (10%) on top of the partner fee */
   { id: 'UP60', name_th: 'อัปเกรดเป็นสปาศีรษะ 60 นาทีเต็ม (โปร 399)', name_en: 'Upgrade to the full 60-min head spa', price: 200, fee: 20, min: 15, seat: 'wash', for: 'PART45', rec: 'TRUE',
     desc_th: 'จาก 45 นาที เป็น 60 นาที นวดศีรษะนานขึ้น ได้ครบเหมือนโปร 399 จ่ายเพิ่มแค่ 200', desc_en: 'From 45 to 60 minutes: a longer head massage, the full ฿399 treatment for just ฿200 more.' },
+  /* 399 head spa (or partner ticket after UP60) -> the 599 set: a 30-min foot massage first, on a foot chair; the foot therapist gets 85 (half the 1-hour foot pay) */
+  { id: 'UPFOOT', name_th: 'อัปเกรดเป็นเซ็ต 599: เพิ่มนวดเท้า 30 นาที', name_en: 'Upgrade to the ฿599 set: add a 30-min foot massage', price: 200, fee: 85, min: 30, seat: '+chair', for: 'HEAD60,PART45', rec: 'TRUE',
+    desc_th: 'เริ่มด้วยนวดเท้า 30 นาที แล้วต่อสปาศีรษะ ได้ครบเหมือนเซ็ต 599', desc_en: 'Starts with a 30-minute foot massage, then your head spa: the full ฿599 set.' },
   { id: 'KERA', name_th: 'เคราติน', name_en: 'Keratin', price: 100, fee: 10, min: 0, seat: '', for: 'HAIR', rec: 'TRUE',
     desc_th: 'ช่วยฟื้นฟูบำรุงผมเสีย ผมแห้งเสีย ลดความชี้ฟู ทำให้ผมนุ่มลื่น มีน้ำหนัก เงางามขึ้นอย่างเป็นธรรมชาติ', desc_en: 'Repairs dry, damaged hair and calms frizz. Soft, smooth hair with natural weight and shine.' },
   { id: 'GLASS', name_th: 'เคลือบแก้ว', name_en: 'Glass gloss', price: 150, fee: 15, min: 0, seat: '', for: 'HAIR', rec: 'FALSE',
@@ -340,6 +343,7 @@ function lnChain(prog, person) {
   if (String(prog.hair).toUpperCase() === 'TRUE') segs.forEach(function (s) { if (s.res === 'dry') s.min += hair.min + style.min; });
   (person.addons || []).forEach(function (id) {
     var a = lnFind(LANA.ADDONS, id); if (!a || !a.min) return;
+    if (String(a.seat || '').charAt(0) === '+') { segs.unshift({ res: a.seat.slice(1), min: +a.min }); return; }   /* a new step first (foot massage before the head spa) */
     var target = a.seat === 'first' ? segs[0] : segs.filter(function (s) { return s.res === a.seat; })[0];
     if (target) target.min += a.min;
   });
@@ -619,7 +623,7 @@ function lnPayShare(bk, staff) {
     var dryR = mine.filter(function (r) { return r.res === 'dry'; })[0], firstR = mine.filter(function (r) { return r.res !== 'dry'; })[0] || mine[0];
     var exDry = lnExtras(pe, 'dry'), R = lnRate(prog), two = R.massage && R.wash;
     var massR = mine.filter(function (r) { return r.res === 'thai' || r.res === 'chair' || r.res === 'oil'; })[0] || firstR, washR = mine.filter(function (r) { return r.res === 'wash'; })[0] || firstR;
-    var myAddons = (pe.addons || []).filter(function (id) { var x = lnFind(LANA.ADDONS, id); return x && +x.price && owner(x.seat === 'first' ? mine[0] : rowOfRes(x.seat)) === staff.id; });
+    var myAddons = (pe.addons || []).filter(function (id) { var x = lnFind(LANA.ADDONS, id); return x && +x.price && owner(x.seat === 'first' ? mine[0] : rowOfRes(String(x.seat || '').replace('+', ''))) === staff.id; });
     var addAmt = myAddons.reduce(function (t, id) { return t + lnXPay('addon', lnFind(LANA.ADDONS, id)); }, 0);
     /* hair pay (wash + dry): one person = all of it. Someone else dried: split by minutes, or a fixed amount for the dryer if set in the sheet */
     var mm = lnMins(prog), hairPart = function () {
@@ -685,6 +689,14 @@ function lnPack(p, n) {
 function lnSteps(p) { return String(p.steps || '').split(';').filter(Boolean).map(function (x) { var a = x.split('|'); return [a[0] || '', a[1] || a[0] || '', +a[2] || 0]; }); }
 function lnProgAt(p, br) { return !!br && lnTrue(br.active) && lnPairs(p.segs).every(function (s) { return lnKinds(s.k).some(function (k) { return (+br[k] || 0) > 0; }); }); }
 /* "for" lists program ids; HAIR = every treatment with a hair wash (including ones added later and partner tickets) */
+/* add-ons that only make sense together: on a partner ticket the foot upgrade comes with the 60-min upgrade (200 + 200 = the 599 set) */
+var LN_ADDON_NEEDS = { UPFOOT: 'UP60' };
+function lnAddonFix(progId, ids) {
+  var out = (ids || []).slice();
+  out.slice().forEach(function (id) { var nd = LN_ADDON_NEEDS[id], x = nd && lnFind(LANA.ADDONS, nd); if (x && lnAddonFor(x, progId) && out.indexOf(nd) < 0) out.push(nd); });
+  return out;
+}
+function lnAddonRes(a) { var s = String(a && a.seat || ''); return s.charAt(0) === '+' ? s.slice(1) : ''; }   /* a seat the add-on needs that the program does not have */
 function lnAddonFor(a, progId) {
   var f = String(a.for || '').split(',').map(function (x) { return x.trim(); });
   if (f.indexOf(progId) >= 0) return true;
@@ -1711,7 +1723,7 @@ function stBoard(br, store, now) {
     var steps = stSteps(b).map(function (s) { s.by = nm(s.by); return s; });
     var pe0 = b.people[0], pg0 = lnFind(LANA.PROGRAMS, pe0.prog) || {}, hairJob = lnTrue(pg0.hair), added = (b.due || []).filter(function (d) { return d.kind === 'addon' || d.kind === 'style'; });
     var upsell = !hairJob ? null : {
-      addons: LANA.ADDONS.filter(function (a) { return +a.price && lnAddonFor(a, pg0.id); }).map(function (a) { var ad = added.some(function (d) { return d.kind === 'addon' && d.id === a.id; });
+      addons: LANA.ADDONS.filter(function (a) { return +a.price && lnAddonFor(a, pg0.id) && !lnAddonRes(a); }).map(function (a) { var ad = added.some(function (d) { return d.kind === 'addon' && d.id === a.id; });
         return { id: a.id, name: a.name_th, price: +a.price, on: (pe0.addons || []).indexOf(a.id) >= 0, added: ad }; }),
       styles: LANA.STYLES.filter(function (x) { return +x.price; }).map(function (x) { return { id: x.id, name: x.name_th, price: +x.price, on: pe0.style === x.id, added: added.some(function (d) { return d.kind === 'style' && d.id === x.id; }) }; }),
       due: added.reduce(function (s, d) { return s + (+d.amount || 0); }, 0) };
@@ -1727,11 +1739,7 @@ function stBoard(br, store, now) {
   }).map(function (o) { var b = lnFind(store.bookings(), o.bookingId), p = lnFind(LANA.PROGRAMS, b.people[0].prog) || {};
     return { id: o.id, bookingId: o.bookingId, amount: +o.amount, kind: o.kind, ask: lnTrue(o.counter), at: String(o.createdAt).slice(11, 16), name: b.people.map(function (x) { return x.name; }).join(', '), prog: o.kind === 'checkout' ? 'ยอดค้าง / ทิป' : (p.name_th || '') + (b.people.length > 1 ? ' × ' + b.people.length : ''), q: b.q || '' };
   }).sort(function (x, y) { return (y.ask ? 1 : 0) - (x.ask ? 1 : 0) || (x.at < y.at ? -1 : 1); });
-  all.forEach(function (b) {   /* finished with a balance and no payment link open: can be paid here too */
-    if (b.status !== 'finished') return; var due = lnSum(b.due || []); if (!(due > 0)) return;
-    if (counter.some(function (c) { return c.bookingId === b.id; }) || store.orders().some(function (o) { return o.bookingId === b.id && o.kind === 'checkout' && o.status === 'pending'; })) return;
-    counter.push({ id: 'B:' + b.id, bookingId: b.id, amount: due, kind: 'checkout', ask: true, at: lnHM(+b.finishedAt || now.min), name: b.people.map(function (x) { return x.name; }).join(', '), prog: 'ยอดค้างตอนจบ: ' + (b.due || []).map(function (d) { return d.th; }).join(', '), q: b.q || '' });
-  });
+  /* a finished visit with a balance shows here only after the guest has started paying at the kiosk (and picked the card machine): staff cannot close it on their own */
   live.forEach(function (l) { l.rushFor = waiting.filter(function (w) { return w.booked && w.rush && w.rush.id === l.id; }).map(function (w) { return { q: w.q, at: w.booked }; }); });
   return { ver: LN_BUILD, counter: counter, now: now, branch: { id: br.id, name: br.name_th || br.id }, staff: people, waiting: waiting, live: live, finished: finished, beds: apiBoard(br.id, store, now) };
 }
@@ -1812,7 +1820,7 @@ function cConfig(store) {
     alerts: LANA.ALERTS.map(function (a) { return { id: a[0], name_th: a[1], name_en: a[2] }; }),
     hair: LANA.HAIR.map(function (h) { return { id: h.id, name_th: h.name_th, name_en: h.name_en || h.name_th, price: +h.price, min: +h.min }; }),
     styles: LANA.STYLES.map(function (h) { return { id: h.id, name_th: h.name_th, name_en: h.name_en || h.name_th, price: +h.price, min: +h.min }; }),
-    addons: LANA.ADDONS.map(function (x) { return { id: x.id, name_th: x.name_th, name_en: x.name_en || x.name_th, price: +x.price, min: +x.min, for: LANA.PROGRAMS.filter(function (p) { return lnAddonFor(x, p.id); }).map(function (p) { return p.id; }), rec: lnTrue(x.rec), desc_th: x.desc_th || '', desc_en: x.desc_en || x.desc_th || '' }; }),
+    addons: LANA.ADDONS.map(function (x) { return { id: x.id, name_th: x.name_th, name_en: x.name_en || x.name_th, price: +x.price, min: +x.min, for: LANA.PROGRAMS.filter(function (p) { return lnAddonFor(x, p.id); }).map(function (p) { return p.id; }), rec: lnTrue(x.rec), desc_th: x.desc_th || '', desc_en: x.desc_en || x.desc_th || '', res: lnAddonRes(x), needs: LN_ADDON_NEEDS[x.id] || '' }; }),
     partners: (LANA.PARTNERS || []).map(function (x) { return { id: x.id, name_th: x.name_th, name_en: x.name_en || x.name_th, prog: x.prog, days: +x.days || 60, rule: x.rule || '', desc_th: x.desc_th || '', desc_en: x.desc_en || x.desc_th || '' }; })
   };
 }
@@ -2017,7 +2025,7 @@ function cCleanPerson(prog, raw, i, me) {
   raw = raw || {};
   var hair = lnTrue(prog.hair) ? (lnFind(LANA.HAIR, raw.hair) ? raw.hair : null) : '';
   var style = lnTrue(prog.hair) && lnFind(LANA.STYLES, raw.style) ? raw.style : 'normal';
-  var addons = (raw.addons || []).filter(function (id, j, arr) { var x = lnFind(LANA.ADDONS, id); return x && lnAddonFor(x, prog.id) && arr.indexOf(id) === j; });
+  var addons = lnAddonFix(prog.id, raw.addons || []).filter(function (id, j, arr) { var x = lnFind(LANA.ADDONS, id); return x && lnAddonFor(x, prog.id) && arr.indexOf(id) === j; });
   var note = String(raw.note || '').trim().slice(0, 200), codes = LANA.ALERTS.map(function (a) { return a[0]; });
   var alerts = (raw.alerts || []).map(String).filter(function (c, j, arr) { return codes.indexOf(c) >= 0 && arr.indexOf(c) === j; });
   return { name: String(raw.name || (i === 0 && me ? me.name : '') || '').trim().slice(0, 40) || (i === 0 ? 'Guest' : 'ผู้ติดตาม ' + (i + 1)), prog: prog.id, hair: hair, style: style, addons: addons,

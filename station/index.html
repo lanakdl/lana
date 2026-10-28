@@ -989,7 +989,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
       return api('sBookInfo', {}).then(function (r) { if (S.sheet === chs) { chs.progs = r.progs; render(); } }).catch(function (x) { S.sheet = null; toast(errT(x)); }); }
     if (d.chto) { var chid = S.sheet.id, chto = d.chto, chname = d.chname;
       return ask('เปลี่ยนเป็น ' + chname + ' ใช่ไหม?', 'เปลี่ยนโปรแกรม', function () {
-        return api('sChangeProg', { id: chid, prog: chto }).then(function (r) { S.b = r.board; S.skew = Date.now(); S.sheet = null; if (S.sc) S.sc.data = null; render(); toast(r.diff > 0 ? 'เปลี่ยนแล้ว · เก็บเพิ่ม ' + baht(r.diff) + ' ตอนจบ (ดูที่ "รอจ่ายเงิน")' : 'เปลี่ยนแล้ว · ไม่มีเงินต้องเก็บเพิ่ม'); })
+        return api('sChangeProg', { id: chid, prog: chto }).then(function (r) { S.b = r.board; S.skew = Date.now(); S.sheet = null; if (S.sc) S.sc.data = null; render(); toast(r.diff > 0 ? 'เปลี่ยนแล้ว · เก็บเพิ่ม ' + baht(r.diff) + ' ตอนจบ (ลูกค้าจ่ายที่ kiosk)' : 'เปลี่ยนแล้ว · ไม่มีเงินต้องเก็บเพิ่ม'); })
           .catch(function (x) { S.sheet = null; toast(errT(x)); load(true); }); }); }
     if (d.cpay) { S.sheet = { kind: 'cpay', id: d.cpay, method: 'card' }; return render(); }   /* cashless shop: card machine only */
     if (d.cmethod) { S.sheet.method = d.cmethod; return render(); }

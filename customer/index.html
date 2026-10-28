@@ -408,6 +408,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
   function nowMin() { if (demo) return DNOW.min; if (!S.d || !S.d.now) return 0; return S.d.now.min + Math.floor((Date.now() - S.loadedAt) / 60000); }
   function where(p) { return p.at.map(function (id) { return nm(branch(id)); }).join(' · '); }
   function progAt(p, b) { return b && b.active && p.at.indexOf(b.id) >= 0; }
+  function bookAt(p, b) { return progAt(p, b) && (S.ui.people || []).every(function (pe) { return (pe.addons || []).every(function (id) { var a = addon(id); return !a || !a.res || (b.res || {})[a.res] > 0; }); }); }   /* foot upgrade: only where there are foot chairs */
   function tickets(pid) { return (S.d ? S.d.tickets : []).filter(function (k) { return !pid || k.prog === pid; }); }
   function normPhone(raw) { var str = String(raw || '').trim(), d = str.replace(/\D/g, ''); if (!d) return ''; if (str.charAt(0) === '+' && d.indexOf('66') !== 0) return '+' + d; if (d.indexOf('66') === 0 && d.length >= 11) d = d.slice(2); if (d.charAt(0) === '0') d = d.slice(1); return '+66' + d; }
   function fmtPhone(e) { if (!e) return ''; if (e.indexOf('+66') === 0) return ('0' + e.slice(3)).replace(/(\d{3})(\d{3})(\d+)/, '$1-$2-$3'); return e; }
@@ -676,7 +677,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
         var addonH = function (a) {
           var top = /^UP/.test(a.id), tf = i === 0 && tierFree().indexOf(a.id) >= 0, v = tf || (i === 0 && free.indexOf(a.id) >= 0), on = pe.addons.indexOf(a.id) >= 0;
           return '<label class="addon' + (top ? ' top' : '') + '"><input type="checkbox" data-addon="' + i + ':' + a.id + '"' + (on ? ' checked' : '') + '><span><span class="t">' + esc(nm(a)) + '</span>' + (top ? ' <span class="badge">' + t('แนะนำ', 'Recommended') + '</span>' : a.rec ? ' <span class="badge">' + t('ลูกค้าส่วนใหญ่เลือก', 'Most popular') + '</span>' : '') +
-            '<br><span class="s">' + esc(S.lang === 'en' ? a.desc_en : a.desc_th) + (a.min ? ' · +' + a.min + ' ' + t('นาที', 'min') : '') + '</span></span><span class="p">' + (v ? '<span class="strike">' + baht(a.price) + '</span><br>' + (tf ? esc(tierName()) : t('ฟรี', 'Free')) : '+' + baht(a.price)) + '</span></label>';
+            '<br><span class="s">' + esc(S.lang === 'en' ? a.desc_en : a.desc_th) + (a.min ? ' · +' + a.min + ' ' + t('นาที', 'min') : '') + (a.res ? ' · ' + t('เฉพาะ', 'only at') + ' ' + S.cfg.branches.filter(function (b) { return b.active && (b.res || {})[a.res] > 0; }).map(nm).join(', ') : '') + '</span></span><span class="p">' + (v ? '<span class="strike">' + baht(a.price) + '</span><br>' + (tf ? esc(tierName()) : t('ฟรี', 'Free')) : '+' + baht(a.price)) + '</span></label>';
         };
         h += opts.filter(function (a) { return !/^UP/.test(a.id); }).map(addonH).join('');
         h = h.replace('<!--UP' + i + '-->', opts.filter(function (a) { return /^UP/.test(a.id); }).map(addonH).join(''));
@@ -688,11 +689,11 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     }
     var p2 = prog(resch ? rb.people[0].prog : u.prog);
     h += '<div class="sec"><h3><span class="n">' + (resch ? 1 : 4) + '</span>' + t('สาขา', 'Branch') + '</h3><div class="grid3">' + S.cfg.branches.map(function (b) {
-      var ok = progAt(p2, b);
+      var ok = bookAt(p2, b);
       return '<button class="opt" data-bk-br="' + b.id + '" aria-pressed="' + (u.branch === b.id) + '"' + (ok ? '' : ' disabled') + '><span class="t">' + esc(nm(b)) + '</span><span class="s">' + (b.soon ? 'Coming soon' : ok ? hm(S.cfg.open) + '–' + hm(S.cfg.close) : t('ไม่มีโปรแกรมนี้', 'Not here')) + '</span></button>';
     }).join('') + '</div></div>';
-    if (u.branch && !progAt(p2, branch(u.branch))) u.branch = null;
-    if (!u.branch) { var ok1 = S.cfg.branches.filter(function (b) { return progAt(p2, b); }); if (ok1.length === 1) u.branch = ok1[0].id; }
+    if (u.branch && !bookAt(p2, branch(u.branch))) u.branch = null;
+    if (!u.branch) { var ok1 = S.cfg.branches.filter(function (b) { return bookAt(p2, b); }); if (ok1.length === 1) u.branch = ok1[0].id; }
     var hairMissing = !resch && p2.hair && u.people.some(function (pe) { return !pe.hair; });
     if (u.branch) {
       if (!u.date) u.date = today();
@@ -1019,7 +1020,11 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
   });
   document.addEventListener('change', function (e) {
     var el = e.target, u = S.ui;
-    if (el.dataset.addon) { var ap = el.dataset.addon.split(':'), pe = u.people[+ap[0]], i = pe.addons.indexOf(ap[1]); if (el.checked && i < 0) pe.addons.push(ap[1]); if (!el.checked && i >= 0) pe.addons.splice(i, 1); u.time = null; render(); }
+    if (el.dataset.addon) { var ap = el.dataset.addon.split(':'), pe = u.people[+ap[0]], i = pe.addons.indexOf(ap[1]); if (el.checked && i < 0) pe.addons.push(ap[1]); if (!el.checked && i >= 0) pe.addons.splice(i, 1);
+      var all = S.cfg.addons, pid = u.prog, okA = function (id) { var a = addon(id); return a && a.for.indexOf(pid) >= 0; };
+      if (!el.checked) pe.addons = pe.addons.filter(function (id) { var a = addon(id); return !(a && a.needs === ap[1] && okA(ap[1])); });
+      pe.addons.slice().forEach(function (id) { var a = addon(id); if (a && a.needs && okA(a.needs) && pe.addons.indexOf(a.needs) < 0) pe.addons.push(a.needs); });
+      u.time = null; render(); }
     if (el.dataset.pn) u.people[+el.dataset.pn].name = el.value;
     if (el.dataset.note) { u.people[+el.dataset.note].note = el.value.trim(); render(); }
     if (el.dataset.health) { u.people[+el.dataset.health].healthOk = el.checked; render(); }

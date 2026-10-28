@@ -530,6 +530,13 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
       '<span class="mfoot"><span class="mmin">' + items.length + t(' แบบให้เลือก', ' options') + '</span><span class="mprice">' + (useT ? '' : t('เริ่ม ', 'from ') + baht(low)) + '</span></span>' +
       '<span class="mgo">' + t('เลือก', 'Choose') + ' ›</span></button>';
   }
+  /* add-ons that go together (partner ticket: foot upgrade needs the 60-min upgrade) */
+  function fixAddons(pid, ids, removed) {
+    var all = S.cfg.addons, ok = function (id) { var a = find(all, id); return a && a.for.indexOf(pid) >= 0; };
+    ids = ids.filter(function (id) { var a = find(all, id); return !(removed && a && a.needs === removed && ok(removed)); });
+    ids.slice().forEach(function (id) { var a = find(all, id); if (a && a.needs && ok(a.needs) && ids.indexOf(a.needs) < 0) ids.push(a.needs); });
+    return ids;
+  }
   function menu(list, useT, owned) {
     var cat = function (p) { return p.cat || (p.hair ? 'hair' : 'massage'); };
     var groups = [[t('สปาผม', 'Hair'), t('นวดศีรษะ สระ และไดร์ผม จบในที่เดียว', 'Head massage, wash and blow-dry'), list.filter(function (p) { return cat(p) === 'hair'; })],
@@ -555,7 +562,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
       (bundle(list).length > 1 ? '<button class="btn ghost kb" data-kmenu>‹ ' + t('ดูเมนูทั้งหมด / เปลี่ยนโปรแกรม', 'Back to the menu') + '</button>' : '') + '</div><div class="kright">';
     /* upgrades (e.g. partner ticket -> full 60 min) come first, in a big recommended box, so every guest sees them */
     var addonBox = function (a, top) { return '<label class="addon' + (top ? ' top' : '') + '"><input type="checkbox" data-kaddon="' + a.id + '"' + (pe.addons.indexOf(a.id) >= 0 ? ' checked' : '') + '><span><span class="t">' + esc(nm(a)) + '</span>' + (top ? ' <span class="badge">' + t('แนะนำ', 'Recommended') + '</span>' : a.rec ? ' <span class="badge">' + t('ลูกค้าส่วนใหญ่เลือก', 'Most popular') + '</span>' : '') + '<br><span class="s">' + esc(S.lang === 'en' ? a.desc_en : a.desc_th) + '</span></span><span class="p">+' + baht(a.price) + '</span></label>'; };
-    var isUp = function (a) { return /^UP/.test(a.id); }, forP = S.cfg.addons.filter(function (a) { return a.for.indexOf(p.id) >= 0; });
+    var isUp = function (a) { return /^UP/.test(a.id); }, forP = S.cfg.addons.filter(function (a) { return a.for.indexOf(p.id) >= 0 && (!a.res || ((branch(S.branch) || {}).res || {})[a.res] > 0); });
     h += forP.filter(isUp).map(function (a) { return addonBox(a, true); }).join('');
     if (p.hair) h += '<span class="hint">' + t('ผมยาวแค่ไหน', 'Hair length') + '</span><div class="hair">' + S.cfg.hair.map(function (x) { return '<button class="opt" data-khair="' + x.id + '" aria-pressed="' + (pe.hair === x.id) + '">' + hairSvg(x.id) + '<span class="t" style="font-size:13px">' + esc(nm(x)) + '</span><span class="s">' + (x.price && !p.hairFree ? '+' + baht(x.price) : t('ไม่เพิ่ม', 'no extra')) + '</span></button>'; }).join('') + '</div>';
     h += forP.filter(function (a) { return !isUp(a); }).map(function (a) { return addonBox(a, false); }).join('');
@@ -756,7 +763,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
   });
   document.addEventListener('change', function (e) {
     var el = e.target, k = S.k;
-    if (el.dataset.kaddon) { saveForm(); var i = k.person.addons.indexOf(el.dataset.kaddon); if (el.checked && i < 0) k.person.addons.push(el.dataset.kaddon); if (!el.checked && i >= 0) k.person.addons.splice(i, 1); render(); }
+    if (el.dataset.kaddon) { saveForm(); var i = k.person.addons.indexOf(el.dataset.kaddon); if (el.checked && i < 0) k.person.addons.push(el.dataset.kaddon); if (!el.checked && i >= 0) k.person.addons.splice(i, 1); k.person.addons = fixAddons(k.prog, k.person.addons, el.checked ? '' : el.dataset.kaddon); render(); }
     if (el.id === 'k-phone' || el.id === 'k-email') { k.match = null; k.choice = null; }
     if (el.id === 'k-health') { saveForm(); k.person.healthOk = el.checked; return render(); }
   });
