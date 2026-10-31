@@ -38,6 +38,12 @@ public class MainActivity extends Activity {
     TextView status;
     String lastText = null; Bitmap lastPic = null;
     boolean busy = false, fromShare = false;
+    TextView autoText;
+    Runnable tick = new Runnable() { public void run() {
+        if (autoText != null && prefs.getBoolean("auto", false)) autoText.setText("เปิดอยู่ · " + PollService.status);
+        ui.postDelayed(this, 2000); } };
+    @Override protected void onResume() { super.onResume(); ui.post(tick); }
+    @Override protected void onPause() { ui.removeCallbacks(tick); super.onPause(); }
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -56,6 +62,14 @@ public class MainActivity extends Activity {
 
     void handle(Intent in) {
         lastText = null; lastPic = null; fromShare = false;
+        if (in != null && "th.lana.print.SETUP".equals(in.getAction())) {   /* one tap on the station page hands over the shop's address */
+            String api = in.getStringExtra("api"), key = in.getStringExtra("key"), br = in.getStringExtra("branch");
+            if (api != null && api.length() > 0 && key != null && key.length() > 0) {
+                prefs.edit().putString("api", api).putString("key", key).putString("branch", br == null ? "" : br).putBoolean("auto", true).apply();
+                PollService.start(this);
+            }
+        }
+        if (prefs.getBoolean("auto", false) && !PollService.running) PollService.start(this);
         if (in != null && Intent.ACTION_SEND.equals(in.getAction())) {
             fromShare = true;
             String t = in.getStringExtra(Intent.EXTRA_TEXT);
@@ -83,6 +97,19 @@ public class MainActivity extends Activity {
             Button again = button("ปริ้นอีกครั้ง", OLIVE, Color.WHITE);
             again.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { print(); } });
             box.addView(again);
+        }
+        boolean set = prefs.getString("api", "").length() > 0;
+        box.addView(label("ปริ้นใบงานอัตโนมัติ (รับงานที่ iPad แล้วออกที่นี่)"));
+        autoText = text(!set ? "ยังไม่ได้ตั้งค่า · เปิดหน้ารับงานบนแท็บเล็ตนี้ แล้วแตะ \"ตั้งแท็บเล็ตปริ้น\" ในหน้าใบงาน" : prefs.getBoolean("auto", false) ? "เปิดอยู่ · " + PollService.status : "ปิดอยู่", 15, Color.DKGRAY, false);
+        box.addView(autoText);
+        if (set) {
+            final boolean on = prefs.getBoolean("auto", false);
+            Button ab = button(on ? "ปิดปริ้นอัตโนมัติ" : "เปิดปริ้นอัตโนมัติ", on ? Color.WHITE : OLIVE, on ? BROWN : Color.WHITE);
+            ab.setOnClickListener(new View.OnClickListener() { public void onClick(View v) {
+                prefs.edit().putBoolean("auto", !on).apply();
+                if (on) PollService.stop(MainActivity.this); else PollService.start(MainActivity.this);
+                draw(); } });
+            box.addView(ab);
         }
         box.addView(label("เครื่องปริ้น"));
         BluetoothAdapter ad = BluetoothAdapter.getDefaultAdapter();
@@ -142,7 +169,7 @@ public class MainActivity extends Activity {
             String err = null;
             try {
                 Bitmap b = pic != null ? Slip.fit(pic, w) : Slip.render(txt, w);
-                send(mac, Slip.escpos(b));
+                Printer.send(mac, Slip.escpos(b));
             } catch (Exception e) { err = e.getMessage() == null ? e.toString() : e.getMessage(); }
             final String fe = err;
             ui.post(new Runnable() { public void run() {
@@ -163,29 +190,6 @@ public class MainActivity extends Activity {
             if (s != null && s.size() == 1) { mac = s.iterator().next().getAddress(); prefs.edit().putString("mac", mac).apply(); return mac; }
         } catch (Exception e) {}
         return null;
-    }
-
-    void send(String mac, byte[] data) throws Exception {
-        BluetoothAdapter ad = BluetoothAdapter.getDefaultAdapter();
-        if (ad == null || !ad.isEnabled()) throw new Exception("บลูทูธปิดอยู่");
-        BluetoothDevice d = ad.getRemoteDevice(mac);
-        try { ad.cancelDiscovery(); } catch (Exception e) {}
-        BluetoothSocket s = null;
-        try { s = d.createRfcommSocketToServiceRecord(SPP); s.connect(); }
-        catch (Exception e1) {
-            try { if (s != null) s.close(); } catch (Exception x) {}
-            Method m = d.getClass().getMethod("createRfcommSocket", new Class[] { int.class });
-            s = (BluetoothSocket) m.invoke(d, Integer.valueOf(1));
-            s.connect();
-        }
-        try {
-            OutputStream o = s.getOutputStream();
-            for (int i = 0; i < data.length; i += 1024) {
-                o.write(data, i, Math.min(1024, data.length - i)); o.flush();
-                Thread.sleep(30);
-            }
-            Thread.sleep(600 + data.length / 30);   /* let the printer take everything before closing */
-        } finally { try { s.close(); } catch (Exception x) {} }
     }
 
     void say(String m, boolean bad) { if (status != null) { status.setText(m); status.setTextColor(bad ? Color.rgb(192, 57, 43) : Color.rgb(74, 138, 58)); } }
