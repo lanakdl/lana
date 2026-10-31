@@ -524,10 +524,13 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
   function nowMin() { if (!S.b) return 0; return S.b.now.min + (demo ? 0 : Math.floor((Date.now() - S.skew) / 60000)); }
   function toast(m) { var t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { t.hidden = true; }, 3200); }
 
+  try { S.wantAccept = (location.search.match(/[?&]accept=([A-Za-z0-9]+)/) || [])[1] || ''; if (S.wantAccept) history.replaceState(null, '', location.pathname); } catch (e) {}
   function load(quiet) {
     if (!S.key || !S.branch) return render();
     if (!quiet) { S.busy = true; render(); }
-    return api('sBoard').then(function (b) { S.b = b; S.skew = Date.now(); S.busy = false; S.err = ''; render(); })
+    return api('sBoard').then(function (b) { S.b = b; S.skew = Date.now(); S.busy = false; S.err = '';
+      if (S.wantAccept) { var wa = S.wantAccept; S.wantAccept = ''; if ((b.waiting || []).some(function (w) { return w.id === wa; })) S.sheet = { kind: 'pick', id: wa }; }   /* came from the kiosk: open this guest straight away */
+      render(); })
       .catch(function (e) { S.busy = false; if (String(e.message) === 'KIOSK_KEY') { S.key = ''; S.err = errT(e); } else if (!quiet) toast(errT(e)); render(); });
   }
 
@@ -541,13 +544,13 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     }
     if (!S.b) { app.innerHTML = '<div class="sempty">กำลังโหลด…</div>'; return; }
     var b = S.b, now = nowMin(), onN = b.staff.filter(function (s) { return s.on; }).length;
-    var h = '<div class="sbar"><span class="brand">Lana<small>รับงาน · ' + esc(b.branch.name) + '</small></span><button class="clockbtn" id="clockin">เข้า/ออกงาน · ' + onN + ' คน</button><span class="sclock">' + hm(now) + '</span></div>';
+    var h = '<div class="sbar"><span class="brand">Lana<small>รับงาน · ' + esc(b.branch.name) + '</small></span><button class="clockbtn" id="clockin">เข้า/ออกงาน · ' + onN + ' คน</button>' + (demo ? '' : '<a class="clockbtn" href="../kiosk/" style="text-decoration:none">หน้าลูกค้า (kiosk) ›</a>') + '<span class="sclock">' + hm(now) + '</span></div>';
     if (demo) h += '<div class="demo">ตัวอย่าง (ข้อมูลจำลอง) · <button id="d-walk">+ ลูกค้าเช็กอิน</button><button id="d-plus">+15 นาที</button><button id="d-plus60">+1 ชั่วโมง</button></div>';
     h += '<div class="stabs" role="tablist"><button role="tab" data-tab="queue" aria-selected="' + (S.tab === 'queue') + '">คิวรอ' + (b.waiting.length ? '<span class="n">' + b.waiting.length + '</span>' : '') + '</button>' +
       '<button role="tab" data-tab="beds" aria-selected="' + (S.tab === 'beds') + '">สถานะเตียง' + (b.live.length ? ' (' + b.live.length + ')' : '') + '</button>' +
       '<button role="tab" data-tab="sched" aria-selected="' + (S.tab === 'sched') + '">ตารางนัด</button>' +
       '<button role="tab" data-tab="book" aria-selected="' + (S.tab === 'book') + '">จองแทนลูกค้า</button></div><div class="sbody">';
-    if (!demo && !(b.ver >= 61)) h += '<div class="oldsrv"><b>ระบบหลังบ้าน (Apps Script) ยังเป็นรุ่นเก่า</b><span>หน้านี้รุ่น 61 แต่หลังบ้านรุ่น ' + (b.ver || 'ก่อน 58') + ' · ตารางนัด เข้างานด้วย PIN และปุ่มลูกค้าไม่ทำแล้ว จะยังใช้ไม่ได้ · วาง Code.gs ใหม่ แล้ว Deploy › Manage deployments › ✏️ › New version (ห้ามกด New deployment)</span></div>';
+    if (!demo && !(b.ver >= 62)) h += '<div class="oldsrv"><b>ระบบหลังบ้าน (Apps Script) ยังเป็นรุ่นเก่า</b><span>หน้านี้รุ่น 62 แต่หลังบ้านรุ่น ' + (b.ver || 'ก่อน 58') + ' · ตารางนัด เข้างานด้วย PIN และปุ่มลูกค้าไม่ทำแล้ว จะยังใช้ไม่ได้ · วาง Code.gs ใหม่ แล้ว Deploy › Manage deployments › ✏️ › New version (ห้ามกด New deployment)</span></div>';
     var cq = b.counter || [];
     if (cq.length && S.tab !== 'queue') h += '<button class="cbanner" data-tab="queue">มีลูกค้ารอจ่ายที่เคาน์เตอร์ ' + cq.length + ' คน · แตะเพื่อรับเงิน</button>';
     if (S.tab === 'queue' && cq.length) h += '<div class="ssec">รอจ่ายเงิน (รูดบัตรที่เคาน์เตอร์)</div><div class="cgrid">' + cq.map(function (c) {
@@ -666,6 +669,12 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
         '<div class="pinpad"><div class="pindots">' + [0, 1, 2, 3].map(function (i) { return '<i class="' + (i < pin.length ? 'f' : '') + '"></i>'; }).join('') + '</div><div class="pkeys">' +
         ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'].map(function (k) { return k === 'ok' ? '<button class="pk ok" data-clockgo="' + (cs.on ? '0' : '1') + '"' + (pin.length < 4 || S.busy || (!cs.on && !S.cam) ? ' disabled' : '') + '>' + (cs.on ? 'ออกงาน' : 'เข้างาน') + '</button>' : '<button class="pk" data-pin="' + k + '">' + (k === 'del' ? 'ลบ' : k) + '</button>'; }).join('') + '</div></div></div>' +
         '<div class="acts"><button class="sb ghost" ' + (sh.back ? 'data-clockback' : 'data-close') + '>ยกเลิก</button></div>'; }
+    if (sh.kind === 'slip' && printMode() === 'remote') {
+      return '<h2>ใบงาน</h2><span class="sub">ส่งไปเครื่องปริ้นแล้ว · ใบงานออกที่แท็บเล็ต Android ข้างเครื่องปริ้น (แอป Lana Print) ภายในไม่กี่วินาที</span>' +
+        '<div class="slipview"><div class="slipbody">' + sh.html + '</div></div>' +
+        '<div class="acts">' + (S.lastSlipId ? '<button class="sb olive" data-remoteprint>ปริ้นอีกครั้ง</button>' : '') + '<button class="sb ghost" data-close>ปิด</button></div>' +
+        (!IOS && !demo ? '<span class="sub">ตั้งแท็บเล็ตปริ้นครั้งแรก: เปิดหน้านี้บนแท็บเล็ต Android ข้างเครื่องปริ้น แล้ว<a href="' + esc(appSetupUrl()) + '">แตะตรงนี้</a> (ต้องติดตั้งแอป Lana Print ก่อน)</span>' : '') +
+        pmodes('remote'); }
     if (sh.kind === 'slip' && printMode() === 'lana') {
       return '<h2>ใบงาน</h2><span class="sub">' + (IOS ? 'แอป Lana Print ใช้ได้กับแท็บเล็ต Android เท่านั้น · iPad เลือกวิธีอื่นด้านล่าง' : 'ใบงานส่งไปแอป Lana Print แล้ว ถ้ายังไม่ออก กดปุ่มปริ้นด้านล่าง') + '</span>' +
         '<div class="slipview"><div class="slipbody">' + sh.html + '</div></div>' +
@@ -881,7 +890,9 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
   function copyText(txt) { try { navigator.clipboard.writeText(txt).then(function () { toast('ก๊อปข้อความใบงานแล้ว · ไปวางในแอปปริ้น'); }); } catch (e) { toast('แชร์ไม่ได้'); } }
   function showSlipImg(c) { S.sheet = { kind: 'slipimg', src: c.toDataURL('image/png') }; render(); }
   var IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  function printMode() { try { if (localStorage.getItem('lana-print-v') !== '2') { localStorage.setItem('lana-print-v', '2'); localStorage.setItem('lana-print', 'lana'); } return localStorage.getItem('lana-print') || 'lana'; } catch (e) { return 'lana'; } }
+  function printMode() { try { if (localStorage.getItem('lana-print-v') !== '3') { localStorage.setItem('lana-print-v', '3'); localStorage.setItem('lana-print', 'remote'); } return localStorage.getItem('lana-print') || 'remote'; } catch (e) { return 'remote'; } }
+  /* the Lana Print app on the Android tablet by the printer: a one-time tap there hands it the shop's address and tablet password, then it prints every job accepted on any tablet */
+  function appSetupUrl() { return 'intent:#Intent;action=th.lana.print.SETUP;package=th.lana.print;S.api=' + encodeURIComponent(APP.API_URL || '') + ';S.key=' + encodeURIComponent(S.key || '') + ';S.branch=' + encodeURIComponent(S.branch || '') + ';S.browser_fallback_url=' + encodeURIComponent(LANA_APK) + ';end'; }
   /* Lana Print: our own Android app (no ads). The page hands it the slip, the app prints over Bluetooth */
   var LANA_APK = 'https://github.com/lanakdl/lana/releases/download/print-app/lana-print.apk';
   function lanaIntent(s) {
@@ -889,7 +900,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     return 'intent:#Intent;action=android.intent.action.SEND;type=text/plain;package=th.lana.print;S.android.intent.extra.TEXT=' + encodeURIComponent(txt) + ';S.browser_fallback_url=' + encodeURIComponent(LANA_APK) + ';end';
   }
   function lanaPrint(s) { if (!s) return; try { window.location.href = lanaIntent(s); } catch (e) {} }
-  function pmodes(pm) { return '<div class="pmodes">ร้านนี้ปริ้นผ่าน: ' + [['lana', 'แอป Lana Print'], ['bt', 'บลูทูธ (ต่อตรง)'], ['air', IOS ? 'AirPrint' : 'ระบบเครื่อง'], ['app', 'ส่งไปแอป']].map(function (m) { return '<button data-pmode="' + m[0] + '" aria-pressed="' + (pm === m[0]) + '">' + m[1] + '</button>'; }).join('') + '</div>'; }
+  function pmodes(pm) { return '<div class="pmodes">ร้านนี้ปริ้นผ่าน: ' + [['remote', 'แท็บเล็ตปริ้นอัตโนมัติ'], ['lana', 'แอป Lana Print (เครื่องนี้)'], ['bt', 'บลูทูธ (ต่อตรง)'], ['air', IOS ? 'AirPrint' : 'ระบบเครื่อง'], ['app', 'ส่งไปแอป']].map(function (m) { return '<button data-pmode="' + m[0] + '" aria-pressed="' + (pm === m[0]) + '">' + m[1] + '</button>'; }).join('') + '</div>'; }
   /* ---- Bluetooth printer straight from the page (Web Bluetooth: Chrome on Android / computer, Bluefy on iPad) ---- */
   var BT = { dev: null, ch: null, name: '', msg: '', err: false, busy: false, noResp: false };
   var BT_SERVICES = ['000018f0-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '49535343-fe7d-4ae5-8fa9-9fafd205e455', '0000ff00-0000-1000-8000-00805f9b34fb', '0000ae30-0000-1000-8000-00805f9b34fb', '0000fee7-0000-1000-8000-00805f9b34fb', '0000ffe0-0000-1000-8000-00805f9b34fb', '0000ae3a-0000-1000-8000-00805f9b34fb', '0000ff80-0000-1000-8000-00805f9b34fb', '0000ffb0-0000-1000-8000-00805f9b34fb', '0000fff0-0000-1000-8000-00805f9b34fb'];
@@ -953,11 +964,13 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     return btReconnect().catch(function (e) { if (fromTap) return btPair(); throw e; }).then(go)
       .catch(function (e) { BT.busy = false; if (e && e.message === 'NEED_PAIR') return btSay('แตะ "เชื่อมเครื่องปริ้น แล้วปริ้น" (ทำครั้งแรกครั้งเดียว)'); if (!BT.err) btSay('ปริ้นไม่ออก · เช็กว่าเครื่องเปิดอยู่และกระดาษไม่หมด แล้วกดปริ้นอีกครั้ง', true); BT.ch = null; });
   }
-  function printSlip(s) {
+  function printSlip(s, id) {
+    S.lastSlipId = id || '';
     var html = slipHtml(s);
     S.lastSlip = s;
     S.sheet = { kind: 'slip', html: html };
     render();
+    if (printMode() === 'remote') return;
     if (printMode() === 'lana') { if (!demo) lanaPrint(s); return; }
     if (printMode() === 'bt') { BT.msg = ''; BT.err = false; render(); return btPrint(s, false); }
     if (!demo && printMode() === 'air') { $('slip').innerHTML = '<div class="slipbody">' + html + '</div>'; setTimeout(function () { try { window.print(); } catch (e) {} }, 60); }
@@ -1001,6 +1014,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
         .catch(function (x) { S.busy = false; if (String(x.message) === 'BAD_PIN') { cps.pin = ''; render(); return toast(errT(x)); } S.sheet = null; toast(errT(x)); load(true); }); }
     if (d.slipshare !== undefined && S.lastSlip) return shareSlip(S.lastSlip);
     if (d.sliptext !== undefined && S.lastSlip) return shareText(S.lastSlip);
+    if (d.remoteprint !== undefined && S.lastSlipId) return api('sSlip', { id: S.lastSlipId, remote: true }).then(function () { toast('ส่งไปเครื่องปริ้นอีกครั้งแล้ว'); }).catch(function (x) { toast(errT(x)); });
     if (d.lanaprint !== undefined && S.lastSlip) return demo ? toast('ในร้านจริง ปุ่มนี้เปิดแอป Lana Print แล้วปริ้นทันที') : lanaPrint(S.lastSlip);
     if (d.pmode) { try { localStorage.setItem('lana-print', d.pmode); } catch (x) {} BT.msg = ''; BT.err = false; return render(); }
     if (d.btlang) { try { localStorage.setItem('lana-bt-lang', d.btlang); } catch (x) {} return render(); }
@@ -1052,7 +1066,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
       /* feels instant: the card leaves the queue now, the server confirms in the background */
       var aid = S.sheet.id, ast = S.sheet.staff, aw = (S.b.waiting || []).filter(function (w) { return w.id === aid; })[0];
       S.sheet = null; S.b.waiting = (S.b.waiting || []).filter(function (w) { return w.id !== aid; }); render(); toast('รับงาน ' + (aw ? aw.q : '') + ' แล้ว · กำลังบันทึก…');
-      return api('sAccept', { id: aid, staffId: ast }).then(function (r) { S.b = r.board; S.skew = Date.now(); render(); toast('รับงานแล้ว เริ่มนับเวลา · ปริ้นใบงาน'); printSlip(r.slip); })
+      return api('sAccept', { id: aid, staffId: ast }).then(function (r) { S.b = r.board; S.skew = Date.now(); render(); toast('รับงานแล้ว เริ่มนับเวลา · ปริ้นใบงาน'); printSlip(r.slip, aid); })
         .catch(function (x) { toast(errT(x)); load(true); });
     }
     if (d.up) { var up = d.up.split('|'), lv2 = S.b.live.filter(function (x) { return x.id === S.sheet.id; })[0];
@@ -1061,7 +1075,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     if (el.id === 'upsure') { var us = S.sheet, req = { id: us.id }; req[us.up[0]] = us.up[1];
       return api('sUpsell', req).then(function (b) { S.b = b; S.skew = Date.now(); S.sheet = { kind: 'live', id: us.id }; render(); toast(us.off ? 'เอาออกแล้ว' : 'เพิ่มแล้ว · เก็บเงินตอนจบ'); })
         .catch(function (x) { S.sheet = null; toast(errT(x)); load(true); }); }
-    if (d.act === 'slip') return api('sSlip', { id: S.sheet.id }).then(function (r) { S.sheet = null; render(); printSlip(r.slip); }).catch(function (x) { toast(errT(x)); });
+    if (d.act === 'slip') { var slid = S.sheet.id; return api('sSlip', { id: slid, remote: printMode() === 'remote' }).then(function (r) { S.sheet = null; render(); printSlip(r.slip, slid); }).catch(function (x) { toast(errT(x)); }); }
     if (d.act) { S.sheet = { kind: 'sure', id: S.sheet.id, act: d.act }; return render(); }
     if (el.id === 'sure') {
       var act = S.sheet.act, id = S.sheet.id, map = { extend: 'sExtend', handoff: 'sHandoff', finish: 'sFinish', next: 'sNext', undo: 'sUndo' };
