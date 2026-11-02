@@ -2531,6 +2531,10 @@ function cKiosk(a, req, store, now) {
     store.log('', co.bookingId || '', 'pay_at_counter', co.id + ' ' + co.amount);
     return { id: co.id, amount: +co.amount, status: co.status };
   }
+  /* staff on shift at this branch: the kiosk lets one of them confirm a card payment with their PIN */
+  if (a === 'kStaff') { var onIds = store.shifts().filter(function (r) { return r.date === now.date && !r.out; }).map(function (r) { return r.staffId; });
+    return { staff: store.staff().filter(function (s) { return s.branch === br.id && String(s.active).toUpperCase() !== 'FALSE' && String(s.pin || '').trim(); }).map(function (s) { return { id: s.id, name: s.name, on: onIds.indexOf(s.id) >= 0 }; })
+      .sort(function (x, y) { return (y.on ? 1 : 0) - (x.on ? 1 : 0); }) }; }
   if (a === 'kOut') return { list: store.bookings().filter(function (b) { return b.branch === br.id && b.date === now.date && b.status === 'finished'; }).map(function (b) { return { id: b.id, q: b.q || b.code, name: b.people[0].name, due: lnSum(b.due || []), view: cView(b, store, now, false) }; }) };
   if (a === 'kBoard') return { board: apiBoard(br.id, store, now) };
   throw new Error('UNKNOWN');
@@ -2552,7 +2556,7 @@ function cKioskStart(req, store, now, br) {
       /* couple promo: two people on programs that share a "pair" price may pick different ones (neck or foot + head spa) */
       var op = o && o.prog && o.prog !== prog.id ? lnFind(LANA.PROGRAMS, o.prog) : prog;
       if (op !== prog && !(req.others.length === 1 && +prog.pair && +op.pair === +prog.pair && lnOnSale(op) && lnProgAt(op, br))) throw new Error('BAD_FORM');
-      var x = cCleanPerson(op, { hair: o && o.hair, name: o && o.name, addons: [] }, i + 1, null); if (lnTrue(op.hair) && !x.hair) throw new Error('NEED_HAIR'); return x; });
+      var x = cCleanPerson(op, Object.assign({}, o || {}, { prog: op.id }), i + 1, null); if (lnTrue(op.hair) && !x.hair) throw new Error('NEED_HAIR'); return x; });
   }
   var pairDeal = others.length === 1 && +prog.pair > 0 && +(lnFind(LANA.PROGRAMS, others[0].prog) || {}).pair === +prog.pair;   /* 2 people: one price for both */
   var progOf = function (x) { return lnFind(LANA.PROGRAMS, x.prog) || prog; };

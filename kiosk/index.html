@@ -328,6 +328,8 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
 .addon.top { border: 2px solid #a4502f; background: color-mix(in srgb, #a4502f 7%, var(--card, #fff)); margin-bottom: 14px; }
 .addon.top .t { font-weight: 700; }
 .addon.top .badge { background: #a4502f; color: #fff; }
+.ptabs { display: flex; gap: 6px; margin: 4px 0 10px; } .ptabs button { flex: 1; padding: 14px 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); font-size: 17px; font-weight: 600; color: inherit; } .ptabs button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 </style>
 </head>
 <body class="real">
@@ -361,7 +363,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
 
   /* one tap = one order: the same request is never sent twice while the first is on its way,
      and while a change is being saved the buttons ignore taps (a slow connection made people tap twice) */
-  var INFLIGHT = {}, NETN = 0, READ_ACTIONS = /^(config|hello|me|slots|visit|order|feed|kFind|kBoard|kOut|sBoard|sSched|sBookInfo|sBookWho|sMoveSlots|sDropInfo|sSlip|oDay|oMonth|oPay|oPerson|oInit|seen)$/;
+  var INFLIGHT = {}, NETN = 0, READ_ACTIONS = /^(config|hello|me|slots|visit|order|feed|kFind|kBoard|kOut|kStaff|sBoard|sSched|sBookInfo|sBookWho|sMoveSlots|sDropInfo|sSlip|oDay|oMonth|oPay|oPerson|oInit|seen)$/;
   function netBusy(d) { NETN = Math.max(0, NETN + d); try { document.body.classList.toggle('netbusy', NETN > 0); if (d > 0 && LASTBTN && LASTBTN.isConnected && Date.now() - LASTTAP < 800) LASTBTN.classList.add('working'); } catch (e) {} }
   /* the button just tapped shows a spinner right away, so nobody wonders whether the tap counted */
   var LASTBTN = null, LASTTAP = 0;
@@ -396,6 +398,20 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
   function branch(id) { return find(S.cfg.branches, id); }
   function hairT(id) { return find(S.cfg.hair, id); }
   function styleT(id) { return find(S.cfg.styles, id) || S.cfg.styles[0]; }
+  /* the job slip on screen right after paying (the iPad cannot print): what the therapist needs to know */
+  function slipCard(k) {
+    if (!k.vkey) return '';
+    if (k.view === undefined) { k.view = null; api('visit', { vkey: k.vkey }).then(function (r) { if (S.k === k) { k.view = r.booking; render(); } }).catch(function () {}); }
+    var v = k.view; if (!v) return '';
+    var nmOf = function (list, id) { var x = find(list, id); return x ? nm(x) : ''; }, PR = { light: t('เบา', 'light'), medium: t('กลาง', 'medium'), firm: t('หนัก', 'firm') };
+    return '<div class="ticket" style="width:min(520px,100%);text-align:left;margin:8px auto">' + v.people.map(function (pe, i) {
+      var p = prog(pe.prog) || {};
+      return (i ? '<hr style="border:0;border-top:1px dashed var(--line);margin:8px 0">' : '') + '<b>' + esc(pe.name) + '</b>' + kv(t('โปรแกรม', 'Treatment'), nm(p)) +
+        (pe.hair ? kv(t('ผมยาว', 'Hair'), nmOf(S.cfg.hair, pe.hair)) : '') + (pe.style && pe.style !== 'normal' ? kv(t('ทรงเป่า', 'Blow-dry'), nmOf(S.cfg.styles, pe.style)) : '') +
+        ((pe.addons || []).length ? kv(t('เพิ่ม', 'Add-ons'), pe.addons.map(function (id) { return nmOf(S.cfg.addons, id); }).join(', ')) : '') +
+        kv(t('น้ำหนักมือ', 'Pressure'), PR[pe.pressure] || PR.medium) + (pe.stretch === 'no' ? kv('', t('ไม่ปลุก ไม่บิดตัว', 'no waking, no stretching')) : '') + (pe.quiet ? kv('', t('ขอพักเงียบๆ', 'quiet, please')) : '');
+    }).join('') + '<hr style="border:0;border-top:1px dashed var(--line);margin:8px 0">' + kv(t('เวลา', 'Time'), hm(v.start) + '–' + hm(v.end)) + '</div>';
+  }
   function kv(k, v, cls) { return '<div class="kv' + (cls ? ' ' + cls : '') + '"><span>' + esc(k) + '</span><span>' + esc(v) + '</span></div>'; }
   function chip(attr, on, label) { return '<button class="chip" ' + attr + ' aria-pressed="' + !!on + '">' + label + '</button>'; }
   function toast(m) { $('toast').textContent = m; $('toast').hidden = false; clearTimeout(toast._t); toast._t = setTimeout(function () { $('toast').hidden = true; }, 3400); }
@@ -405,6 +421,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
   function hairSvg(id) { var len = { short: 24, blade: 34, mid: 43, waist: 51 }[id] || 30; return '<svg viewBox="0 0 46 52" aria-hidden="true"><path d="M8 ' + len + ' C8 6, 38 6, 38 ' + len + '" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" opacity=".55"/><circle cx="23" cy="20" r="10" fill="currentColor" opacity=".9"/><path d="M12 52 C12 38, 34 38, 34 52" fill="currentColor" opacity=".35"/></svg>'; }
   var PRESSURE = [['light', 'เบา', 'Light'], ['medium', 'กลาง', 'Medium'], ['firm', 'หนัก', 'Firm']];
   function bodyWork(p) { return p.segs.some(function (s) { return /thai|chair|oil/.test(s.res); }); }
+  function curPe(k) { return k.cur && k.others && k.others[k.cur - 1] ? k.others[k.cur - 1] : k.person; }
   function newPerson() { return { hair: null, addons: [], style: 'normal', pressure: 'medium', elbow: 'ok', stretch: 'ok', focus: [], quiet: false, alerts: [], healthOk: false }; }
   function lines(p, pe, useT, tf, tn, pack) {
     var out = [], h = hairT(pe.hair), st = styleT(pe.style), n = { '3': 3, '5': 5, '11': 11 }[pack] || 1;
@@ -466,7 +483,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
       if (who && k.next === undefined) { k.next = null; api('kFind', who).then(function (r) { var b2 = r.booking, c2 = r.check; if (r.member && b2 && b2.status === 'booked' && b2.payAtShop && c2 && !c2.late && !c2.other) { S.k.next = r; render(); } }).catch(function () {}); }
       var nextBtn = k.next && (k.next.held || []).length ? '<button class="btn kb" data-knext-t>' + t('เช็กอินคนถัดไป (ใช้ตั๋ว): ', 'Check in the next guest (ticket): ') + esc(k.next.booking.people[0].name) + '</button>' : k.next && (k.next.tickets || []).length ? '<button class="btn kb" data-knext-t>' + t('คนถัดไปใช้ตั๋ว: ', 'Next guest uses a ticket: ') + esc(k.next.booking.people[0].name) + '</button>' + '<button class="btn kb ghost" data-knext>' + t('คนถัดไปจ่ายเงิน', 'Next guest pays') + '</button>' : k.next ? '<button class="btn kb" data-knext>' + t('จ่ายของคนถัดไป: ', 'Pay for the next guest: ') + esc(k.next.booking.people[0].name) + '</button>' : '';
       return '<div class="khome"><span class="eyebrow">' + t('เช็กอินแล้ว', 'Checked in') + '</span><div class="qno">' + esc(k.q) + '</div><h2>' + t('รอเรียกคิวสักครู่นะคะ', 'We will call your number shortly') + '</h2>' +
-        '<p class="hint">' + esc(k.label || '') + '</p>' + '<p class="hint" style="font-size:16px">' + t('นั่งรอได้เลย เดี๋ยวพนักงานเรียกคิว', 'Please take a seat, we will call your number.') + '</p><p class="hint">' + t('เสร็จแล้วกลับมาที่แท็บเล็ตนี้ แตะ "จ่ายและให้ดาวก่อนกลับ"', 'When you finish, come back here and tap "Pay & rate before you leave".') + '</p>' +
+        '<p class="hint">' + esc(k.label || '') + '</p>' + slipCard(k) + '<p class="hint" style="font-size:16px">' + t('นั่งรอได้เลย เดี๋ยวพนักงานเรียกคิว', 'Please take a seat, we will call your number.') + '</p><p class="hint">' + t('เสร็จแล้วกลับมาที่แท็บเล็ตนี้ แตะ "จ่ายและให้ดาวก่อนกลับ"', 'When you finish, come back here and tap "Pay & rate before you leave".') + '</p>' +
         nextBtn + (k.bid && !demo ? '<a class="btn kb" style="text-decoration:none;text-align:center;display:block" href="../station/?accept=' + encodeURIComponent(k.bid) + '">' + t('หมอนวดรับงานเลย ›', 'Therapist: start this job ›') + '</a>' : '') + '<button class="btn kb' + (nextBtn || k.bid ? ' ghost' : '') + '" data-k="home">' + t('เสร็จ', 'Done') + '</button></div>';
     }
     if (k.screen === 'out') {
@@ -492,7 +509,8 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
         '<button class="btn ghost" data-paycancelk="' + esc(pr.orderId) + '">' + t('ยกเลิก', 'Cancel') + '</button></div>'; }
     if (k.screen === 'counter') return '<div class="khome"><span class="eyebrow">' + t('จ่ายที่เคาน์เตอร์', 'Pay at the counter') + '</span><h1>฿' + Number(k.amount || 0).toLocaleString('en-US') + '</h1>' +
       '<p class="hint" style="font-size:20px">' + t('กรุณารูดบัตรกับพนักงานที่เคาน์เตอร์ (ร้านไม่รับเงินสด)<br>จ่ายแล้วหน้าจอนี้จะขึ้นเลขคิวให้เอง', 'Please pay by card with our staff at the counter (cashless shop).<br>Your queue number appears here once paid.') + '</p>' +
-      '<div class="spin"></div><button class="btn ghost" data-paycancelk="' + esc(k.id) + '">' + t('ยกเลิก', 'Cancel') + '</button></div>';
+      (k.cp ? cardPayHtml(k) : '<div class="spin"></div><button class="btn kb" data-kcard>' + t('พนักงาน: รูดบัตรเสร็จแล้ว กดยืนยันที่นี่', 'Staff: card paid, confirm here') + '</button>') +
+      '<button class="btn ghost" data-paycancelk="' + esc(k.id) + '">' + t('ยกเลิก', 'Cancel') + '</button></div>';
     return '';
   }
   /* the treatment menu shown to walk-in guests: what each one is, how long, what happens, and the price */
@@ -554,12 +572,26 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     if (!k.prog && bundle(list).length === 1) k.prog = list[0].id;
     if (!k.prog) return menu(list, useT, owned);
     if (!k.person) k.person = newPerson();
-    var p = prog(k.prog), pe = k.person;
-    var sib = siblings(p, list);
+    var p0 = prog(k.prog), p = p0, pe = k.person;
+    var sib = siblings(p0, list);
+    /* walk-in group: one form per person (tabs), then one payment */
+    var canGroup = !useT && (k.pack || '1') === '1' && !k.phoneBooking, others = canGroup ? (k.others || []) : [];
+    var pairMates = p0.pair && others.length === 1 ? list.filter(function (x) { return x.pair === p0.pair; }) : [];
+    others.forEach(function (o) { var x = o.prog && prog(o.prog); if (o.prog && (!x || others.length !== 1 || !p0.pair || x.pair !== p0.pair)) o.prog = ''; });
+    if (!(k.cur > 0 && k.cur <= others.length)) k.cur = 0;
+    if (k.cur) { pe = others[k.cur - 1]; p = prog(pe.prog) || p0; }
     var h = '<div class="ksplit"><div class="kleft">' + (k.phoneBooking ? '<div class="ticket" style="background:var(--sand);border-color:var(--sand)"><b>' + t('นัดที่จองไว้ ', 'Your booking ') + hm(k.phoneAt) + (k.name ? ' · ' + esc(k.name) : '') + '</b><span style="font-size:13px">' + (useT ? t('เลือกความยาวผมและของเสริม แล้วรับคิว (ส่วนเพิ่มจ่ายตรงนี้)', 'Choose hair length and extras, then get your queue number (extras paid here)') : t('เลือกความยาวผมและของเสริม แล้วจ่ายเพื่อรับคิว', 'Choose hair length and extras, then pay to get your queue number')) + '</span></div>' : '') + '<span class="eyebrow">' + (useT ? t('ใช้ตั๋ว', 'Using a ticket') : t('โปรแกรมที่เลือก', 'Your treatment')) + '</span>' +
-      (sib.length > 1 ? '<span class="hint">' + esc(gname(p.group)) + '</span><div class="vpick">' + sib.map(function (x) { return '<button class="opt" data-kvar="' + x.id + '" aria-pressed="' + (x.id === p.id) + '"><span class="t">' + esc(x.vlabel ? (S.lang === 'en' ? x.vlabel.en : x.vlabel.th) : nm(x)) + '</span><span class="s">' + (useT ? t('มีตั๋ว ', '') + (owned[x.id] || 0) + t(' ใบ', ' left') : baht(x.price)) + '</span></button>'; }).join('') + '</div>' : '') +
-      progCard(p, useT, owned, false) +
+      (sib.length > 1 ? '<span class="hint">' + esc(gname(p0.group)) + '</span><div class="vpick">' + sib.map(function (x) { return '<button class="opt" data-kvar="' + x.id + '" aria-pressed="' + (x.id === p0.id) + '"><span class="t">' + esc(x.vlabel ? (S.lang === 'en' ? x.vlabel.en : x.vlabel.th) : nm(x)) + '</span><span class="s">' + (useT ? t('มีตั๋ว ', '') + (owned[x.id] || 0) + t(' ใบ', ' left') : baht(x.price)) + '</span></button>'; }).join('') + '</div>' : '') +
+      progCard(p0, useT, owned, false) +
       (bundle(list).length > 1 ? '<button class="btn ghost kb" data-kmenu>‹ ' + t('ดูเมนูทั้งหมด / เปลี่ยนโปรแกรม', 'Back to the menu') + '</button>' : '') + '</div><div class="kright">';
+    if (canGroup) {
+      h += '<span class="hint">' + t('มากี่คน (จ่ายรวมทีเดียว ได้คิวเดียวกัน)', 'How many people (pay once, one queue number)') + '</span><div class="grid2">' + [1, 2].map(function (n) {
+        return '<button class="opt" data-kn="' + n + '" aria-pressed="' + (others.length + 1 === n) + '"><span class="t" style="text-align:center">' + n + ' ' + t('คน', n > 1 ? 'people' : 'person') + '</span>' + (n === 2 && p0.pair ? '<span class="s" style="text-align:center">' + t('โปรคู่ ', 'Couple deal ') + baht(p0.pair) + '</span>' : '') + '</button>'; }).join('') + '</div>';
+      if (others.length) h += '<div class="ptabs">' + [k.person].concat(others).map(function (o, i) { var ok = !(i ? prog(o.prog) || p0 : p0).hair || o.hair;
+        return '<button data-kcur="' + i + '" aria-pressed="' + (k.cur === i) + '">' + t('คนที่ ', 'Person ') + (i + 1) + (ok ? ' ✓' : '') + '</button>'; }).join('') + '</div>';
+      if (k.cur) h += '<label class="f">' + t('ชื่อคนที่ ', 'Name of person ') + (k.cur + 1) + t(' (ไม่บังคับ)', ' (optional)') + '<input id="k-oname" value="' + esc(pe.name || '') + '"></label>' +
+        (pairMates.length > 1 ? '<span class="hint">' + t('เลือกโปรแกรม (ราคาโปรคู่เท่าเดิม)', 'Choose a treatment (same couple price)') + '</span><div class="grid3">' + pairMates.map(function (x) { return '<button class="opt" data-koprog="' + x.id + '" aria-pressed="' + (p.id === x.id) + '"><span class="t">' + esc(nm(x)) + '</span></button>'; }).join('') + '</div>' : '');
+    }
     /* upgrades (e.g. partner ticket -> full 60 min) come first, in a big recommended box, so every guest sees them */
     /* partner ticket: the foot upgrade comes with the 60-min upgrade, so it shows the full +400 and the 60-min box reads "included" */
     var needOf = function (a) { var n = a.needs && find(S.cfg.addons, a.needs); return n && n.for.indexOf(p.id) >= 0 ? n : null; };
@@ -576,30 +608,23 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
       '<div class="prow"><span>' + t('ระหว่างนวด', 'During') + '</span><div class="chips">' + chip('data-kpref="quiet|0"', !pe.quiet, t('คุยได้', 'Happy to chat')) + chip('data-kpref="quiet|1"', !!pe.quiet, t('ขอพักเงียบๆ', 'Quiet, please')) + '</div></div>' +
       '<div class="prow"><span>' + t('แจ้งหมอนวด (ถ้ามี)', 'Tell your therapist (if any)') + '</span><div class="chips">' + (S.cfg.alerts || []).map(function (x) { return chip('data-kalert="' + x.id + '"', (pe.alerts || []).indexOf(x.id) >= 0, esc(nm(x))); }).join('') + '</div></div>' +
       ((pe.alerts || []).length ? '<label class="check"><input type="checkbox" id="k-health"' + (pe.healthOk ? ' checked' : '') + '><span>' + t('ยินยอมให้ Lana เก็บข้อมูลนี้ และให้หมอนวดที่ดูแลเห็นเท่านั้น', 'I agree Lana keeps this and only my therapist sees it') + '</span></label>' : '') + '</div>';
-    if (!useT) h += '<span class="hint">' + t('ซื้อกี่ครั้ง', 'How many sessions') + '</span><div class="grid3">' + [['1', t('ครั้งเดียว', 'Today only'), p.price], ['3', t('คอร์ส 3 ครั้ง', '3 sessions'), p.pack3], ['5', t('คอร์ส 5 ครั้ง', '5 sessions'), p.pack5], ['11', t('10 แถม 1', '10 + 1 free'), p.pack11]].filter(function (x) { return x[2]; }).map(function (x) {
+    if (!useT && !others.length) h += '<span class="hint">' + t('ซื้อกี่ครั้ง', 'How many sessions') + '</span><div class="grid3">' + [['1', t('ครั้งเดียว', 'Today only'), p0.price], ['3', t('คอร์ส 3 ครั้ง', '3 sessions'), p0.pack3], ['5', t('คอร์ส 5 ครั้ง', '5 sessions'), p0.pack5], ['11', t('10 แถม 1', '10 + 1 free'), p0.pack11]].filter(function (x) { return x[2]; }).map(function (x) {
       return '<button class="opt" data-kpack="' + x[0] + '" aria-pressed="' + ((k.pack || '1') === x[0]) + '"><span class="t">' + x[1] + '</span><span class="s">' + baht(x[2]) + '</span></button>'; }).join('') + '</div>' +
       ((k.pack || '1') !== '1' ? '<span class="hint">' + t('ใช้วันนี้ 1 ครั้ง ที่เหลือเก็บไว้ใช้ครั้งหน้า ดูได้ใน LINE ของร้าน (MY LANA) ต้องใส่เบอร์หรืออีเมล', 'One is used today; the rest are saved for next time (see MY LANA in our LINE). Phone or email needed.') + '</span>' : '');
-    /* walk-in group: friends / couples on the same treatment pay once and share one queue number */
-    var canGroup = !useT && (k.pack || '1') === '1' && !k.phoneBooking, others = canGroup ? (k.others || []) : [];
-    if (canGroup) {
-      h += '<span class="hint">' + t('มากี่คน (โปรแกรมเดียวกัน จ่ายรวมทีเดียว ได้คิวเดียวกัน)', 'How many people (same treatment, pay once, one queue number)') + '</span><div class="grid3">' + [1, 2, 3, 4].map(function (n) {
-        return '<button class="opt" data-kn="' + n + '" aria-pressed="' + (others.length + 1 === n) + '"><span class="t" style="text-align:center">' + n + ' ' + t('คน', n > 1 ? 'people' : 'person') + '</span>' + (n === 2 && p.pair ? '<span class="s" style="text-align:center">' + t('โปรคู่ ', 'Couple deal ') + baht(p.pair) + '</span>' : '') + '</button>'; }).join('') + '</div>';
-      var pairMates = p.pair && others.length === 1 ? list.filter(function (x) { return x.pair === p.pair; }) : [];
-      others.forEach(function (o) { var x = o.prog && prog(o.prog); if (o.prog && (!x || others.length !== 1 || !p.pair || x.pair !== p.pair)) o.prog = ''; });
-      others.forEach(function (o, i) {
-        var op = prog(o.prog) || p;
-        h += '<div class="ticket"><b>' + t('คนที่ ', 'Person ') + (i + 2) + '</b>' + (pairMates.length > 1 ? '<span class="hint">' + t('คนที่ 2 เลือกโปรแกรม (ราคาโปรคู่เท่าเดิม)', 'Person 2 picks (same couple price)') + '</span><div class="grid3">' + pairMates.map(function (x) { return '<button class="opt" data-koprog="' + i + ':' + x.id + '" aria-pressed="' + (op.id === x.id) + '"><span class="t">' + esc(nm(x)) + '</span></button>'; }).join('') + '</div>' : '') + '<label class="f">' + t('ชื่อ (ไม่บังคับ)', 'Name (optional)') + '<input id="k-oname-' + i + '" value="' + esc(o.name || '') + '"></label>' +
-          (op.hair ? '<span class="hint">' + t('ผมยาวแค่ไหน', 'Hair length') + '</span><div class="hair">' + S.cfg.hair.map(function (x) { return '<button class="opt" data-kohair="' + i + ':' + x.id + '" aria-pressed="' + (o.hair === x.id) + '">' + hairSvg(x.id) + '<span class="t" style="font-size:13px">' + esc(nm(x)) + '</span><span class="s">' + (x.price && !op.hairFree ? '+' + baht(x.price) : t('ไม่เพิ่ม', 'no extra')) + '</span></button>'; }).join('') + '</div>' : '') + '</div>';
-      });
-    }
-    var tier = k.tier || null, ls = lines(p, pe, useT, (tier ? tier.free : []).concat(k.vouchers || []), tier ? nm(tier) : t('โค้ด', 'code'), k.pack);
-    others.forEach(function (o, i) { var op = prog(o.prog) || p; ls = ls.concat(lines(op, Object.assign(newPerson(), { hair: o.hair }), false, [], '', '1').map(function (l) { return { label: t('คนที่ ', 'Person ') + (i + 2) + ' · ' + l.label, amount: l.amount }; })); });
-    if (others.length === 1 && p.pair && (prog(others[0].prog) || p).pair === p.pair && !useT) {   /* couple deal: the two treatment prices become one */
-      var op2 = prog(others[0].prog) || p;
-      ls = ls.filter(function (l, j) { return !(j === 0 || (l.label.indexOf(t('คนที่ ', 'Person ') + '2 · ' + nm(op2)) === 0 && l.amount === op2.price)); });
-      ls.unshift({ label: t('โปรคู่ 2 คน', 'Couple deal (2 people)') + ' · ' + nm(p) + (op2.id !== p.id ? ' + ' + nm(op2) : ''), amount: p.pair });
+    var tier = k.tier || null, ls = lines(p0, k.person, useT, (tier ? tier.free : []).concat(k.vouchers || []), tier ? nm(tier) : t('โค้ด', 'code'), k.pack);
+    if (others.length) ls = ls.map(function (l) { return { label: t('คนที่ ', 'Person ') + '1 · ' + l.label, amount: l.amount }; });
+    others.forEach(function (o, i) { var op = prog(o.prog) || p0; ls = ls.concat(lines(op, o, false, [], '', '1').map(function (l) { return { label: t('คนที่ ', 'Person ') + (i + 2) + ' · ' + l.label, amount: l.amount }; })); });
+    if (others.length === 1 && p0.pair && (prog(others[0].prog) || p0).pair === p0.pair && !useT) {   /* couple deal: the two treatment prices become one */
+      var op2 = prog(others[0].prog) || p0;
+      ls = ls.filter(function (l) { return l.label !== t('คนที่ ', 'Person ') + '1 · ' + nm(p0) && l.label !== t('คนที่ ', 'Person ') + '2 · ' + nm(op2); });
+      ls.unshift({ label: t('โปรคู่ 2 คน', 'Couple deal (2 people)') + ' · ' + nm(p0) + (op2.id !== p0.id ? ' + ' + nm(op2) : ''), amount: p0.pair });
     }
     var total = ls.reduce(function (s, l) { return s + l.amount; }, 0);
+    var personOk = function (o, op) { return (!op.hair || o.hair) && (!(o.alerts || []).length || o.healthOk); };
+    if (others.length && k.cur < others.length) {
+      h += '<div class="ticket">' + kv(t('รวมทุกคน (ตอนนี้)', 'Total so far'), baht(total), 'total') + '</div>';
+      return h + '<button class="btn block kb" data-kcur="' + (k.cur + 1) + '"' + (personOk(pe, p) ? '' : ' disabled') + '>' + t('ถัดไป: คนที่ ', 'Next: person ') + (k.cur + 2) + ' ›</button>' + (personOk(pe, p) ? '' : '<span class="hint">' + t('เลือกความยาวผมก่อน', 'Choose the hair length first') + '</span>');
+    }
     h += '<div class="ticket">' + ls.map(function (l) { return kv(l.label, baht(l.amount)); }).join('') + (useT ? kv(t('ใช้ตั๋ว', 'Ticket'), '1') : '') + kv(t('รวม', 'Total'), baht(total), 'total') + '</div>';
     if (!useT && !k.memberChoice) h += '<label class="f">' + t('ชื่อ', 'Name') + '<input id="k-name" value="' + esc(k.name || '') + '"></label><span class="hint">' + t('เบอร์หรืออีเมลไม่บังคับ ไม่ใส่ก็ได้ รับ QR ไปเก็บในมือถือแทน', 'Phone and email are optional. Skip them and scan a QR to keep your visit on your phone.') + '</span>' +
       '<label class="f">' + t('เบอร์โทร (ไม่บังคับ)', 'Phone (optional)') + '<input id="k-phone" type="tel" inputmode="tel" placeholder="08x xxx xxxx / +44…" value="' + esc(k.phoneRaw || '') + '"></label>' +
@@ -609,12 +634,12 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
       '<span style="font-size:13px">' + (k.match.tickets ? t('บัญชีนี้มีตั๋วที่ใช้ที่สาขานี้ได้ ', 'This account has tickets usable here: ') + k.match.tickets + t(' ใบ ใช้แทนการจ่ายได้', '. Use one instead of paying.') : t('ซื้อครั้งนี้เข้าบัญชีเดิมได้ ตั๋ว ประวัติ และของขวัญอยู่ที่เดียวกัน', 'Add this purchase to the same account so tickets, history and gifts stay together.')) + '</span>' +
       '<div class="row2">' + (k.match.tickets ? '<button class="btn small" data-kmember="tickets">' + t('ใช้ตั๋วที่มี', 'Use my ticket') + '</button>' : '') + '<button class="btn small' + (k.match.tickets ? ' ghost' : '') + '" data-kmember="buy">' + t('ซื้อใหม่ เข้าบัญชีเดิม', 'Buy, add to my account') + '</button><button class="btn small ghost" data-kmember="edit">' + t('ไม่ใช่ฉัน แก้เบอร์', 'Not me, edit') + '</button></div></div>';
     if (k.err) h += '<p class="err">' + esc(k.err) + '</p>';
-    var ready = (!p.hair || pe.hair) && (!(pe.alerts || []).length || pe.healthOk) && others.every(function (o) { return !(prog(o.prog) || p).hair || o.hair; });
+    var ready = personOk(k.person, p0) && others.every(function (o) { return personOk(o, prog(o.prog) || p0); });
     h += '<button class="btn block kb" data-kpay' + (ready ? '' : ' disabled') + '>' + (total ? t('จ่าย ', 'Pay ') + baht(total) + t(' และรับคิว', ' & get queue number') : t('รับคิว', 'Get queue number')) + '</button>' + (ready ? '' : '<span class="hint">' + t('เลือกความยาวผมก่อน', 'Choose hair length first') + '</span>') + '</div></div>';
     return h;
   }
   /* keep typed name/phone/email when the screen redraws */
-  function saveForm() { var k = S.k; (k.others || []).forEach(function (o, i) { var el = $('k-oname-' + i); if (el) o.name = el.value.trim(); }); if ($('k-name')) { k.name = $('k-name').value.trim(); k.phoneRaw = $('k-phone').value.trim(); k.email = $('k-email').value.trim(); k.consent = $('k-consent').checked; } }
+  function saveForm() { var k = S.k; if (k.cur && k.others && k.others[k.cur - 1] && $('k-oname')) k.others[k.cur - 1].name = $('k-oname').value.trim(); if ($('k-name')) { k.name = $('k-name').value.trim(); k.phoneRaw = $('k-phone').value.trim(); k.email = $('k-email').value.trim(); k.consent = $('k-consent').checked; } }
   function qrSvg(text) {
     try { var q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); } catch (e) { return '<span class="hint">' + esc(text) + '</span>'; }
   }
@@ -633,6 +658,31 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
   function goCounter(id, amount, label) {
     return api('kCounter', { id: id }).then(function (o) { go('counter', { id: id, amount: o.amount || amount, label: label }); pollCounter(id, label); })
       .catch(function (e) { toast(errT(e)); waitOrder(id, label); });
+  }
+  /* staff confirm the card machine payment right here: tap your name, type your PIN */
+  function cardPayHtml(k) {
+    var cp = k.cp;
+    if (!cp.staff) return '<div class="ticket" style="width:min(560px,100%)"><b>' + t('ใครรูดบัตร (แตะชื่อตัวเอง)', 'Who took the card? (tap your name)') + '</b>' + (cp.list ? '<div class="chips" style="justify-content:center;margin-top:10px">' + cp.list.map(function (s) { return '<button class="opt" style="min-width:120px" data-kcpstaff="' + esc(s.id) + '"><span class="t" style="text-align:center">' + esc(s.name) + '</span>' + (s.on ? '' : '<span class="s" style="text-align:center">' + t('ยังไม่เข้างาน', 'off shift') + '</span>') + '</button>'; }).join('') + '</div>' : '<div class="spin"></div>') + '</div>';
+    var nm0 = (cp.list || []).filter(function (s) { return s.id === cp.staff; })[0] || {};
+    return '<div class="ticket" style="width:min(420px,100%);text-align:center"><b>' + esc(nm0.name || '') + t(' · ใส่ PIN', ' · enter PIN') + '</b><div style="font-size:34px;letter-spacing:12px;margin:6px 0">' + '●●●●'.slice(0, cp.pin.length) + '<span style="opacity:.25">' + '●●●●'.slice(cp.pin.length) + '</span></div>' +
+      (cp.busy ? '<div class="spin"></div>' : '<div class="keys">' + ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'DEL', '0', 'BACK'].map(function (x) { return '<button class="key" data-kcppin="' + x + '">' + (x === 'DEL' ? t('ลบ', 'Del') : x === 'BACK' ? '‹' : x) + '</button>'; }).join('') + '</div>') + (cp.err ? '<p class="err">' + esc(cp.err) + '</p>' : '') + '</div>';
+  }
+  function stApi(action, data) {   /* the same tablet password also opens the staff side */
+    var req = Object.assign({ app: 'station', action: action, kiosk: S.key, branch: S.branch }, data || {});
+    if (demo) return new Promise(function (res, rej) { setTimeout(function () { try { res(stationApi(JSON.parse(JSON.stringify(req)), DS, DNOW)); } catch (e) { rej(e); } }, 150); });
+    return fetch(APP.API_URL, { method: 'POST', body: JSON.stringify(req) }).then(function (r) { return r.json(); }, function () { throw new Error('NET'); }).then(function (j) { if (!j.ok) throw new Error(j.error); return j.data; });
+  }
+  function cardPin(x) {
+    var k = S.k, cp = k.cp; if (!cp || cp.busy) return;
+    if (x === 'BACK') { cp.staff = ''; cp.pin = ''; cp.err = ''; return render(); }
+    if (x === 'DEL') { cp.pin = cp.pin.slice(0, -1); return render(); }
+    if (cp.pin.length >= 4) return; cp.pin += x; cp.err = '';
+    if (cp.pin.length < 4) return render();
+    cp.busy = true; render();
+    var id = k.id, label = k.label;
+    stApi('sCounterPay', { id: id, staffId: cp.staff, pin: cp.pin, method: 'card' }).then(function () {
+      return api('order', { id: id }).then(function (o) { if (o.kind === 'checkout') return go('thanks'); go('queue', { q: o.q, vkey: o.vkey, label: label, bid: o.bookingId }); });
+    }).catch(function (e) { cp.busy = false; cp.pin = ''; cp.err = String(e.message) === 'BAD_PIN' ? t('PIN ไม่ถูกต้อง ลองใหม่', 'Wrong PIN, try again') : String(e.message) === 'ALREADY_PAID' ? t('รายการนี้จ่ายแล้ว', 'Already paid') : errT(e); render(); });
   }
   function pollCounter(id, label) {
     var tries = 0;
@@ -714,7 +764,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
   function kpay() {
     var k = S.k, p = prog(k.prog), req = { prog: k.prog, person: k.person, pack: k.useT ? '1' : (k.pack || '1'), returnUrl: returnUrl() };
     if (k.phoneBooking) req.phoneBooking = k.phoneBooking;
-    saveForm(); if (!k.useT && (k.pack || '1') === '1' && !k.phoneBooking && (k.others || []).length) req.others = k.others.map(function (o) { return { hair: o.hair, name: o.name || '', prog: k.others.length === 1 && o.prog ? o.prog : '' }; });
+    saveForm(); if (!k.useT && (k.pack || '1') === '1' && !k.phoneBooking && (k.others || []).length) req.others = k.others.map(function (o) { return Object.assign({}, o, { prog: k.others.length === 1 && o.prog ? o.prog : '' }); });
     if (k.useT) Object.assign(req, k.who, { useTicket: true });
     else if (k.memberChoice) Object.assign(req, k.who, { memberChoice: 'buy' });
     else {
@@ -740,6 +790,9 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     if (d.paybeam !== undefined && k.r) return goBeam(k.r, k.label);
     if (d.paycounter) return goCounter(d.paycounter, (k.r || {}).amount, k.label);
     if (d.paycancelk) return kCancelPay(d.paycancelk);
+    if (d.kcard !== undefined) { k.cp = { staff: '', pin: '', list: null }; render(); return api('kStaff', {}).then(function (r) { if (k.cp) { k.cp.list = r.staff; render(); } }).catch(function (e) { k.cp = null; toast(errT(e)); render(); }); }
+    if (d.kcpstaff) { k.cp.staff = d.kcpstaff; k.cp.pin = ''; return render(); }
+    if (d.kcppin) return cardPin(d.kcppin);
     if (d.lang) { S.lang = d.lang; return render(); }
     if (d.setup !== undefined) {
       S.key = $('s-key').value.trim(); S.branch = $('s-br').value;
@@ -763,17 +816,17 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     if (d.knextT !== undefined) return payBooked(k.next, k.who, true);
     if (d.kuse !== undefined) return go('walkin', { useT: true, tickets: k.found.tickets, who: k.who, tier: k.found.member.tier, vouchers: k.found.vouchers || [] });
     if (d.kbuy !== undefined) return go('walkin', k.who && k.found ? { memberChoice: 'buy', who: k.who, tier: k.found.member.tier, vouchers: k.found.vouchers || [] } : {});
-    if (d.kprog) { k.prog = d.kprog; k.person = newPerson(); render(); var tb = $('tbody'); if (tb) tb.scrollTop = 0; return; }
+    if (d.kprog) { k.prog = d.kprog; k.person = newPerson(); k.others = []; k.cur = 0; render(); var tb = $('tbody'); if (tb) tb.scrollTop = 0; return; }
     if (d.kvar) { saveForm(); k.prog = d.kvar; if (k.person) k.person.addons = k.person.addons.filter(function (id) { var a = find(S.cfg.addons, id); return a && a.for.indexOf(d.kvar) >= 0; }); if (!(prog(d.kvar) || {}).pack3 && k.pack === '3') k.pack = '1'; return render(); }
-    if (d.kmenu !== undefined) { k.prog = ''; k.person = null; render(); var tb2 = $('tbody'); if (tb2) tb2.scrollTop = 0; return; }
+    if (d.kmenu !== undefined) { k.prog = ''; k.person = null; k.others = []; k.cur = 0; render(); var tb2 = $('tbody'); if (tb2) tb2.scrollTop = 0; return; }
     if (d.kpack) { saveForm(); k.pack = d.kpack; return render(); }
-    if (d.khair) { saveForm(); k.person.hair = d.khair; return render(); }
-    if (d.kn) { saveForm(); var on = (k.others || []).slice(0, +d.kn - 1); while (on.length < +d.kn - 1) on.push({ hair: null, name: '' }); if (on.length !== 1) on.forEach(function (o) { o.prog = ''; }); k.others = on; return render(); }
-    if (d.koprog) { saveForm(); var opr = d.koprog.split(':'); k.others[+opr[0]].prog = opr[1]; return render(); }
-    if (d.kohair) { saveForm(); var oh = d.kohair.split(':'); k.others[+oh[0]].hair = oh[1]; return render(); }
-    if (d.kstyle) { saveForm(); k.person.style = d.kstyle; return render(); }
-    if (d.kalert) { saveForm(); var pa = k.person; pa.alerts = pa.alerts || []; var ix = pa.alerts.indexOf(d.kalert); if (ix >= 0) pa.alerts.splice(ix, 1); else pa.alerts.push(d.kalert); return render(); }
-    if (d.kpref) { saveForm(); var pp = d.kpref.split('|'); k.person[pp[0]] = pp[0] === 'quiet' ? pp[1] === '1' : pp[1]; return render(); }
+    if (d.khair) { saveForm(); curPe(k).hair = d.khair; return render(); }
+    if (d.kn) { saveForm(); var on = (k.others || []).slice(0, +d.kn - 1); while (on.length < +d.kn - 1) on.push(Object.assign(newPerson(), { name: '', prog: '' })); if (on.length !== 1) on.forEach(function (o) { o.prog = ''; }); k.others = on; if (k.cur > on.length) k.cur = 0; return render(); }
+    if (d.kcur !== undefined) { saveForm(); k.cur = +d.kcur; render(); var tbc = $('tbody'); if (tbc) tbc.scrollTop = 0; return; }
+    if (d.koprog) { saveForm(); var cur = curPe(k); cur.prog = d.koprog === k.prog ? '' : d.koprog; cur.addons = cur.addons.filter(function (id) { var a = find(S.cfg.addons, id); return a && a.for.indexOf(d.koprog) >= 0; }); return render(); }
+    if (d.kstyle) { saveForm(); curPe(k).style = d.kstyle; return render(); }
+    if (d.kalert) { saveForm(); var pa = curPe(k); pa.alerts = pa.alerts || []; var ix = pa.alerts.indexOf(d.kalert); if (ix >= 0) pa.alerts.splice(ix, 1); else pa.alerts.push(d.kalert); return render(); }
+    if (d.kpref) { saveForm(); var pp = d.kpref.split('|'); curPe(k)[pp[0]] = pp[0] === 'quiet' ? pp[1] === '1' : pp[1]; return render(); }
     if (d.kmember) {
       if (d.kmember === 'edit') { k.match = null; k.phoneRaw = ''; k.email = ''; return render(); }
       if (d.kmember === 'tickets') return api('kFind', k.who).then(function (r) { go('walkin', { useT: true, tickets: r.tickets, who: k.who }); });
@@ -790,9 +843,9 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
   });
   document.addEventListener('change', function (e) {
     var el = e.target, k = S.k;
-    if (el.dataset.kaddon) { saveForm(); var i = k.person.addons.indexOf(el.dataset.kaddon); if (el.checked && i < 0) k.person.addons.push(el.dataset.kaddon); if (!el.checked && i >= 0) k.person.addons.splice(i, 1); k.person.addons = fixAddons(k.prog, k.person.addons, el.checked ? '' : el.dataset.kaddon); render(); }
+    if (el.dataset.kaddon) { saveForm(); var cpe = curPe(k), cpid = k.cur ? (cpe.prog || k.prog) : k.prog, i = cpe.addons.indexOf(el.dataset.kaddon); if (el.checked && i < 0) cpe.addons.push(el.dataset.kaddon); if (!el.checked && i >= 0) cpe.addons.splice(i, 1); cpe.addons = fixAddons(cpid, cpe.addons, el.checked ? '' : el.dataset.kaddon); render(); }
     if (el.id === 'k-phone' || el.id === 'k-email') { k.match = null; k.choice = null; }
-    if (el.id === 'k-health') { saveForm(); k.person.healthOk = el.checked; return render(); }
+    if (el.id === 'k-health') { saveForm(); curPe(k).healthOk = el.checked; return render(); }
   });
   $('tback').onclick = function () { go('home'); };
   /* back to the welcome screen after 90 s without a touch */

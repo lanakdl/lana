@@ -627,6 +627,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
           v.upsell.addons.map(function (a) { return '<button class="uchip' + (a.on ? ' on' : '') + '" data-up="addon|' + a.id + '"' + (a.on && !a.added ? ' disabled' : '') + '>' + esc(a.name) + ' <small>' + (a.on ? (a.added ? '✓ เพิ่มแล้ว · แตะเพื่อเอาออก' : '✓ ลูกค้าสั่งไว้แล้ว') : '+' + baht(a.price)) + '</small></button>'; }).join('') +
           v.upsell.styles.map(function (x) { return '<button class="uchip' + (x.on ? ' on' : '') + '" data-up="style|' + x.id + '"' + (x.on && !x.added ? ' disabled' : '') + '>' + esc(x.name) + ' <small>' + (x.on ? (x.added ? '✓ เปลี่ยนแล้ว · แตะเพื่อเอาออก' : '✓ ลูกค้าเลือกไว้แล้ว') : '+' + baht(x.price)) + '</small></button>'; }).join('') + '</div></div>' : '') +
         (v.canExtend ? '<button class="sb ghost" data-act="extend">ลูกค้าขอต่อ 30 นาที (+' + baht(v.extPrice) + ')</button>' : '<button class="sb ghost" disabled>ต่อเวลาไม่ได้: ' + esc(v.extBlock) + '</button>') +
+        '<button class="sb olive" data-act="viewslip">ดูใบงานบนจอ</button>' +
         '<button class="sb ghost" data-act="slip">ปริ้นใบงานอีกครั้ง</button>' +
         '<button class="sb ghost" data-chprog="' + esc(v.id) + '">เปลี่ยนโปรแกรม (กดผิด / ลูกค้าเปลี่ยน)</button>' +
         (v.canUndo ? '<button class="sb ghost" data-act="undo">คืนคิว (รับผิด / ยังไม่ได้เริ่มทำ)</button>' : '') +
@@ -669,6 +670,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
         '<div class="pinpad"><div class="pindots">' + [0, 1, 2, 3].map(function (i) { return '<i class="' + (i < pin.length ? 'f' : '') + '"></i>'; }).join('') + '</div><div class="pkeys">' +
         ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'].map(function (k) { return k === 'ok' ? '<button class="pk ok" data-clockgo="' + (cs.on ? '0' : '1') + '"' + (pin.length < 4 || S.busy || (!cs.on && !S.cam) ? ' disabled' : '') + '>' + (cs.on ? 'ออกงาน' : 'เข้างาน') + '</button>' : '<button class="pk" data-pin="' + k + '">' + (k === 'del' ? 'ลบ' : k) + '</button>'; }).join('') + '</div></div></div>' +
         '<div class="acts"><button class="sb ghost" ' + (sh.back ? 'data-clockback' : 'data-close') + '>ยกเลิก</button></div>'; }
+    if (sh.kind === 'slipview') return '<h2>ใบงาน</h2><div class="slipview"><div class="slipbody">' + sh.html + '</div></div><div class="acts"><button class="sb ghost" data-close>ปิด</button></div>';
     if (sh.kind === 'slip' && printMode() === 'remote') {
       return '<h2>ใบงาน</h2><span class="sub">ส่งไปเครื่องปริ้นแล้ว · ใบงานออกที่แท็บเล็ต Android ข้างเครื่องปริ้น (แอป Lana Print) ภายในไม่กี่วินาที</span>' +
         '<div class="slipview"><div class="slipbody">' + sh.html + '</div></div>' +
@@ -1075,6 +1077,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     if (el.id === 'upsure') { var us = S.sheet, req = { id: us.id }; req[us.up[0]] = us.up[1];
       return api('sUpsell', req).then(function (b) { S.b = b; S.skew = Date.now(); S.sheet = { kind: 'live', id: us.id }; render(); toast(us.off ? 'เอาออกแล้ว' : 'เพิ่มแล้ว · เก็บเงินตอนจบ'); })
         .catch(function (x) { S.sheet = null; toast(errT(x)); load(true); }); }
+    if (d.act === 'viewslip') { var vid = S.sheet.id; return api('sSlip', { id: vid }).then(function (r) { S.sheet = { kind: 'slipview', html: slipHtml(r.slip) }; render(); }).catch(function (x) { toast(errT(x)); }); }
     if (d.act === 'slip') { var slid = S.sheet.id; return api('sSlip', { id: slid, remote: printMode() === 'remote' }).then(function (r) { S.sheet = null; render(); printSlip(r.slip, slid); }).catch(function (x) { toast(errT(x)); }); }
     if (d.act) { S.sheet = { kind: 'sure', id: S.sheet.id, act: d.act }; return render(); }
     if (el.id === 'sure') {
