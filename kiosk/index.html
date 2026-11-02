@@ -379,8 +379,9 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     INFLIGHT[key] = p; return p;
   }
   function api0(action, data) {
-    var req = Object.assign({ app: 'cust', action: action, kiosk: S.key, branch: S.branch }, data || {});
-    if (demo) return new Promise(function (res, rej) { setTimeout(function () { try { var r = custApi(JSON.parse(JSON.stringify(req)), DS, DNOW); if (window.__demoAfter) window.__demoAfter(); res(r); } catch (e) { rej(e); } }, 150); });
+    var st = /^s[A-Z]/.test(action);   /* staff actions (take the job, card paid) use the same tablet password */
+    var req = Object.assign({ app: st ? 'station' : 'cust', action: action, kiosk: S.key, branch: S.branch }, data || {});
+    if (demo) return new Promise(function (res, rej) { setTimeout(function () { try { var r = (st ? stationApi : custApi)(JSON.parse(JSON.stringify(req)), DS, DNOW); if (window.__demoAfter) window.__demoAfter(); res(r); } catch (e) { rej(e); } }, 150); });
     return fetch(APP.API_URL, { method: 'POST', body: JSON.stringify(req) }).then(function (r) { return r.json(); }, function () { throw new Error('NET'); })
       .then(function (j) { if (!j.ok) throw new Error(j.error); return j.data; });
   }
@@ -402,6 +403,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
   /* the job slip on screen right after paying (the iPad cannot print): what the therapist needs to know */
   function slipCard(k) {
     if (!k.vkey) return '';
+    if (k.bid && k.accList === undefined) { k.accList = null; api('kStaff', {}).then(function (b) { if (S.k === k) { k.accList = b.staff || []; if (k.accOpen) render(); } }).catch(function () { k.accList = undefined; }); }   /* ready before anyone taps */
     if (k.view === undefined) { k.view = null; api('visit', { vkey: k.vkey }).then(function (r) { if (S.k === k) { k.view = r.booking; render(); } }).catch(function () {}); }
     var v = k.view; if (!v) return '';
     var nmOf = function (list, id) { var x = find(list, id); return x ? nm(x) : ''; }, PR = { light: t('เบา', 'light'), medium: t('กลาง', 'medium'), firm: t('หนัก', 'firm') };
@@ -677,21 +679,17 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
   function kAccept(k, force) {
     var picks = k.accPick, nameOf = function (id) { return ((k.accList || []).filter(function (s) { return s.id === id; })[0] || {}).name || ''; };
     k.accBusy = true; k.accErr = ''; k.accSeat = false; render();
-    return stApi('sAccept', { id: k.bid, staffId: picks[0], crew: picks.length > 1 ? picks : undefined, force: !!force }).then(function () { k.accBusy = false; k.acc = picks.filter(function (x, i) { return picks.indexOf(x) === i; }).map(nameOf).join(' + '); render(); })
+    return stApi('sAccept', { id: k.bid, staffId: picks[0], crew: picks.length > 1 ? picks : undefined, force: !!force, lite: true }).then(function () { k.accBusy = false; k.acc = picks.filter(function (x, i) { return picks.indexOf(x) === i; }).map(nameOf).join(' + '); render(); })
       .catch(function (e) { k.accBusy = false; k.accForcePick = picks; k.accPick = []; k.accSeat = String(e.message) === 'SEAT_BUSY'; k.accErr = errT(e); render(); });
   }
   function cardPayHtml(k) {
     var cp = k.cp;
-    if (!cp.staff) return '<div class="ticket" style="width:min(560px,100%)"><b>' + t('ใครรูดบัตร (แตะชื่อตัวเอง)', 'Who took the card? (tap your name)') + '</b>' + (cp.list ? '<div class="chips" style="justify-content:center;margin-top:10px">' + cp.list.map(function (s) { return '<button class="opt" style="min-width:120px" data-kcpstaff="' + esc(s.id) + '"><span class="t" style="text-align:center">' + esc(s.name) + '</span>' + (s.on ? '' : '<span class="s" style="text-align:center">' + t('ยังไม่เข้างาน', 'off shift') + '</span>') + '</button>'; }).join('') + '</div>' : '<div class="spin"></div>') + '</div>';
+    if (!cp.staff) return '<div class="ticket" style="width:min(560px,100%)"><b>' + t('ใครรูดบัตร (แตะชื่อตัวเอง)', 'Who took the card? (tap your name)') + '</b>' + (cp.list ? '<div class="chips" style="justify-content:center;margin-top:10px">' + cp.list.filter(function (s) { return s.pin !== false; }).map(function (s) { return '<button class="opt" style="min-width:120px" data-kcpstaff="' + esc(s.id) + '"><span class="t" style="text-align:center">' + esc(s.name) + '</span>' + (s.on ? '' : '<span class="s" style="text-align:center">' + t('ยังไม่เข้างาน', 'off shift') + '</span>') + '</button>'; }).join('') + '</div>' : '<div class="spin"></div>') + '</div>';
     var nm0 = (cp.list || []).filter(function (s) { return s.id === cp.staff; })[0] || {};
     return '<div class="ticket" style="width:min(420px,100%);text-align:center"><b>' + esc(nm0.name || '') + t(' · ใส่ PIN', ' · enter PIN') + '</b><div style="font-size:34px;letter-spacing:12px;margin:6px 0">' + '●●●●'.slice(0, cp.pin.length) + '<span style="opacity:.25">' + '●●●●'.slice(cp.pin.length) + '</span></div>' +
       (cp.busy ? '<div class="spin"></div>' : '<div class="keys">' + ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'DEL', '0', 'BACK'].map(function (x) { return '<button class="key" data-kcppin="' + x + '">' + (x === 'DEL' ? t('ลบ', 'Del') : x === 'BACK' ? '‹' : x) + '</button>'; }).join('') + '</div>') + (cp.err ? '<p class="err">' + esc(cp.err) + '</p>' : '') + '</div>';
   }
-  function stApi(action, data) {   /* the same tablet password also opens the staff side */
-    var req = Object.assign({ app: 'station', action: action, kiosk: S.key, branch: S.branch }, data || {});
-    if (demo) return new Promise(function (res, rej) { setTimeout(function () { try { res(stationApi(JSON.parse(JSON.stringify(req)), DS, DNOW)); } catch (e) { rej(e); } }, 150); });
-    return fetch(APP.API_URL, { method: 'POST', body: JSON.stringify(req) }).then(function (r) { return r.json(); }, function () { throw new Error('NET'); }).then(function (j) { if (!j.ok) throw new Error(j.error); return j.data; });
-  }
+  function stApi(action, data) { return api(action, data); }   /* same one-tap guard and spinner as everything else */
   function cardPin(x) {
     var k = S.k, cp = k.cp; if (!cp || cp.busy) return;
     if (x === 'BACK') { cp.staff = ''; cp.pin = ''; cp.err = ''; return render(); }
@@ -700,8 +698,10 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     if (cp.pin.length < 4) return render();
     cp.busy = true; render();
     var id = k.id, label = k.label;
-    stApi('sCounterPay', { id: id, staffId: cp.staff, pin: cp.pin, method: 'card' }).then(function () {
-      return api('order', { id: id }).then(function (o) { if (o.kind === 'checkout') return go('thanks'); go('queue', { q: o.q, vkey: o.vkey, label: label, bid: o.bookingId }); });
+    stApi('sCounterPay', { id: id, staffId: cp.staff, pin: cp.pin, method: 'card', lite: true }).then(function (r) {
+      if (r.kind === 'checkout') return go('thanks');
+      if (r.vkey) return go('queue', { q: r.q, vkey: r.vkey, label: label, bid: r.bookingId, view: r.booking || undefined });
+      return api('order', { id: id }).then(function (o) { if (o.kind === 'checkout') return go('thanks'); go('queue', { q: o.q, vkey: o.vkey, label: label, bid: o.bookingId }); });   /* older backend */
     }).catch(function (e) { cp.busy = false; cp.pin = ''; cp.err = String(e.message) === 'BAD_PIN' ? t('PIN ไม่ถูกต้อง ลองใหม่', 'Wrong PIN, try again') : String(e.message) === 'ALREADY_PAID' ? t('รายการนี้จ่ายแล้ว', 'Already paid') : errT(e); render(); });
   }
   function pollCounter(id, label) {
@@ -796,7 +796,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     api('kStart', req).then(function (r) {
       if (r.match) { k.match = r.match; k.who = { phone: k.phoneRaw, email: k.email }; k.err = ''; return render(); }
       if (r.url) return goPay(r, nm(p));
-      go('queue', { q: r.q, vkey: r.vkey, bid: r.bookingId, label: nm(p) + ' · ' + t('เริ่ม ', 'starts ') + hm(r.start) });
+      go('queue', { q: r.q, vkey: r.vkey, bid: r.bookingId, view: r.booking || undefined, label: nm(p) + ' · ' + t('เริ่ม ', 'starts ') + hm(r.start) });
     }).catch(function (e) { k.err = errT(e); render(); });
   }
   /* demo only: try a photo from this device on a menu card (stays in this page, nothing is uploaded) */
@@ -810,8 +810,9 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     if (d.paybeam !== undefined && k.r) return goBeam(k.r, k.label);
     if (d.paycounter) return goCounter(d.paycounter, (k.r || {}).amount, k.label);
     if (d.paycancelk) return kCancelPay(d.paycancelk);
-    if (d.kacc !== undefined) { k.accOpen = true; k.accList = null; k.accErr = ''; k.accPick = []; render(); return stApi('sBoard', {}).then(function (b) { if (S.k === k) { k.accList = b.staff || []; render(); } }).catch(function (e) { k.accOpen = false; toast(errT(e)); render(); }); }
-    if (d.kaccby) { var nPpl = k.view ? k.view.people.length : 1; k.accPick = (k.accPick || []).concat([d.kaccby]);
+    if (d.kacc !== undefined) { k.accOpen = true; k.accErr = ''; k.accPick = []; if (k.accList) return render(); render(); return api('kStaff', {}).then(function (b) { if (S.k === k) { k.accList = b.staff || []; render(); } }).catch(function (e) { k.accOpen = false; toast(errT(e)); render(); }); }
+    if (d.kaccby) { if (k.accBusy || Date.now() - (k.accTap || 0) < 250) return; k.accTap = Date.now();   /* a double tap must not pick the same therapist for the second guest */
+      var nPpl = k.view ? k.view.people.length : 1; k.accPick = (k.accPick || []).concat([d.kaccby]);
       if (k.accPick.length < nPpl) return render();   /* couple: pick a therapist for each guest */
       return kAccept(k);
     }

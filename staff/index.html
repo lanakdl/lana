@@ -1462,6 +1462,7 @@ function stationApi(req, store, now) {
       cFulfil(store, po, now);
       store.log(payer.id, po.bookingId || '', 'paid_' + po.method, po.id + ' ' + po.amount);
       var pbk = po.bookingId ? lnFind(store.bookings(), po.bookingId) : null;
+      if (req.lite) return { paidBy: po.method, kind: po.kind, q: pbk ? pbk.q || '' : '', vkey: pbk ? pbk.vkey || '' : '', bookingId: po.bookingId || '', status: pbk ? pbk.status : '', booking: pbk ? cView(pbk, store, now, false) : null };   /* kiosk: everything for the next screen in one answer */
       return { paidBy: po.method, q: pbk ? pbk.q || '' : '', status: pbk ? pbk.status : '', board: stBoard(br, store, now) };
     }
     if (a === 'sClock') {   /* clock in/out at the station tablet (for staff without the LINE app, e.g. part-timers called in) */
@@ -1643,6 +1644,7 @@ function stAccept(b, br, req, store, now) {
   lnPrintWant(b, now);
   store.saveBooking(b); lnReseat(b, br, all).forEach(function (x) { store.saveBooking(x); });
   store.log(s.id, b.id, req.force ? 'accept_forced' : 'accept', 'station ' + LANA.RES[seat0.res][2] + unit);
+  if (req.lite) return { ok: true };
   return { slip: stSlip(b, br, store), board: stBoard(br, store, now) };
 }
 /* begin the next step of each guest now (picked up from the shared queue, or the same therapist moving on early) */
@@ -2540,7 +2542,7 @@ function cKiosk(a, req, store, now) {
   }
   /* staff on shift at this branch: the kiosk lets one of them confirm a card payment with their PIN */
   if (a === 'kStaff') { var onIds = store.shifts().filter(function (r) { return r.date === now.date && !r.out; }).map(function (r) { return r.staffId; });
-    return { staff: store.staff().filter(function (s) { return s.branch === br.id && String(s.active).toUpperCase() !== 'FALSE' && String(s.pin || '').trim(); }).map(function (s) { return { id: s.id, name: s.name, on: onIds.indexOf(s.id) >= 0 }; })
+    return { staff: store.staff().filter(function (s) { return s.branch === br.id && String(s.active).toUpperCase() !== 'FALSE'; }).map(function (s) { return { id: s.id, name: s.name, on: onIds.indexOf(s.id) >= 0, pin: !!String(s.pin || '').trim(), busy: store.bookings().filter(function (b) { return b.branch === br.id && b.date === now.date && b.status === 'inservice' && b.staffId === s.id; }).map(function (b) { return b.q || b.code; }) }; })
       .sort(function (x, y) { return (y.on ? 1 : 0) - (x.on ? 1 : 0); }) }; }
   if (a === 'kOut') return { list: store.bookings().filter(function (b) { return b.branch === br.id && b.date === now.date && b.status === 'finished'; }).map(function (b) { return { id: b.id, q: b.q || b.code, name: b.people[0].name, due: lnSum(b.due || []), view: cView(b, store, now, false) }; }) };
   if (a === 'kBoard') return { board: apiBoard(br.id, store, now) };
