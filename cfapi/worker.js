@@ -2757,6 +2757,13 @@ export class Shop {
     try {
       this.trim();
       if (url.pathname === '/tick') return cfJson(await this.tick());
+      if (url.pathname === '/status') {   /* a quick health check anyone can open (no secrets in it) */
+        var sc = this.secrets, db = this.db;
+        return cfJson({ ok: true, setUp: !!this.cfg, programs: this.cfg ? LANA.PROGRAMS.filter(function (p) { return lnOnSale(p); }).length : 0, staff: this.cfg ? (this.cfg.staff || []).length : 0,
+          keys: { kiosk: !!sc.KIOSK_KEY, owner: !!sc.OWNER_KEY, beam: !!(sc.BEAM_MERCHANT_ID && sc.BEAM_API_KEY), lineStaff: !!sc.LINE_STAFF_TOKEN, custLogin: !!sc.CUST_LOGIN_CHANNEL, appsScript: !!this.gasUrl, adminKey: !!this.env.ADMIN_KEY },
+          data: { bookings: db.bookings.length, orders: db.orders.length, members: db.members.length, tickets: db.tickets.length, shifts: db.shifts.length },
+          lastTick: this.lastTick || '', now: cfNow().stamp, version: LN_BUILD });
+      }
       if (url.pathname.indexOf('/admin/') === 0) return await this.admin(request, url);
       if (url.pathname.indexOf('/photo/') === 0) return this.photo(url.pathname.slice(7));
       if (url.pathname === '/photos') return this.gallery(url);
@@ -2834,6 +2841,7 @@ export class Shop {
   }
   /* every minute (Cloudflare cron): holds that ran out, payments, reminders, LINE pushes, 22:00 clock-out */
   async tick() {
+    this.lastTick = cfNow().stamp;
     if (!this.cfg) return { ok: false, error: 'NOT_SET_UP' };
     var job = this.newJob(), st = this.store(job), now = cfNow(), out = { ok: true };
     if (now.min >= LN_AUTO_OUT && now.min < LN_AUTO_OUT + 5) lnAutoClockOut(st, now);
