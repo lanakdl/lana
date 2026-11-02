@@ -612,6 +612,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
       var w2 = b.waiting.filter(function (x) { return x.id === sh.id; })[0], who = b.staff.filter(function (s) { return s.id === sh.staff; })[0]; if (!w2 || !who) { S.sheet = null; return ''; }
       return '<h2>' + esc(who.name) + ' รับคิว ' + esc(w2.q) + '</h2><span class="sub">' + esc(w2.prog) + (w2.handoff ? ' · ทำขั้น' + esc(w2.next) : ' · ' + w2.min + ' นาที') + '<br>กดแล้วเริ่มนับเวลาทันที และปริ้นใบงานออกมา</span>' +
         (who.busy.length ? '<span class="serr">' + esc(who.name) + ' กำลังทำ ' + esc(who.busy.join(', ')) + ' อยู่ ใช่คนนี้แน่ใช่ไหม</span>' : '') +
+        (who.on && w2.people > 1 && !w2.handoff ? '<span class="sub" style="margin-top:8px">มากัน ' + w2.people + ' คน · ' + w2.name.split(', ').slice(1).map(function (n, j) { return 'คนที่ ' + (j + 2) + ' (' + esc(n) + ') ใครทำ:'; })[0] + '</span><div class="mvtimes">' + b.staff.filter(function (x) { return x.on; }).map(function (x) { return '<button class="chip' + ((sh.staff2 || sh.staff) === x.id ? ' on' : '') + '" data-st2="' + esc(x.id) + '" aria-pressed="' + ((sh.staff2 || sh.staff) === x.id) + '">' + esc(x.name) + (x.id === sh.staff ? ' (คนเดียวทำทั้งคู่)' : '') + '</button>'; }).join('') + '</div>' : '') +
         (who.on ? '<div class="acts"><button class="sb olive" id="accept"' + (S.busy ? ' disabled' : '') + '>รับงาน + ปริ้นใบงาน</button><button class="sb ghost" data-back>‹ เปลี่ยนชื่อ</button></div>'
           : '<span class="serr">' + esc(who.name) + ' ยังไม่ได้เข้างานวันนี้ ต้องเข้างานก่อน (ใส่ PIN + ถ่ายรูป)</span><div class="acts"><button class="sb olive" data-clockfor="' + esc(who.id) + '">เข้างานก่อน แล้วรับงาน</button><button class="sb ghost" data-back>‹ เปลี่ยนชื่อ</button></div>');
     }
@@ -1063,12 +1064,13 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
         .catch(function (x) { S.busy = false; if (String(x.message) === 'BAD_PIN') { sh0.pin = ''; render(); return toast(errT(x)); } stopCam(); S.sheet = null; toast(errT(x)); render(); });
     }
     if (d.name) { S.sheet = { kind: 'confirm', id: S.sheet.id, staff: d.name }; return render(); }
+    if (d.st2) { S.sheet.staff2 = d.st2 === S.sheet.staff ? '' : d.st2; return render(); }
     if (d.live) { S.sheet = { kind: 'live', id: d.live }; return render(); }
     if (el.id === 'accept') {
       /* feels instant: the card leaves the queue now, the server confirms in the background */
-      var aid = S.sheet.id, ast = S.sheet.staff, aw = (S.b.waiting || []).filter(function (w) { return w.id === aid; })[0];
+      var aid = S.sheet.id, ast = S.sheet.staff, ast2 = S.sheet.staff2 || '', aw = (S.b.waiting || []).filter(function (w) { return w.id === aid; })[0];
       S.sheet = null; S.b.waiting = (S.b.waiting || []).filter(function (w) { return w.id !== aid; }); render(); toast('รับงาน ' + (aw ? aw.q : '') + ' แล้ว · กำลังบันทึก…');
-      return api('sAccept', { id: aid, staffId: ast }).then(function (r) { S.b = r.board; S.skew = Date.now(); render(); toast('รับงานแล้ว เริ่มนับเวลา · ปริ้นใบงาน'); printSlip(r.slip, aid); })
+      return api('sAccept', { id: aid, staffId: ast, crew: ast2 ? [ast, ast2] : undefined }).then(function (r) { S.b = r.board; S.skew = Date.now(); render(); toast('รับงานแล้ว เริ่มนับเวลา · ปริ้นใบงาน'); printSlip(r.slip, aid); })
         .catch(function (x) { toast(errT(x)); load(true); });
     }
     if (d.up) { var up = d.up.split('|'), lv2 = S.b.live.filter(function (x) { return x.id === S.sheet.id; })[0];

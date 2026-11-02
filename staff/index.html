@@ -1596,7 +1596,7 @@ function lnStationTick(store, now) {
       if (!unit) { if (r.waitSince == null) { r.waitSince = now.min; changed = true; } return; }   /* next seat still in use: the guest waits where they are */
       if (r.waitSince != null) { if (prev) prev.end = now.min; r.start = now.min; r.end = now.min + len; delete r.waitSince; }   /* waited for a seat: this step still gets its full time */
       /* otherwise the step began on time (the minute timer may have skipped a few minutes): keep the planned times */
-      r.unit = unit; r.scanned = true; r.scannedAt = r.start; r.staffId = b.staffId; delete r.clash; changed = true;
+      r.unit = unit; r.scanned = true; r.scannedAt = r.start; r.staffId = (prev && prev.staffId) || b.staffId; delete r.clash; changed = true;   /* each guest stays with their own therapist */
     });
     if (changed) { var rb = lnBuildLive(b, br, lnOccupied(all, b.id, now.min), now.min, true); if (rb.ok) b.live = rb.live; }
     if (!(b.live || []).some(function (r) { return !r.scanned; }) && now.min >= lnEnd(b)) {
@@ -1620,6 +1620,10 @@ function stAccept(b, br, req, store, now) {
     return { slip: stSlip(b, br, store), board: stBoard(br, store, now) };
   }
   if (b.status !== 'checkedin') throw new Error('TAKEN');
+  /* a couple / group: each guest may have their own therapist (crew[i] = staff for guest i, blank = the one accepting) */
+  var crewS = b.people.map(function (pe, i) { var id = (req.crew || [])[i]; if (!id || id === s.id) return s;
+    var x = lnFind(store.staff(), id); if (!x || x.branch !== br.id || String(x.active).toUpperCase() === 'FALSE') throw new Error('BAD_STAFF');
+    if (!store.shifts().some(function (r) { return r.staffId === x.id && r.date === now.date && !r.out; })) throw new Error('CLOCK_IN_FIRST'); return x; });
   var first = b.people[0].alloc[0], occ0 = physical(), len0 = first.end - first.start;
   var seat0 = stSeatNow(br, b, occ0, now);
   if (!seat0) throw new Error('SEAT_BUSY');
@@ -1631,8 +1635,8 @@ function stAccept(b, br, req, store, now) {
   var built = lnBuildLive(b, br, others, now.min, true);
   if (!built.ok) { b.svcStart = ''; b.people[0].alloc[0] = first; throw new Error('SEAT_BUSY'); }
   b.live = built.live;
-  b.live.forEach(function (row) { if (row.i === 0) { row.scanned = true; row.scannedAt = now.min; row.staffId = s.id; } });
-  b.status = 'inservice'; b.auto = true; b.staffId = s.id; b.staffName = s.name; b.acceptedAt = lnHM(now.min); lnCrewAdd(b, s); b.lastAccept = { staffId: s.id, at: now.min, kind: 'first' };
+  b.live.forEach(function (row) { if (row.i === 0) { row.scanned = true; row.scannedAt = now.min; row.staffId = (crewS[row.pi] || s).id; } });
+  b.status = 'inservice'; b.auto = true; b.staffId = s.id; b.staffName = s.name; b.acceptedAt = lnHM(now.min); crewS.forEach(function (x) { lnCrewAdd(b, x); }); b.lastAccept = { staffId: s.id, at: now.min, kind: 'first' };
   lnPrintWant(b, now);
   store.saveBooking(b); lnReseat(b, br, all).forEach(function (x) { store.saveBooking(x); });
   store.log(s.id, b.id, 'accept', 'station ' + LANA.RES[seat0.res][2] + unit);

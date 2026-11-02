@@ -358,6 +358,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     p.forEach(function (x) { g[x.type] = x.value; });
     var shared = (function () { try { return window.parent !== window && window.parent.__LANA_SHARED || null; } catch (e) { return null; } })();
     DNOW = shared ? shared.now : { date: g.year + '-' + g.month + '-' + g.day, min: 14 * 60 }; DS = shared ? shared.store : memStore(); S.key = 'demo-kiosk'; S.branch = S.branch || 'NIM';
+    if (!shared) DS.staff().forEach(function (x) { if (x.branch === 'NIM') DS.addShift({ staffId: x.id, date: DNOW.date, branch: 'NIM', in: '10:00', out: '' }); });   /* demo: therapists already on shift */
     window.__DEMO = { store: DS, now: DNOW };
   }
 
@@ -383,7 +384,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     return fetch(APP.API_URL, { method: 'POST', body: JSON.stringify(req) }).then(function (r) { return r.json(); }, function () { throw new Error('NET'); })
       .then(function (j) { if (!j.ok) throw new Error(j.error); return j.data; });
   }
-  var ERR = { ALREADY_PAID: ['จ่ายแล้ว', 'Already paid'], NET: ['เชื่อมต่อไม่ได้ ลองใหม่', 'Connection problem, try again'], KIOSK_KEY: ['รหัสแท็บเล็ตไม่ถูกต้อง', 'Wrong tablet password'], FULL: ['วันนี้เต็มแล้ว', 'Fully booked today'], TOO_LATE: ['โปรแกรมนี้ไม่ทันก่อนร้านปิด เลือกโปรแกรมที่สั้นกว่า', 'Not enough time before we close. Try a shorter treatment.'],
+  var ERR = { CLOCK_IN_FIRST: ['ต้องเข้างานก่อน (หน้ารับงาน › เข้า/ออกงาน)', 'Clock in first'], SEAT_BUSY: ['เตียงที่ต้องใช้ยังไม่ว่าง ลองใหม่อีกสักครู่', 'The seat is not free yet, try again shortly'], TAKEN: ['คิวนี้มีคนรับไปแล้ว', 'Already taken'], ALREADY_PAID: ['จ่ายแล้ว', 'Already paid'], NET: ['เชื่อมต่อไม่ได้ ลองใหม่', 'Connection problem, try again'], KIOSK_KEY: ['รหัสแท็บเล็ตไม่ถูกต้อง', 'Wrong tablet password'], FULL: ['วันนี้เต็มแล้ว', 'Fully booked today'], TOO_LATE: ['โปรแกรมนี้ไม่ทันก่อนร้านปิด เลือกโปรแกรมที่สั้นกว่า', 'Not enough time before we close. Try a shorter treatment.'],
     CLOSED: ['ร้านปิดแล้ว เปิด 10:00–21:00', 'We are closed. Open 10:00–21:00'], PAY_FIRST: ['นัดนี้ยังไม่ได้จ่าย กดจ่ายและรับคิว', 'This booking is unpaid. Tap Pay to get your queue number'], NEED_NAME: ['ใส่ชื่อ', 'Enter your name'], BAD_PHONE: ['เบอร์ไม่ครบ หรือเว้นว่างไว้ก็ได้', 'Phone looks incomplete; you can leave it empty'],
     BAD_EMAIL: ['อีเมลไม่ถูกต้อง หรือเว้นว่างไว้ก็ได้', 'Email looks wrong; you can leave it empty'], NEED_HAIR: ['เลือกความยาวผมก่อน', 'Choose hair length first'], NO_TICKET: ['ตั๋วใช้เวลานี้ไม่ได้', 'No ticket usable now'],
     NOT_HERE: ['สาขานี้ไม่มีโปรแกรมนี้', 'Not available here'], NEED_STARS: ['ให้ดาวก่อน', 'Please rate first'], PAY_SETUP: ['ระบบจ่ายเงินยังไม่ได้ตั้งค่า', 'Payments are not set up yet'], PAY_FAILED: ['เปิดหน้าจ่ายเงินไม่ได้ ลองใหม่', 'Could not open payment, try again'], NOT_FOUND: ['ไม่พบรายการ', 'Not found'], NEED_CONTACT: ['ซื้อคอร์สต้องใส่เบอร์หรืออีเมล', 'Courses need a phone or email'], BAD_BRANCH: ['สาขานี้ยังไม่เปิด', 'This branch is not open'] };
@@ -484,7 +485,7 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
       var nextBtn = k.next && (k.next.held || []).length ? '<button class="btn kb" data-knext-t>' + t('เช็กอินคนถัดไป (ใช้ตั๋ว): ', 'Check in the next guest (ticket): ') + esc(k.next.booking.people[0].name) + '</button>' : k.next && (k.next.tickets || []).length ? '<button class="btn kb" data-knext-t>' + t('คนถัดไปใช้ตั๋ว: ', 'Next guest uses a ticket: ') + esc(k.next.booking.people[0].name) + '</button>' + '<button class="btn kb ghost" data-knext>' + t('คนถัดไปจ่ายเงิน', 'Next guest pays') + '</button>' : k.next ? '<button class="btn kb" data-knext>' + t('จ่ายของคนถัดไป: ', 'Pay for the next guest: ') + esc(k.next.booking.people[0].name) + '</button>' : '';
       return '<div class="khome"><span class="eyebrow">' + t('เช็กอินแล้ว', 'Checked in') + '</span><div class="qno">' + esc(k.q) + '</div><h2>' + t('รอเรียกคิวสักครู่นะคะ', 'We will call your number shortly') + '</h2>' +
         '<p class="hint">' + esc(k.label || '') + '</p>' + slipCard(k) + '<p class="hint" style="font-size:16px">' + t('นั่งรอได้เลย เดี๋ยวพนักงานเรียกคิว', 'Please take a seat, we will call your number.') + '</p><p class="hint">' + t('เสร็จแล้วกลับมาที่แท็บเล็ตนี้ แตะ "จ่ายและให้ดาวก่อนกลับ"', 'When you finish, come back here and tap "Pay & rate before you leave".') + '</p>' +
-        nextBtn + (k.bid && !demo ? '<a class="btn kb" style="text-decoration:none;text-align:center;display:block" href="../station/?accept=' + encodeURIComponent(k.bid) + '">' + t('หมอนวดรับงานเลย ›', 'Therapist: start this job ›') + '</a>' : '') + '<button class="btn kb' + (nextBtn || k.bid ? ' ghost' : '') + '" data-k="home">' + t('เสร็จ', 'Done') + '</button></div>';
+        nextBtn + (k.bid ? acceptHtml(k) : '') + '<button class="btn kb' + (nextBtn || (k.bid && !k.acc) ? ' ghost' : '') + '" data-k="home">' + t('เสร็จ', 'Done') + '</button></div>';
     }
     if (k.screen === 'out') {
       if (!k.list) { api('kOut').then(function (r) { S.k.list = r.list; render(); }).catch(function (e) { toast(errT(e)); }); return '<p class="hint">…</p>'; }
@@ -660,6 +661,18 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
       .catch(function (e) { toast(errT(e)); waitOrder(id, label); });
   }
   /* staff confirm the card machine payment right here: tap your name, type your PIN */
+  /* the therapist takes the job right here on the kiosk: tap your name (no need to open the job board) */
+  function acceptHtml(k) {
+    if (k.acc) return '<div class="ticket" style="width:min(520px,100%);text-align:center;margin:8px auto;background:var(--sand);border-color:var(--sand)"><b>' + t('รับงานแล้ว · ', 'Started · ') + esc(k.acc) + '</b><span class="hint">' + t('เริ่มนับเวลาแล้ว ใบงานส่งไปเครื่องปริ้น', 'Timer started, slip sent to the printer') + '</span></div>';
+    if (!k.accOpen) return '<button class="btn kb" data-kacc>' + t('หมอนวดรับงานเลย', 'Therapist: start this job') + '</button>';
+    if (!k.accList) return '<div class="spin"></div>';
+    var on = k.accList.filter(function (s) { return s.on; }), ppl = k.view ? k.view.people : [], step = (k.accPick || []).length;
+    if (k.accBusy) return '<div class="spin"></div>';
+    var title = ppl.length > 1 ? t('ใครทำคนที่ ', 'Who takes person ') + (step + 1) + ' (' + esc(ppl[step].name) + ')' + (step ? t(' · แตะชื่อเดิมได้ถ้าทำคนเดียวทั้งคู่', ' · tap the same name to do both') : '') : t('ใครรับงานนี้ (แตะชื่อตัวเอง)', 'Who takes this job? (tap your name)');
+    return '<div class="ticket" style="width:min(560px,100%);margin:8px auto"><b>' + title + '</b>' +
+      (on.length ? '<div class="chips" style="justify-content:center;margin-top:10px">' + on.map(function (s) { return '<button class="opt" style="min-width:130px" data-kaccby="' + esc(s.id) + '"' + (k.accBusy ? ' disabled' : '') + '><span class="t" style="text-align:center">' + esc(s.name) + '</span>' + (s.busy.length ? '<span class="s" style="text-align:center">' + t('กำลังทำ ', 'busy ') + esc(s.busy.join(', ')) + '</span>' : '') + '</button>'; }).join('') + '</div>'
+        : '<p class="hint">' + t('ยังไม่มีใครเข้างาน · เข้างานที่หน้ารับงานก่อน', 'Nobody is clocked in yet') + '</p>') + (k.accErr ? '<p class="err">' + esc(k.accErr) + '</p>' : '') + '</div>';
+  }
   function cardPayHtml(k) {
     var cp = k.cp;
     if (!cp.staff) return '<div class="ticket" style="width:min(560px,100%)"><b>' + t('ใครรูดบัตร (แตะชื่อตัวเอง)', 'Who took the card? (tap your name)') + '</b>' + (cp.list ? '<div class="chips" style="justify-content:center;margin-top:10px">' + cp.list.map(function (s) { return '<button class="opt" style="min-width:120px" data-kcpstaff="' + esc(s.id) + '"><span class="t" style="text-align:center">' + esc(s.name) + '</span>' + (s.on ? '' : '<span class="s" style="text-align:center">' + t('ยังไม่เข้างาน', 'off shift') + '</span>') + '</button>'; }).join('') + '</div>' : '<div class="spin"></div>') + '</div>';
@@ -790,6 +803,13 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     if (d.paybeam !== undefined && k.r) return goBeam(k.r, k.label);
     if (d.paycounter) return goCounter(d.paycounter, (k.r || {}).amount, k.label);
     if (d.paycancelk) return kCancelPay(d.paycancelk);
+    if (d.kacc !== undefined) { k.accOpen = true; k.accList = null; k.accErr = ''; k.accPick = []; render(); return stApi('sBoard', {}).then(function (b) { if (S.k === k) { k.accList = b.staff || []; render(); } }).catch(function (e) { k.accOpen = false; toast(errT(e)); render(); }); }
+    if (d.kaccby) { var nPpl = k.view ? k.view.people.length : 1; k.accPick = (k.accPick || []).concat([d.kaccby]);
+      if (k.accPick.length < nPpl) return render();   /* couple: pick a therapist for each guest */
+      var picks = k.accPick, nameOf = function (id) { return ((k.accList || []).filter(function (s) { return s.id === id; })[0] || {}).name || ''; };
+      k.accBusy = true; k.accErr = ''; render();
+      return stApi('sAccept', { id: k.bid, staffId: picks[0], crew: picks.length > 1 ? picks : undefined }).then(function () { k.accBusy = false; k.acc = picks.filter(function (x, i) { return picks.indexOf(x) === i; }).map(nameOf).join(' + '); render(); })
+        .catch(function (e) { k.accBusy = false; k.accPick = []; k.accErr = errT(e); render(); }); }
     if (d.kcard !== undefined) { k.cp = { staff: '', pin: '', list: null }; render(); return api('kStaff', {}).then(function (r) { if (k.cp) { k.cp.list = r.staff; render(); } }).catch(function (e) { k.cp = null; toast(errT(e)); render(); }); }
     if (d.kcpstaff) { k.cp.staff = d.kcpstaff; k.cp.pin = ''; return render(); }
     if (d.kcppin) return cardPin(d.kcppin);
