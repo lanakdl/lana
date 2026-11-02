@@ -1626,6 +1626,8 @@ function stAccept(b, br, req, store, now) {
     if (!store.shifts().some(function (r) { return r.staffId === x.id && r.date === now.date && !r.out; })) throw new Error('CLOCK_IN_FIRST'); return x; });
   var first = b.people[0].alloc[0], occ0 = physical(), len0 = first.end - first.start;
   var seat0 = stSeatNow(br, b, occ0, now);
+  /* staff can see the seat is really free (the last guest left, nobody pressed finish): start anyway */
+  if (!seat0 && req.force) { seat0 = lnSeatCands(br, b.people[0], 0, first)[0]; b.forced = true; }
   if (!seat0) throw new Error('SEAT_BUSY');
   var unit = seat0.unit, kinds0 = lnKinds((b.people[0].chain[0] || first).res);
   b.svcStart = now.min;
@@ -1633,13 +1635,14 @@ function stAccept(b, br, req, store, now) {
   b.people[0].alloc[0] = Object.assign({}, first, { res: seat0.res, unit: unit });
   var others = lnOccupied(all, b.id, now.min).filter(function (row) { var x = lnFind(all, row.bid); return kinds0.indexOf(row.res) < 0 || (x && x.status === 'inservice'); });
   var built = lnBuildLive(b, br, others, now.min, true);
+  if (!built.ok && req.force) built = lnBuildLive(b, br, [], now.min, true);
   if (!built.ok) { b.svcStart = ''; b.people[0].alloc[0] = first; throw new Error('SEAT_BUSY'); }
   b.live = built.live;
   b.live.forEach(function (row) { if (row.i === 0) { row.scanned = true; row.scannedAt = now.min; row.staffId = (crewS[row.pi] || s).id; } });
   b.status = 'inservice'; b.auto = true; b.staffId = s.id; b.staffName = s.name; b.acceptedAt = lnHM(now.min); crewS.forEach(function (x) { lnCrewAdd(b, x); }); b.lastAccept = { staffId: s.id, at: now.min, kind: 'first' };
   lnPrintWant(b, now);
   store.saveBooking(b); lnReseat(b, br, all).forEach(function (x) { store.saveBooking(x); });
-  store.log(s.id, b.id, 'accept', 'station ' + LANA.RES[seat0.res][2] + unit);
+  store.log(s.id, b.id, req.force ? 'accept_forced' : 'accept', 'station ' + LANA.RES[seat0.res][2] + unit);
   return { slip: stSlip(b, br, store), board: stBoard(br, store, now) };
 }
 /* begin the next step of each guest now (picked up from the shared queue, or the same therapist moving on early) */

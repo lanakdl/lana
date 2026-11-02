@@ -671,7 +671,14 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     var title = ppl.length > 1 ? t('ใครทำคนที่ ', 'Who takes person ') + (step + 1) + ' (' + esc(ppl[step].name) + ')' + (step ? t(' · แตะชื่อเดิมได้ถ้าทำคนเดียวทั้งคู่', ' · tap the same name to do both') : '') : t('ใครรับงานนี้ (แตะชื่อตัวเอง)', 'Who takes this job? (tap your name)');
     return '<div class="ticket" style="width:min(560px,100%);margin:8px auto"><b>' + title + '</b>' +
       (on.length ? '<div class="chips" style="justify-content:center;margin-top:10px">' + on.map(function (s) { return '<button class="opt" style="min-width:130px" data-kaccby="' + esc(s.id) + '"' + (k.accBusy ? ' disabled' : '') + '><span class="t" style="text-align:center">' + esc(s.name) + '</span>' + (s.busy.length ? '<span class="s" style="text-align:center">' + t('กำลังทำ ', 'busy ') + esc(s.busy.join(', ')) + '</span>' : '') + '</button>'; }).join('') + '</div>'
-        : '<p class="hint">' + t('ยังไม่มีใครเข้างาน · เข้างานที่หน้ารับงานก่อน', 'Nobody is clocked in yet') + '</p>') + (k.accErr ? '<p class="err">' + esc(k.accErr) + '</p>' : '') + '</div>';
+        : '<p class="hint">' + t('ยังไม่มีใครเข้างาน · เข้างานที่หน้ารับงานก่อน', 'Nobody is clocked in yet') + '</p>') + (k.accErr ? '<p class="err">' + esc(k.accErr) + '</p>' : '') +
+      (k.accSeat ? '<button class="btn kb" data-kaccforce>' + t('เตียงว่างจริง · รับซ้อนเลย', 'The seat is free · start anyway') + '</button>' : '') + '</div>';
+  }
+  function kAccept(k, force) {
+    var picks = k.accPick, nameOf = function (id) { return ((k.accList || []).filter(function (s) { return s.id === id; })[0] || {}).name || ''; };
+    k.accBusy = true; k.accErr = ''; k.accSeat = false; render();
+    return stApi('sAccept', { id: k.bid, staffId: picks[0], crew: picks.length > 1 ? picks : undefined, force: !!force }).then(function () { k.accBusy = false; k.acc = picks.filter(function (x, i) { return picks.indexOf(x) === i; }).map(nameOf).join(' + '); render(); })
+      .catch(function (e) { k.accBusy = false; k.accForcePick = picks; k.accPick = []; k.accSeat = String(e.message) === 'SEAT_BUSY'; k.accErr = errT(e); render(); });
   }
   function cardPayHtml(k) {
     var cp = k.cp;
@@ -806,10 +813,9 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
     if (d.kacc !== undefined) { k.accOpen = true; k.accList = null; k.accErr = ''; k.accPick = []; render(); return stApi('sBoard', {}).then(function (b) { if (S.k === k) { k.accList = b.staff || []; render(); } }).catch(function (e) { k.accOpen = false; toast(errT(e)); render(); }); }
     if (d.kaccby) { var nPpl = k.view ? k.view.people.length : 1; k.accPick = (k.accPick || []).concat([d.kaccby]);
       if (k.accPick.length < nPpl) return render();   /* couple: pick a therapist for each guest */
-      var picks = k.accPick, nameOf = function (id) { return ((k.accList || []).filter(function (s) { return s.id === id; })[0] || {}).name || ''; };
-      k.accBusy = true; k.accErr = ''; render();
-      return stApi('sAccept', { id: k.bid, staffId: picks[0], crew: picks.length > 1 ? picks : undefined }).then(function () { k.accBusy = false; k.acc = picks.filter(function (x, i) { return picks.indexOf(x) === i; }).map(nameOf).join(' + '); render(); })
-        .catch(function (e) { k.accBusy = false; k.accPick = []; k.accErr = errT(e); render(); }); }
+      return kAccept(k);
+    }
+    if (d.kaccforce !== undefined) { k.accPick = k.accForcePick || []; return kAccept(k, true); }
     if (d.kcard !== undefined) { k.cp = { staff: '', pin: '', list: null }; render(); return api('kStaff', {}).then(function (r) { if (k.cp) { k.cp.list = r.staff; render(); } }).catch(function (e) { k.cp = null; toast(errT(e)); render(); }); }
     if (d.kcpstaff) { k.cp.staff = d.kcpstaff; k.cp.pin = ''; return render(); }
     if (d.kcppin) return cardPin(d.kcppin);

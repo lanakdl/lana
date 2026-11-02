@@ -1070,8 +1070,11 @@ button.working::after { content: ''; position: absolute; right: 10px; top: 50%; 
       /* feels instant: the card leaves the queue now, the server confirms in the background */
       var aid = S.sheet.id, ast = S.sheet.staff, ast2 = S.sheet.staff2 || '', aw = (S.b.waiting || []).filter(function (w) { return w.id === aid; })[0];
       S.sheet = null; S.b.waiting = (S.b.waiting || []).filter(function (w) { return w.id !== aid; }); render(); toast('รับงาน ' + (aw ? aw.q : '') + ' แล้ว · กำลังบันทึก…');
-      return api('sAccept', { id: aid, staffId: ast, crew: ast2 ? [ast, ast2] : undefined }).then(function (r) { S.b = r.board; S.skew = Date.now(); render(); toast('รับงานแล้ว เริ่มนับเวลา · ปริ้นใบงาน'); printSlip(r.slip, aid); })
-        .catch(function (x) { toast(errT(x)); load(true); });
+      var accReq = { id: aid, staffId: ast, crew: ast2 ? [ast, ast2] : undefined }, accOk = function (r) { S.b = r.board; S.skew = Date.now(); render(); toast('รับงานแล้ว เริ่มนับเวลา · ปริ้นใบงาน'); printSlip(r.slip, aid); };
+      return api('sAccept', accReq).then(accOk)
+        .catch(function (x) { load(true); if (String(x.message) !== 'SEAT_BUSY') return toast(errT(x));
+          ask('ระบบยังเห็นว่าเตียงไม่ว่าง (คิวก่อนหน้ายังไม่กดจบ หรือเพิ่งเลิก) · ถ้าเตียงว่างจริง รับซ้อนได้เลย', 'เตียงว่างจริง · รับซ้อนเลย', function () {
+            return api('sAccept', Object.assign({ force: true }, accReq)).then(accOk).catch(function (y) { toast(errT(y)); load(true); }); }); });
     }
     if (d.up) { var up = d.up.split('|'), lv2 = S.b.live.filter(function (x) { return x.id === S.sheet.id; })[0];
       var it = lv2 && lv2.upsell ? (up[0] === 'addon' ? lv2.upsell.addons : lv2.upsell.styles).filter(function (x) { return x.id === up[1]; })[0] : null; if (!it) return;
