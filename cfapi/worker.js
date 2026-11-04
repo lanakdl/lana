@@ -1035,12 +1035,13 @@ function ownerApi(req, store, now) {
       if (!inBr(b.branch) || b.date !== date || paidVisit[b.id] || (b.status !== 'finished' && b.status !== 'done')) return;
       var p = lnFind(LANA.PROGRAMS, b.people[0].prog) || {};
       if (b.kiosk && !(b.tix || []).length) return;
-      rows.push({ time: b.checkedAt || lnHM(+b.svcStart || 0), name: who(null, b), what: (p.name_th || '') + (b.people.length > 1 ? ' × ' + b.people.length + ' คน' : ''), kind: 'ใช้ตั๋วคอร์ส', branch: b.branch, amount: 0, tip: 0, q: b.q || '' });
+      var ptn = b.partner ? lnFind(LANA.PARTNERS || [], b.partner) : null;
+      rows.push({ time: b.checkedAt || lnHM(+b.svcStart || 0), name: who(null, b), what: (p.name_th || '') + (b.people.length > 1 ? ' × ' + b.people.length + ' คน' : '') + (b.partner ? ' · ' + (b.proof === 'line' ? 'คูปอง LINE' : 'บิลคลินิก') + (b.phone ? ' · ' + b.phone : '') : ''), kind: b.partner ? 'พาร์ทเนอร์ ' + (ptn ? ptn.name_th : b.partner) : 'ใช้ตั๋วคอร์ส', photo: b.proofPhoto || '', branch: b.branch, amount: 0, tip: 0, q: b.q || '' });
     });
     rows.sort(function (a, b) { return a.time < b.time ? -1 : 1; });
     var tot = { sales: 0, tips: 0, bills: 0, byKind: {} };
     tot.byPay = {}; rows.forEach(function (r) { tot.sales += r.amount; tot.tips += r.tip; if (r.amount > 0 || r.tip) tot.bills++; tot.byKind[r.kind] = (tot.byKind[r.kind] || 0) + r.amount; if (r.pay) tot.byPay[r.pay] = (tot.byPay[r.pay] || 0) + r.amount + r.tip; });
-    var guests = 0; bks.forEach(function (b) { if (inBr(b.branch) && b.date === date && (b.status === 'finished' || b.status === 'done')) guests += b.people.length; });
+    var guests = 0; tot.byPartner = {}; bks.forEach(function (b) { if (inBr(b.branch) && b.date === date && (b.status === 'finished' || b.status === 'done')) { guests += b.people.length; if (b.partner) { var pn = (lnFind(LANA.PARTNERS || [], b.partner) || {}).name_th || b.partner; tot.byPartner[pn] = (tot.byPartner[pn] || 0) + 1; } } });
     var dayPay = pay.filter(function (p) { return p.date === date; }).map(function (p) { return { name: p.name, jobs: p.jobs, fee: Math.round(p.fee), tips: p.tips, total: Math.round(p.fee + p.tips) }; });
     tot.payroll = dayPay.reduce(function (t, p) { return t + p.total; }, 0);
     var att = store.shifts().filter(function (r) { var s = lnFind(staff, r.staffId); return r.date === date && s && inBr(s.branch); }).map(function (r) {
@@ -2382,6 +2383,36 @@ function cKiosk(a, req, store, now) {
     return r;
   }
   if (a === 'kStart') return cKioskStart(req, store, now, br);
+  /* guest from a partner clinic: staff look at the clinic receipt, type its number and their PIN. No membership, no code. */
+  if (a === 'kPartner') {
+    var pt = lnFind(LANA.PARTNERS || [], req.partner); if (!pt) throw new Error('BAD_FORM');
+    var pname = String(req.name || '').trim().slice(0, 40); if (!pname) throw new Error('NEED_NAME');
+    var pphone = lnNormPhone(req.phone || '', req.intl); if (!cPhoneOK(pphone)) throw new Error('BAD_PHONE');
+    var photo = String(req.photo || ''); if (!/^data:image\/jpeg;base64,/.test(photo)) throw new Error('NEED_PHOTO');
+    var proof = req.proof === 'line' ? 'line' : 'bill', rc = String(req.receipt || '').trim().toUpperCase().replace(/\s+/g, '');
+    /* one free visit per guest per clinic: the phone number is the check (a cancelled, unpaid try can be redone) */
+    var old = store.claims().filter(function (c) { return c.partner === pt.id && c.phone && c.phone === pphone; })[0], tk = null;
+    if (old) {
+      var ob = old.bookingId ? lnFind(store.bookings(), old.bookingId) : null, ot = old.ticketId ? lnFind(store.tickets(), old.ticketId) : null;
+      if (!ob || ob.status !== 'cancelled' || !ot || ot.status === 'used') throw new Error('CLAIMED');
+      tk = ot;
+    }
+    tk = tk || { id: 'T' + lnId(8), memberId: '', prog: pt.prog || 'PART45', status: 'active', src: 'partner', rule: pt.rule || '', expires: '', orderId: '', bookingId: '', createdAt: cStamp(now), usedAt: '' };
+    var pprog = lnFind(LANA.PROGRAMS, tk.prog); if (!pprog || !lnProgAt(pprog, br)) throw new Error('NOT_HERE');
+    var pr = Object.assign({}, req, { prog: tk.prog, pack: '1', others: null, phoneBooking: null, useTicket: false, memberChoice: 'partner', name: pname, phone: '', email: '' });
+    var out = cKioskStart(pr, store, now, br, tk);
+    var purl = store.savePhoto ? store.savePhoto(photo, now.date + '_' + pt.id + '_' + pphone.replace(/\D/g, '') + '.jpg') : '';
+    /* the phone makes them a member (or finds the one they already have), so a later LINE link brings this visit along */
+    var pm = cMemberBy(store, 'phone', pphone);
+    if (!pm) { pm = { id: 'M' + lnId(7), lineUserId: '', name: pname, phone: pphone, email: '', birthMonth: '', consentMarketing: 'FALSE', privacyAt: '', noShows: 0, source: 'partner', createdAt: cStamp(now), lastPrefs: '' }; store.saveMember(pm); }
+    tk.memberId = pm.id; store.saveTicket(tk);
+    var pb = lnFind(store.bookings(), out.bookingId); if (pb) { pb.memberId = pm.id; pb.guest = !pm.lineUserId; pb.partner = pt.id; pb.receipt = rc; pb.proof = proof; pb.proofPhoto = purl; pb.phone = pphone; store.saveBooking(pb); }
+    if (out.orderId) { var po2 = lnFind(store.orders(), out.orderId); if (po2) { po2.memberId = pm.id; store.saveOrder(po2); } }
+    if (old) { old.bookingId = out.bookingId; old.status = 'issued'; old.photo = purl; old.memberId = pm.id; store.saveClaim(old); }
+    else store.saveClaim({ id: 'C' + lnId(7), memberId: pm.id, partner: pt.id, receipt: rc || (proof === 'line' ? 'LINE' : 'BILL'), status: 'issued', createdAt: cStamp(now), name: pname, phone: pphone, bookingId: out.bookingId, ticketId: tk.id, proof: proof, photo: purl });
+    store.log('', out.bookingId, 'partner_walkin', pt.id + ' ' + proof + ' ' + pphone);
+    return out;
+  }
   /* guest prefers cash / card machine (or Beam is stuck): the order waits at the counter, the seat is held a little longer */
   if (a === 'kCounter') {
     var co = lnFind(store.orders(), req.id); if (!co || co.status !== 'pending') throw new Error('NOT_NOW');
@@ -2400,7 +2431,7 @@ function cKiosk(a, req, store, now) {
   throw new Error('UNKNOWN');
 }
 /* walk-in: pay now (or use a member ticket) and get a queue number, starting at the next free seat */
-function cKioskStart(req, store, now, br) {
+function cKioskStart(req, store, now, br, preset) {   /* preset: a ticket made here (partner clinic guest checked by staff) */
   if (now.min < LANA.OPEN || now.min >= LANA.CLOSE) throw new Error('CLOSED');
   var prog = lnFind(LANA.PROGRAMS, req.prog); if (!prog || !lnProgAt(prog, br)) throw new Error('NOT_HERE');
   var pe = cCleanPerson(prog, req.person, 0, null);
@@ -2431,9 +2462,10 @@ function cKioskStart(req, store, now, br) {
   }
   if (!al) throw new Error(Math.ceil(now.min / 5) * 5 + longest > LANA.CLOSE ? 'TOO_LATE' : 'FULL');
   var member = null, tix = null;
-  if (req.useTicket || req.memberChoice === 'buy') {
+  if (preset) { if (!cTicketOK(preset, now.date, start)) throw new Error('PARTNER_TIME'); tix = [preset]; }
+  else if (req.useTicket || req.memberChoice === 'buy') {
     member = cKioskFindMember(store, req); if (!member) throw new Error('NOT_MEMBER');
-  } else if (!req.memberChoice) {
+  } else if (!req.memberChoice && !preset) {
     var match = cKioskFindMember(store, req);
     if (match) return { match: { name: match.name, tickets: store.tickets().filter(function (k) { return k.memberId === match.id && k.status === 'active' && k.prog === prog.id && cTicketOK(k, now.date, start); }).length } };
   }
@@ -2442,7 +2474,7 @@ function cKioskStart(req, store, now, br) {
   var phone = req.phone ? lnNormPhone(req.phone, req.intl) : '', email = String(req.email || '').trim();
   if (req.phone && !cPhoneOK(phone)) throw new Error('BAD_PHONE');
   if (email && !cEmailOK(email)) throw new Error('BAD_EMAIL');
-  if (req.useTicket) {
+  if (req.useTicket && !preset) {
     /* a phone booking that already holds this member's ticket: use that one */
     var held = pb ? (pb.tix || []).map(function (id) { return lnFind(store.tickets(), id); }).filter(function (k) { return k && k.status === 'booked' && k.bookingId === pb.id && k.prog === prog.id; }) : [];
     tix = held.length ? [held[0]] : cPickTickets(store, member.id, prog.id, 1, now.date, start); if (!tix) throw new Error('NO_TICKET');
@@ -2602,7 +2634,7 @@ export class Shop {
     if (dirty) dirty.set(t + '\u0001' + key, [t, o]);
   }
   flush(dirty) {
-    var self = this;
+    var self = this; if (dirty.size) this.use('writes', dirty.size + 1);
     dirty.forEach(function (v) {
       var t = v[0], o = v[1], data = {};
       Object.keys(o).forEach(function (k) { if (k !== '_row' && k !== '_archived') data[k] = o[k]; });
@@ -2752,8 +2784,18 @@ export class Shop {
   }
 
   /* ---------- requests ---------- */
+  /* how much of Cloudflare's free daily allowance today has used (resets 07:00 Bangkok = 00:00 UTC) */
+  use(kind, n) {
+    var day = new Date().toISOString().slice(0, 10);
+    if (!this.usage || this.usage.day !== day) {
+      var saved = this.q("SELECT v FROM kv WHERE k = 'usage'")[0]; this.usage = saved ? JSON.parse(saved.v) : null;
+      if (!this.usage || this.usage.day !== day) this.usage = { day: day, req: 0, writes: 0 };
+    }
+    this.usage[kind] += n || 1;
+    if (kind === 'req' && this.usage.req % 50 === 0) this.sql.exec('INSERT OR REPLACE INTO kv (k, v) VALUES (?, ?)', 'usage', JSON.stringify(this.usage));
+  }
   async fetch(request) {
-    var url = new URL(request.url); this.origin = url.origin;
+    var url = new URL(request.url); this.origin = url.origin; this.use('req');
     try {
       this.trim();
       if (url.pathname === '/tick') return cfJson(await this.tick());
@@ -2762,6 +2804,7 @@ export class Shop {
         return cfJson({ ok: true, setUp: !!this.cfg, programs: this.cfg ? LANA.PROGRAMS.filter(function (p) { return lnOnSale(p); }).length : 0, staff: this.cfg ? (this.cfg.staff || []).length : 0,
           keys: { kiosk: !!sc.KIOSK_KEY, owner: !!sc.OWNER_KEY, beam: !!(sc.BEAM_MERCHANT_ID && sc.BEAM_API_KEY), lineStaff: !!sc.LINE_STAFF_TOKEN, custLogin: !!sc.CUST_LOGIN_CHANNEL, appsScript: !!this.gasUrl, adminKey: !!this.env.ADMIN_KEY },
           data: { bookings: db.bookings.length, orders: db.orders.length, members: db.members.length, tickets: db.tickets.length, shifts: db.shifts.length },
+          usageToday: { requests: this.usage.req, requestsFreeLimit: 100000, requestsPct: Math.round(this.usage.req / 1000), rowsWritten: this.usage.writes, rowsWrittenFreeLimit: 100000, rowsWrittenPct: Math.round(this.usage.writes / 1000), resets: '07:00 Bangkok' },
           lastTick: this.lastTick || '', now: cfNow().stamp, version: LN_BUILD });
       }
       if (url.pathname.indexOf('/admin/') === 0) return await this.admin(request, url);
